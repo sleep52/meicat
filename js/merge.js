@@ -24,10 +24,32 @@
   bestEl.textContent = best;
 
   const imgs = {};
+  const sprites = {}; // pre-rendered offscreen canvases
   LEVELS.forEach((lv, i) => {
     const im = new Image();
     im.src = `assets/${lv.img}_s.jpg`;
     imgs[i] = im;
+    // Pre-render sprite
+    const c = document.createElement("canvas");
+    const d = lv.r * 2 + 4;
+    c.width = d; c.height = d;
+    const cx = c.getContext("2d");
+    cx.beginPath();
+    cx.arc(d/2, d/2, lv.r, 0, Math.PI * 2);
+    cx.closePath();
+    cx.clip();
+    if (im.complete && im.naturalWidth) {
+      cx.drawImage(im, 2, 2, lv.r * 2, lv.r * 2);
+    } else {
+      cx.fillStyle = lv.color;
+      cx.fillRect(0, 0, d, d);
+    }
+    cx.strokeStyle = "#00000066";
+    cx.lineWidth = 2.5;
+    cx.beginPath();
+    cx.arc(d/2, d/2, lv.r, 0, Math.PI * 2);
+    cx.stroke();
+    sprites[i] = c;
   });
 
   let engine, world, bodies = [], score = 0, nextLevel = 0, aimX = W / 2;
@@ -117,27 +139,18 @@
 
   function drawCat(x, y, level, scale = 1, alpha = 1) {
     const lv = LEVELS[level];
-    const im = imgs[level];
+    const sprite = sprites[level];
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(x, y);
     ctx.scale(scale, scale);
-    if (im.complete && im.naturalWidth) {
-      ctx.beginPath();
-      ctx.arc(0, 0, lv.r, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(im, -lv.r, -lv.r, lv.r * 2, lv.r * 2);
+    if (sprite) {
+      ctx.drawImage(sprite, -lv.r - 2, -lv.r - 2);
     } else {
       ctx.fillStyle = lv.color;
       ctx.beginPath(); ctx.arc(0, 0, lv.r, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
-    ctx.strokeStyle = "#00000066";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(x, y, lv.r * scale, 0, Math.PI * 2);
-    ctx.stroke();
   }
 
   function draw() {
@@ -187,12 +200,18 @@
     if (!over) {
       const dt = Math.min(50, ts - lastTs);
       lastTs = ts;
-      Engine.update(engine, dt);
-      if (checkGameOver()) endGame();
+      // Update physics at 30fps for performance
+      if (ts - lastPhysicsUpdate > 33) {
+        Engine.update(engine, 33);
+        lastPhysicsUpdate = ts;
+        if (checkGameOver()) endGame();
+      }
     }
     draw();
     nextFrame();
   }
+
+  let lastPhysicsUpdate = 0;
 
   let rafWatch = 0, rafHappened = false;
   function nextFrame() {
@@ -209,6 +228,7 @@
     over = false;
     settleTimers.clear();
     lastTs = performance.now();
+    lastPhysicsUpdate = lastTs;
     aimX = W / 2;
     scoreEl.textContent = 0;
     el("startOverlay").classList.add("hidden");
