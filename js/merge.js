@@ -1,18 +1,14 @@
 (() => {
   const { Engine, World, Bodies, Events } = Matter;
 
-  // 红唇猫是最终形态 (level 10)
   const LEVELS = [
-    { img: "sleep",     r: 20, color: "#a8d8a8" },
-    { img: "flat",      r: 24, color: "#87ceeb" },
-    { img: "wide",      r: 28, color: "#dda0dd" },
-    { img: "sit",       r: 32, color: "#f0e68c" },
-    { img: "bunny",     r: 36, color: "#ffb6c1" },
-    { img: "seal",      r: 40, color: "#4ecdc4" },
-    { img: "hashbrown", r: 44, color: "#ffa500" },
-    { img: "eleme",     r: 48, color: "#4169e1" },
-    { img: "green",     r: 52, color: "#32cd32" },
-    { img: "lipstick",  r: 58, color: "#ff6b6b" },
+    { img: "sleep",     r: 22, color: "#a8d8a8" },
+    { img: "flat",      r: 27, color: "#87ceeb" },
+    { img: "wide",      r: 32, color: "#dda0dd" },
+    { img: "sit",       r: 37, color: "#f0e68c" },
+    { img: "bunny",     r: 42, color: "#ffb6c1" },
+    { img: "seal",      r: 47, color: "#4ecdc4" },
+    { img: "hashbrown", r: 52, color: "#ffa500" },
   ];
 
   const W = 420, H = 720, DANGER_Y = 110, DROP_Y = 70;
@@ -282,7 +278,7 @@
       [0, "猫山崩塌，铲屎官失业。"],
       [80, "勉强维持秩序，罐头还能发。"],
       [200, "合成大师，猫界炼金术士。"],
-      [400, "红唇降临，你已经是猫神。"],
+      [400, "薯饼降临，你已经是猫神。"],
     ];
     el("endComment").textContent = c.reduce((a, x) => (score >= x[0] ? x : a), c[0])[1];
     el("endOverlay").classList.remove("hidden");
