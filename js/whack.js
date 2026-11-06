@@ -19,10 +19,10 @@
   for (let i = 0; i < 9; i++) {
     const h = document.createElement("div");
     h.className = "hole";
-    h.innerHTML = `<div class="mole"><img alt=""><div style="position:absolute;left:0;right:0;top:-4px;text-align:center;font-size:11px;color:#ffe9c0;text-shadow:0 1px 3px #000"></div></div>`;
+    h.innerHTML = `<div class="mole"><img alt=""><div class="mole-name"></div></div>`;
     h.dataset.idx = i;
     board.appendChild(h);
-    holes.push({ el: h, img: h.querySelector("img"), name: h.querySelector("div div"), costume: null, timer: null });
+    holes.push({ el: h, img: h.querySelector("img"), name: h.querySelector(".mole-name"), costume: null, timer: null });
   }
 
   let running = false, score = 0, combo = 0, timeLeft = 30, feverUntil = 0;

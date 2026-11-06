@@ -53,6 +53,16 @@
     filter: drop-shadow(0 4px 6px #00000088);
   }
   .hole.up .mole { transform: translateY(0); }
+  .mole-name {
+    position: absolute;
+    left: 0; right: 0; top: -2px;
+    text-align: center;
+    font-size: clamp(10px, 2.6vw, 13px);
+    color: #ffe9c0;
+    text-shadow: 0 1px 3px #000, 0 0 6px #000;
+    z-index: 4;
+    pointer-events: none;
+  }
   .hole.up:active .mole img { filter: brightness(1.25); }
   .hole.hit .mole { animation: squash 0.22s ease-out forwards; }
   @keyframes squash {
