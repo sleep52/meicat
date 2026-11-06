@@ -36,11 +36,14 @@
     ESFP: { img: "baggif",    title: "表演猫",   desc: "你是猫界的超级明星，每个动作都是表演。你享受被关注的每一秒，撒娇、翻肚皮、打呼噜，都是你的拿手好戏。猫生就是一场秀！" },
   };
 
-  const DIM_LABELS = {
-    EI: { a: "E 外向", b: "I 内向", color: "#ff9f43" },
-    SN: { a: "S 实感", b: "N 直觉", color: "#54a0ff" },
-    TF: { a: "T 思考", b: "F 情感", color: "#ff6b6b" },
-    JP: { a: "J 判断", b: "P 感知", color: "#5f27cd" },
+  const DIM_NAMES = { EI: "外向 · 内向", SN: "实感 · 直觉", TF: "思考 · 情感", JP: "判断 · 感知" };
+  const OPT_ICONS = { E: "🐾", I: "🌙", S: "📦", N: "✨", T: "🧠", F: "💛", J: "📋", P: "🎲" };
+
+  const DIM_COLORS = {
+    EI: "#ff9f43",
+    SN: "#54a0ff",
+    TF: "#ff6b6b",
+    JP: "#a78bfa",
   };
 
   const el = (id) => document.getElementById(id);
@@ -49,9 +52,10 @@
 
   function showQuestion(idx) {
     const q = QUESTIONS[idx];
-    el("qNum").textContent = `第 ${idx + 1} / ${QUESTIONS.length} 题`;
     el("qText").textContent = q.text;
+    el("qDim").textContent = DIM_NAMES[q.dim];
     el("progressFill").style.width = `${((idx) / QUESTIONS.length) * 100}%`;
+    el("progressText").textContent = `${idx + 1} / ${QUESTIONS.length}`;
 
     const opts = el("qOptions");
     opts.innerHTML = "";
@@ -61,7 +65,7 @@
     shuffled.forEach((opt) => {
       const btn = document.createElement("button");
       btn.className = "q-opt";
-      btn.textContent = opt.text;
+      btn.innerHTML = `<span class="opt-icon">${OPT_ICONS[opt.val]}</span><span>${opt.text}</span>`;
       btn.addEventListener("click", () => {
         opts.querySelectorAll(".q-opt").forEach((b) => b.classList.remove("selected"));
         btn.classList.add("selected");
@@ -82,7 +86,7 @@
     const card = el("qCard");
     card.style.animation = "none";
     card.offsetHeight;
-    card.style.animation = "fadeIn 0.3s ease";
+    card.style.animation = "cardIn 0.35s cubic-bezier(.4,0,.2,1)";
   }
 
   function calcType() {
@@ -117,20 +121,22 @@
 
     el("progressFill").style.width = "100%";
 
-    const dimEntries = Object.entries(DIM_LABELS).map(([dim, meta]) => {
+    const dimEntries = Object.entries(DIM_COLORS).map(([dim, color]) => {
       const pct = pcts[dim];
       const isLeft = pct >= 50;
       const leftPct = isLeft ? pct : 100 - pct;
+      const names = DIM_NAMES[dim].split(" · ");
       return `
         <div class="dim-bar">
-          <div class="label">${meta.a} / ${meta.b}</div>
-          <div class="val" style="color:${meta.color}">${isLeft ? meta.a : meta.b} ${leftPct}%</div>
-          <div class="bar"><div class="bar-fill" style="width:${leftPct}%;background:${meta.color}"></div></div>
+          <div class="dim-label">${names[0]} / ${names[1]}</div>
+          <div class="dim-val" style="color:${color}">${isLeft ? names[0] : names[1]} ${leftPct}%</div>
+          <div class="dim-track"><div class="dim-fill" style="width:${leftPct}%;background:${color}"></div></div>
         </div>`;
     }).join("");
 
     el("resultScreen").innerHTML = `
-      <img src="assets/${info.img}_s.jpg" alt="${info.title}">
+      <img class="result-avatar" src="assets/${info.img}_s.jpg" alt="${info.title}">
+      <div class="result-badge">你的猫咪人格</div>
       <p class="result-type">${type}</p>
       <p class="result-title">${info.title}</p>
       <div class="result-dims">${dimEntries}</div>

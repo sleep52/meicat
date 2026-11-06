@@ -8,140 +8,228 @@
 <link rel="stylesheet" href="css/style.css">
 <style>
   .quiz-wrap {
+    width: 100%;
     max-width: 480px;
-    margin: 0 auto;
-    padding: 0 16px 40px;
+    padding: 0 4px 40px;
+  }
+
+  /* ===== 进度条 ===== */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
   }
   .progress-bar {
-    width: 100%;
-    height: 8px;
-    background: #ffffff18;
-    border-radius: 4px;
-    margin: 12px 0 24px;
+    flex: 1;
+    height: 10px;
+    background: #ffffff12;
+    border-radius: 5px;
     overflow: hidden;
   }
   .progress-fill {
     height: 100%;
-    background: var(--accent);
-    border-radius: 4px;
-    transition: width 0.35s ease;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 5px;
+    transition: width 0.4s cubic-bezier(.4,0,.2,1);
     width: 0%;
   }
-  .q-card {
-    background: var(--card);
-    border: 1px solid #ffffff18;
-    border-radius: var(--radius);
-    padding: 24px 20px;
-    text-align: center;
-    animation: fadeIn 0.3s ease;
-  }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-  .q-num {
+  .progress-text {
     font-size: 13px;
     color: var(--muted);
-    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+    min-width: 42px;
+    text-align: right;
+  }
+
+  /* ===== 开始页 ===== */
+  .start-screen {
+    text-align: center;
+    padding: 20px 0 30px;
+  }
+  .start-avatar {
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    border: 4px solid var(--accent);
+    box-shadow: 0 0 40px #ffb83033, 0 12px 32px #00000066;
+    object-fit: cover;
+    margin-bottom: 20px;
+    animation: bob 2.8s ease-in-out infinite;
+  }
+  @keyframes bob { 50% { transform: translateY(-8px) rotate(-2deg); } }
+  .start-screen h2 {
+    font-size: 26px;
+    margin: 0 0 6px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .start-screen .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+    margin: 0 0 28px;
+  }
+  .start-screen .subtitle b { color: var(--ink); }
+
+  /* ===== 题目卡片 ===== */
+  .q-card {
+    background: var(--card);
+    border: 1px solid #ffffff14;
+    border-radius: var(--radius);
+    padding: 28px 22px;
+    animation: cardIn 0.35s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.97); }
+    to   { opacity: 1; transform: none; }
+  }
+  .q-dim {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    background: #ffb83018;
+    border-radius: 6px;
+    padding: 3px 10px;
+    margin-bottom: 12px;
   }
   .q-text {
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 700;
     margin: 0 0 22px;
     line-height: 1.5;
   }
-  .q-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
+  .q-options { display: flex; flex-direction: column; gap: 12px; }
   .q-opt {
-    background: #ffffff0d;
-    border: 2px solid #ffffff22;
+    background: #ffffff08;
+    border: 2px solid #ffffff18;
     border-radius: 14px;
-    padding: 14px 18px;
+    padding: 16px 18px;
     font-size: 15px;
-    color: #fff;
+    color: var(--ink);
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    transition: all 0.15s ease;
     text-align: left;
     line-height: 1.5;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .q-opt .opt-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: #ffffff10;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
   }
   .q-opt:active { transform: scale(0.97); }
-  .q-opt:hover, .q-opt:focus { border-color: var(--accent); background: #ffffff14; outline: none; }
-  .q-opt.selected { border-color: var(--accent); background: var(--accent); color: #1a1000; font-weight: 600; }
-
-  /* start screen */
-  .start-screen {
-    text-align: center;
-    padding: 30px 0;
+  .q-opt:hover { border-color: #ffffff30; background: #ffffff10; }
+  .q-opt.selected {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, #ffb83022, #ff7a5918);
   }
-  .start-screen img {
-    width: 140px; height: 140px;
-    border-radius: 50%;
-    border: 4px solid var(--accent);
-    box-shadow: 0 8px 24px #00000066;
-    object-fit: cover;
-    margin-bottom: 18px;
+  .q-opt.selected .opt-icon {
+    background: var(--accent);
+    color: #2a1c00;
   }
-  .start-screen h2 { margin: 0 0 8px; font-size: 24px; }
-  .start-screen p { color: var(--muted); font-size: 14px; line-height: 1.7; margin: 0 0 24px; }
 
-  /* result screen */
+  /* ===== 结果页 ===== */
   .result-screen {
     text-align: center;
-    animation: fadeIn 0.5s ease;
+    animation: resultIn 0.6s cubic-bezier(.4,0,.2,1);
   }
-  .result-screen img {
-    width: 160px; height: 160px;
+  @keyframes resultIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .result-avatar {
+    width: 170px; height: 170px;
     border-radius: 50%;
     border: 4px solid var(--accent);
-    box-shadow: 0 10px 30px #00000088;
+    box-shadow: 0 0 50px #ffb83033, 0 14px 36px #00000077;
     object-fit: cover;
-    margin-bottom: 16px;
-    animation: bob 2.6s ease-in-out infinite;
+    margin-bottom: 18px;
+    animation: bob 2.8s ease-in-out infinite;
   }
-  @keyframes bob { 50% { transform: translateY(-6px) rotate(-2deg); } }
-  .result-type {
-    font-size: 36px;
-    font-weight: 800;
-    letter-spacing: 3px;
-    margin: 0 0 4px;
+  .result-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
     color: var(--accent);
+    background: #ffb83018;
+    border: 1px solid #ffb83040;
+    border-radius: 8px;
+    padding: 4px 14px;
+    margin-bottom: 8px;
+  }
+  .result-type {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: 4px;
+    margin: 0 0 2px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
   .result-title {
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0 0 16px;
-    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 18px;
+    color: var(--ink);
   }
   .result-desc {
     font-size: 15px;
     color: var(--muted);
-    line-height: 1.8;
-    margin: 0 0 20px;
-    padding: 0 8px;
-    text-align: left;
+    line-height: 1.9;
+    margin: 0 0 22px;
     background: var(--card);
     border-radius: var(--radius);
-    padding: 18px 16px;
-    border: 1px solid #ffffff18;
+    padding: 20px 18px;
+    border: 1px solid #ffffff14;
+    text-align: left;
   }
   .result-dims {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 22px;
+    gap: 10px;
+    margin-bottom: 24px;
   }
   .dim-bar {
     background: var(--card);
-    border: 1px solid #ffffff18;
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 13px;
+    border: 1px solid #ffffff14;
+    border-radius: 14px;
+    padding: 14px 14px 12px;
     text-align: left;
   }
-  .dim-bar .label { color: var(--muted); margin-bottom: 4px; }
-  .dim-bar .bar { height: 6px; background: #ffffff18; border-radius: 3px; overflow: hidden; margin-top: 4px; }
-  .dim-bar .bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
-  .dim-bar .val { font-weight: 700; font-size: 14px; }
+  .dim-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .dim-val {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .dim-track {
+    height: 6px;
+    background: #ffffff12;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .dim-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s cubic-bezier(.4,0,.2,1);
+  }
   .result-btns {
     display: flex;
     gap: 12px;
@@ -160,16 +248,22 @@
 
   <div class="quiz-wrap">
     <div id="startScreen" class="start-screen">
-      <img src="assets/sleep_s.jpg" alt="猫咪MBTI">
+      <img class="start-avatar" src="assets/sleep_s.jpg" alt="猫咪MBTI">
       <h2>你是哪只猫？</h2>
-      <p>12 道猫咪情境题，测出你的猫咪 MBTI 人格。<br>看看你是策略猫、治愈猫、还是红唇猫！</p>
+      <p class="subtitle">
+        <b>12 道</b>猫咪情境题，测出你的猫咪人格<br>
+        看看你是策略猫、治愈猫、还是红唇猫！
+      </p>
       <button class="btn" id="startBtn">开始测试</button>
     </div>
 
     <div id="quizScreen" class="hidden">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText">1/12</div>
+      </div>
       <div class="q-card" id="qCard">
-        <div class="q-num" id="qNum"></div>
+        <div class="q-dim" id="qDim"></div>
         <p class="q-text" id="qText"></p>
         <div class="q-options" id="qOptions"></div>
       </div>
