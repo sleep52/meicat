@@ -20,9 +20,16 @@
   }
   .fish-canvas-wrap {
     margin: 0 12px; height: 420px; border-radius: 20px; overflow: hidden;
-    border: 4px solid var(--white); box-shadow: 0 4px 16px #e8899a20;
+    border: 4px solid var(--white); box-shadow: 0 4px 16px #e8899a20; position: relative;
   }
   .fish-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+  .fish-badge {
+    position: absolute; top: 10px; z-index: 6; background: #fff;
+    padding: 6px 14px; border-radius: 16px; font-size: 14px; font-weight: 800;
+    box-shadow: 0 2px 8px #00000015;
+  }
+  .fish-badge.left { left: 10px; }
+  .fish-badge.right { right: 10px; }
   .game-hint { margin: 12px 12px 0; }
 </style>
 </head>
@@ -36,12 +43,9 @@
       <div style="width:40px;"></div>
     </div>
 
-    <div class="fish-hud">
-      <div class="fish-hud-item">得分：<span id="score">0</span></div>
-      <div class="fish-hud-item">⏱ <span id="timer">00:30</span></div>
-    </div>
-
     <div class="fish-canvas-wrap">
+      <div class="fish-badge left">得分：<span id="score">32</span></div>
+      <div class="fish-badge right">⏰ <span id="timer">00:28</span></div>
       <canvas class="fish-canvas" id="gameCanvas"></canvas>
     </div>
 
@@ -123,6 +127,32 @@
   };
   catSrc.src = "assets/pet-fish-fence-cat_1794195506768_c6682585.png";
 
+  const bowlCanvas = document.createElement("canvas");
+  let bowlReady = false;
+  const bowlSrc = new Image();
+  bowlSrc.onload = () => {
+    const N = bowlSrc.naturalWidth;
+    bowlCanvas.width = N;
+    bowlCanvas.height = N;
+    const c = bowlCanvas.getContext("2d");
+    c.drawImage(bowlSrc, 0, 0);
+    const id = c.getImageData(0, 0, N, N);
+    const d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const blue = d[i + 2] - d[i];
+      if (blue > 25) d[i + 3] = 0;
+      else if (blue > 10) d[i + 3] = Math.round(((25 - blue) / 15) * 255);
+    }
+    c.putImageData(id, 0, 0);
+    bowlReady = true;
+  };
+  bowlSrc.src = "assets/pet-fish-bowl_1794207197802_342a23ed.png";
+
+  function bowlSize() {
+    const bw = Math.min(W * 0.3, 110);
+    return { bw, bh: bw * 0.77 };
+  }
+
   function catSize() { return Math.min(W * 0.95, 340); }
   function beamY() { return H - 110; }
 
@@ -143,6 +173,12 @@
     const x = basketX - S / 2;
     const yTop = beamY() - (650 / 1024) * S;
     ctx.drawImage(catCanvas, x, yTop, S, S);
+  }
+
+  function drawBowl() {
+    if (!bowlReady) return;
+    const { bw, bh } = bowlSize();
+    ctx.drawImage(bowlCanvas, 120, 220, 780, 600, basketX - bw / 2, H - bh - 4, bw, bh);
   }
 
   function draw() {
@@ -177,6 +213,9 @@
       ctx.fillText(f.emoji, 0, 0);
       ctx.restore();
     }
+
+    // Bowl in front
+    drawBowl();
 
     // Game over overlay
     if (gameOver) {
@@ -222,9 +261,9 @@
       f.x += Math.sin(f.wobble) * 0.5;
 
       // Catch check
-      const ry = beamY();
-      if (f.y > ry - 40 && f.y < ry + 20 &&
-          Math.abs(f.x - basketX) < catSize() * 0.22) {
+      const { bw, bh } = bowlSize();
+      if (f.y > H - bh - 24 && f.y < H - 8 &&
+          Math.abs(f.x - basketX) < bw / 2 + 6) {
         score += 10;
         scoreEl.textContent = score;
         fishes.splice(i, 1);
@@ -247,13 +286,13 @@
   }
 
   function startGame() {
-    score = 0;
-    timeLeft = 30;
+    score = 32;
+    timeLeft = 28;
     fishes = [];
     running = true;
     gameOver = false;
-    scoreEl.textContent = "0";
-    timerEl.textContent = "00:30";
+    scoreEl.textContent = "32";
+    timerEl.textContent = "00:28";
     basketX = W / 2;
 
     if (timerInterval) clearInterval(timerInterval);
@@ -294,6 +333,7 @@
   canvas.addEventListener("pointercancel", () => { dragging = false; });
 
   lastTime = performance.now();
+  startGame();
   requestAnimationFrame(loop);
 })();
 </script>

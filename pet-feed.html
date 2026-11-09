@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#ffe4e9">
-<title>喂食屋</title>
+<title>猫猫喂食屋</title>
 <link rel="stylesheet" href="css/pet.css">
 <style>
   .page-frame {
@@ -26,15 +26,15 @@
   .feed-speech {
     position: absolute; right: -4px; top: 16px;
     background: var(--white); padding: 10px 14px; border-radius: 16px;
-    font-size: 14px; font-weight: 700; box-shadow: 0 2px 10px #00000010;
+    font-size: 14px; font-weight: 800; box-shadow: 0 2px 10px #00000010;
     line-height: 1.5; z-index: 2;
   }
   .feed-speech::after {
     content: ""; position: absolute; left: -8px; top: 18px;
     border: 8px solid transparent; border-right-color: var(--white);
   }
-  .feed-exclaim { position: absolute; left: 8px; top: 8px; font-size: 22px; color: #ffb830; font-weight: 900; z-index: 2; }
-  .food-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .feed-fish-deco { position: absolute; left: 12px; top: 10px; font-size: 28px; z-index: 2; }
+  .food-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .food-btn {
     background: var(--white); border: 2px solid var(--pink-border);
     border-radius: 16px; padding: 12px 6px; text-align: center;
@@ -42,9 +42,10 @@
   }
   .food-btn:active { transform: scale(0.93); }
   .food-btn.selected { border-color: var(--pink-accent); background: var(--pink-light); }
-  .food-btn .food-icon { width: 38px; height: 38px; object-fit: contain; margin: 0 auto 6px; display: block; }
-  .food-btn .food-name { font-size: 12px; font-weight: 700; color: var(--ink); }
-  .feed-reaction { text-align: center; font-size: 13px; color: var(--pink-dark); font-weight: 600; margin-top: 10px; min-height: 20px; }
+  .food-btn .food-icon { width: 40px; height: 40px; object-fit: contain; margin: 0 auto 6px; display: block; }
+  .food-btn .food-emoji { font-size: 34px; display: block; margin-bottom: 4px; }
+  .food-btn .food-name { font-size: 12px; font-weight: 800; color: var(--ink); }
+  .feed-reaction { text-align: center; font-size: 13px; color: var(--pink-dark); font-weight: 700; margin-top: 10px; min-height: 20px; }
   @keyframes decoFloat { 0%,100%{transform:translateY(0);opacity:0.5;} 50%{transform:translateY(-8px);opacity:0.8;} }
 </style>
 </head>
@@ -53,42 +54,34 @@
   <div class="cloud-top"></div>
   <div class="pet-topbar">
     <a class="pet-back" href="pet.html">←</a>
-    <div class="pet-title">喂食屋 <img src="assets/pet-fish-icon_1794193709959_215f0368.png" style="width:20px;height:20px;display:inline;vertical-align:middle;object-fit:contain;"></div>
-    <div class="pet-score">❤️ <span id="loveCount">0</span></div>
+    <div class="pet-title">猫猫喂食屋</div>
+    <div class="pet-score">🐟 <span id="loveCount">8</span></div>
   </div>
   <div class="feed-area">
     <img src="assets/pet-star-deco_1794193906929_f5d7b26a.png" style="width:24px;position:absolute;top:8px;left:12px;opacity:0.5;animation:decoFloat 3s ease-in-out infinite;">
     <img src="assets/pet-heart-deco_1794193821067_ac04d555.png" style="width:20px;position:absolute;top:16px;right:50px;opacity:0.5;animation:decoFloat 3s ease-in-out infinite 0.5s;">
+    <span class="feed-fish-deco">🐟</span>
     <div class="feed-cat-wrap">
-      <span class="feed-exclaim">❗❗</span>
       <div class="feed-cat-frame">
         <img id="catImg" src="assets/pet-black-cat_1794193784406_68681628.png" alt="猫咪">
       </div>
-      <div class="feed-speech">给我💗<br>好吃的~💕</div>
+      <div class="feed-speech">好耶♥</div>
     </div>
     <div class="food-grid">
       <button class="food-btn" data-food="fish" data-love="3">
         <img class="food-icon" src="assets/pet-food-fish_1794193845972_3e4b9844.png" alt="">
         <div class="food-name">小鱼</div>
       </button>
-      <button class="food-btn" data-food="chicken" data-love="5">
-        <img class="food-icon" src="assets/pet-food-chicken_1794193858256_fb55aac6.png" alt="">
-        <div class="food-name">鸡腿</div>
-      </button>
-      <button class="food-btn" data-food="can" data-love="8">
-        <img class="food-icon" src="assets/pet-food-can_1794193881643_06b95a8e.png" alt="">
-        <div class="food-name">罐头</div>
-      </button>
-      <button class="food-btn" data-food="kibble" data-love="2">
-        <img class="food-icon" src="assets/pet-food-kibble_1794193894531_95d9f708.png" alt="">
-        <div class="food-name">猫粮</div>
+      <button class="food-btn" data-food="shrimp" data-love="4">
+        <img class="food-icon" src="assets/pet-food-shrimp_1794207186349_ca7c9ee8.png" alt="">
+        <div class="food-name">虾虾</div>
       </button>
     </div>
     <div class="feed-reaction" id="reaction"></div>
   </div>
   <div class="game-hint" style="margin:12px 12px 0;">
     <img src="assets/pet-paw-icon_1794193697097_52c6b9ba.png" alt="">
-    <span>选择美食，喂给我吧！</span>
+    <span>选择食物喂给我吧~</span>
     <img src="assets/pet-paw-icon_1794193697097_52c6b9ba.png" alt="">
   </div>
 </div>
@@ -97,12 +90,10 @@
 (() => {
   const loveCount = document.getElementById("loveCount");
   const reaction = document.getElementById("reaction");
-  let love = 0;
+  let love = 8;
   const reactions = {
     fish: ["喵~ 小鱼好好吃！😻", "鱼鱼！最爱了！🐟💕", "咕噜咕噜~ 幸福！✨"],
-    chicken: ["哇！大鸡腿！🍗😍", "肉肉！开心到转圈！💃", "铲屎官最好了！💖"],
-    can: ["罐头！！豪华大餐！👑", "呜呜太好吃了吧！😭💕", "这是猫生巅峰！🌟"],
-    kibble: ["嗯... 还行吧 😐", "日常口粮，谢谢~ 🙏", "吃饱了才有力气摸鱼 🐟"],
+    shrimp: ["虾虾！鲜掉眉毛！🦐😋", "Q弹虾肉！开心到转圈！💕", "喵~ 还要还要！✨"],
   };
   document.querySelectorAll(".food-btn").forEach((btn) => {
     btn.addEventListener("click", () => {

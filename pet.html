@@ -34,24 +34,26 @@
                 radial-gradient(ellipse 20px 12px at 350px 0, var(--white) 70%, transparent 71%),
                 radial-gradient(ellipse 20px 12px at 380px 0, var(--white) 70%, transparent 71%);
   }
-  .home-topbar { display: flex; justify-content: space-between; padding: 12px 16px 4px; }
+  .home-topbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px 4px; }
   .home-icon-btn {
-    width: 42px; height: 42px; background: var(--white); border-radius: 50%;
+    width: 42px; height: 42px; background: var(--white); border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
     font-size: 22px; box-shadow: 0 2px 8px #e8899a20;
   }
+  .home-flower { width: 34px; }
   .home-hero { text-align: center; padding: 4px 16px 10px; position: relative; }
   .home-title {
-    font-size: 28px; font-weight: 900; color: #6b4c3b;
-    text-shadow: 2px 2px 0 #ffe4a0; margin-bottom: 8px; letter-spacing: 1px;
-    transform: rotate(-2deg);
+    font-size: 28px; font-weight: 900; color: #ff7fa3;
+    text-shadow: 2px 2px 0 #fff, -1px -1px 0 #ffd0dd, 1px -1px 0 #ffd0dd, -1px 1px 0 #ffd0dd;
+    margin-bottom: 8px; letter-spacing: 1px; transform: rotate(-2deg);
   }
   .home-subtitle {
     background: linear-gradient(90deg, #ffe4a0, #ffd680);
     display: inline-block; padding: 6px 18px; border-radius: 14px;
     font-size: 13px; font-weight: 700; color: #6b4c3b;
-    box-shadow: 0 2px 6px #00000010; transform: rotate(-1deg);
+    box-shadow: 0 2px 6px #00000010; transform: rotate(-1deg); position: relative;
   }
+  .home-subtitle .crown { position: absolute; left: -16px; top: -14px; font-size: 18px; }
   .home-cat-wrap { position: relative; display: inline-block; margin: 12px auto 8px; }
   .home-cat-frame {
     width: 220px; height: 200px; border-radius: 20px; overflow: hidden;
@@ -72,14 +74,18 @@
   }
   .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 16px; }
   .game-btn {
-    border-radius: 20px; padding: 18px 12px; text-align: center;
+    border-radius: 20px; padding: 14px 10px 12px; text-align: center;
     box-shadow: 0 3px 10px #e8899a12; border: 2.5px solid;
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
     transition: transform 0.12s;
   }
   .game-btn:active { transform: scale(0.95); }
-  .game-btn .icon { width: 44px; height: 44px; object-fit: contain; }
-  .game-btn .label { font-size: 16px; font-weight: 800; color: var(--ink); }
+  .game-btn .cat {
+    width: 48px; height: 48px; border-radius: 50%; object-fit: cover;
+    border: 2.5px solid #fff; box-shadow: 0 2px 6px #00000012;
+  }
+  .game-btn .icon { font-size: 22px; line-height: 1; }
+  .game-btn .label { font-size: 15px; font-weight: 800; color: var(--ink); }
   .game-btn:nth-child(1) { background: #fff8e7; border-color: #ffe4a0; }
   .game-btn:nth-child(2) { background: #e8f4f8; border-color: #a8d8ea; }
   .game-btn:nth-child(3) { background: #f3e8f5; border-color: #d4a5d8; }
@@ -91,7 +97,8 @@
     display: flex; align-items: center; justify-content: center; gap: 10px;
     box-shadow: 0 3px 12px #e8899a25; margin: 8px 16px 0; position: relative;
   }
-  .home-cta img.cta-cat { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; position: absolute; right: 10px; bottom: -5px; }
+  .home-cta .paw { font-size: 22px; }
+  .home-cta img.cta-cat { width: 54px; height: 54px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; position: absolute; right: 8px; bottom: -6px; }
   .deco { position: absolute; pointer-events: none; opacity: 0.5; }
 </style>
 </head>
@@ -100,46 +107,48 @@
   <div class="cloud-top"></div>
   <div class="home-topbar">
     <div class="home-icon-btn">🏠</div>
-    <div class="home-icon-btn">⚙️</div>
+    <img class="home-flower" src="assets/pet-flower-deco_1794193833335_ca791ebb.png" alt="">
   </div>
   <div class="home-hero">
     <img class="deco" src="assets/pet-paw-deco_1794193917877_4a1496ce.png" style="width:30px;top:0;left:0;">
-    <img class="deco" src="assets/pet-flower-deco_1794193833335_ca791ebb.png" style="width:28px;top:0;right:0;">
     <img class="deco" src="assets/pet-star-deco_1794193906929_f5d7b26a.png" style="width:24px;top:40px;left:10px;">
-    <img class="deco" src="assets/pet-flower-deco_1794193833335_ca791ebb.png" style="width:24px;top:35px;right:10px;">
     <img class="deco" src="assets/pet-heart-deco_1794193821067_ac04d555.png" style="width:22px;bottom:60px;left:5px;">
     <img class="deco" src="assets/pet-paw-deco_1794193917877_4a1496ce.png" style="width:26px;bottom:60px;right:5px;">
     <h1 class="home-title">宠物小游戏乐园</h1>
-    <div class="home-subtitle">和可爱的毛孩子一起玩耍吧！</div>
+    <div class="home-subtitle"><span class="crown">👑</span>和可爱的毛孩子们一起玩耍吧！</div>
     <div class="home-cat-wrap">
       <div class="home-cat-frame">
         <img src="assets/pet-white-kitten_1794193772792_999ded05.png" alt="猫咪">
       </div>
-      <div class="home-speech">欢迎来到<br>我的小乐园~💕</div>
+      <div class="home-speech">欢迎来到<br>喵星人俱乐部♥</div>
     </div>
   </div>
   <div class="game-grid">
     <a class="game-btn" href="pet-pet.html">
-      <img class="icon" src="assets/pet-paw-icon_1794193697097_52c6b9ba.png" alt="">
+      <img class="cat" src="assets/pet-yellow-kitten_1794207173152_42c7472b.png" alt="">
+      <span class="icon">🐾</span>
       <span class="label">摸摸乐</span>
     </a>
     <a class="game-btn" href="pet-feed.html">
-      <img class="icon" src="assets/pet-fish-icon_1794193709959_215f0368.png" alt="">
+      <img class="cat" src="assets/pet-black-cat_1794193784406_68681628.png" alt="">
+      <span class="icon">🐟</span>
       <span class="label">喂食屋</span>
     </a>
     <a class="game-btn" href="pet-fish.html">
-      <img class="icon" src="assets/pet-fishing-icon_1794193723696_11735ca7.png" alt="">
-      <span class="label">摸鱼挑战</span>
+      <img class="cat" src="assets/pet-tabby-cat_1794193799191_6e955d81.png" alt="">
+      <span class="icon">☁️</span>
+      <span class="label">接鱼挑战</span>
     </a>
     <a class="game-btn" href="pet-quiz.html">
-      <img class="icon" src="assets/pet-clipboard-icon_1794193734880_df4bc219.png" alt="">
+      <img class="cat" src="assets/pet-white-kitten_1794193772792_999ded05.png" alt="">
+      <span class="icon">⭐</span>
       <span class="label">性格测试</span>
     </a>
   </div>
   <div class="home-cta">
-    <img src="assets/pet-paw-icon_1794193697097_52c6b9ba.png" style="width:28px;height:28px;object-fit:contain;">
-    <span>和我一起<br>开启快乐时光吧！</span>
-    <img class="cta-cat" src="assets/pet-cartoon-cat_1794194946352_1cda2358.png" alt="">
+    <span class="paw">🐾</span>
+    <span>更多有趣玩法等你来探索~</span>
+    <img class="cta-cat" src="assets/pet-lying-cat_1794207160537_687666be.png" alt="">
   </div>
 </div>
 <script src="js/pet-cut.js"></script>
