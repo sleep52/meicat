@@ -6,8 +6,91 @@
 <meta name="theme-color" content="#ffe4e9">
 <title>性格测试</title>
 <link rel="stylesheet" href="css/pet.css">
+<style>
+  .page-frame {
+    background: linear-gradient(180deg, #ffe0e8 0%, #fff0f3 100%);
+    border-radius: 24px; margin: 8px; padding: 0 0 16px;
+    box-shadow: 0 4px 20px #e8899a20; position: relative; overflow: hidden;
+  }
+  .cloud-top { height: 20px; background: var(--white); border-radius: 0 0 50% 50% / 0 0 100% 100%; margin: 0 -10px; }
+  .quiz-progress {
+    text-align: center; font-size: 15px; font-weight: 800; color: var(--pink-dark);
+    background: var(--white); display: table; margin: 0 auto 10px;
+    padding: 6px 20px; border-radius: 16px; box-shadow: 0 2px 8px #00000010;
+  }
+  .quiz-cat-wrap { position: relative; margin: 0 12px; }
+  .quiz-cat-frame {
+    width: 100%; aspect-ratio: 1; border-radius: 16px; overflow: hidden;
+    border: 4px solid var(--white); box-shadow: 0 4px 16px #e8899a20;
+  }
+  .quiz-cat-frame img { width: 100%; height: 100%; object-fit: cover; }
+  .quiz-qmark {
+    position: absolute; font-size: 30px; font-weight: 900; z-index: 2;
+    text-shadow: 1px 1px 0 #fff;
+  }
+  .quiz-question {
+    text-align: center; font-size: 17px; font-weight: 800; color: var(--ink);
+    margin: 14px 12px 12px;
+  }
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; margin: 0 12px; }
+  .quiz-opt {
+    background: var(--white); border: 2px solid var(--pink-border);
+    border-radius: 18px; padding: 14px 18px; font-size: 15px; font-weight: 700;
+    color: var(--ink); display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 2px 8px #e8899a12; transition: transform 0.1s, border-color 0.15s;
+    text-align: left;
+  }
+  .quiz-opt:active { transform: scale(0.97); border-color: var(--pink-accent); }
+  .quiz-opt .opt-emoji { font-size: 24px; }
+  .result-crown {
+    width: 90px; height: 90px; object-fit: contain; margin: 4px auto -14px;
+    display: block; mix-blend-mode: multiply; position: relative; z-index: 2;
+  }
+  .result-banner {
+    background: linear-gradient(90deg, #ffb6c1, #ff9fb3); color: var(--white);
+    display: table; margin: 0 auto; padding: 10px 36px; border-radius: 20px;
+    font-size: 18px; font-weight: 900; letter-spacing: 2px;
+    box-shadow: 0 3px 10px #e8899a25;
+  }
+  .result-avatar-wrap {
+    position: relative; display: flex; align-items: center; justify-content: center;
+    margin: 18px auto 10px; width: 260px;
+  }
+  .result-laurel {
+    width: 70px; height: 110px; object-fit: contain; mix-blend-mode: multiply;
+  }
+  .result-laurel.left { transform: scaleX(-1); }
+  .result-avatar {
+    width: 150px; height: 150px; border-radius: 50%; object-fit: cover;
+    border: 5px solid var(--white); box-shadow: 0 4px 16px #e8899a25;
+    margin: 0 -12px; position: relative; z-index: 2;
+  }
+  .result-type-banner {
+    background: linear-gradient(90deg, #ffe4a0, #ffd680); color: #6b4c3b;
+    display: table; margin: 6px auto 12px; padding: 10px 30px; border-radius: 18px;
+    font-size: 18px; font-weight: 900; box-shadow: 0 2px 8px #00000010;
+    transform: rotate(-1deg);
+  }
+  .result-desc {
+    background: var(--white); margin: 0 20px; padding: 14px 18px;
+    border-radius: 16px; font-size: 14px; font-weight: 600; line-height: 1.8;
+    color: var(--ink); white-space: pre-line; box-shadow: 0 2px 8px #00000008;
+  }
+  .result-btns { display: flex; justify-content: center; gap: 14px; margin: 16px 12px 0; }
+  .result-btn {
+    border-radius: 22px; padding: 12px 24px; font-size: 15px; font-weight: 800;
+    box-shadow: 0 3px 10px #e8899a20;
+  }
+  .result-btn.home {
+    background: var(--white); color: var(--pink-dark); width: 52px; height: 48px;
+    padding: 0; display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .result-btn.retry { background: linear-gradient(90deg, #ffb6c1, #ff9fb3); color: var(--white); }
+</style>
 </head>
 <body>
+<div class="page-frame">
+  <div class="cloud-top"></div>
   <div class="pet-container">
     <div class="pet-topbar">
       <a class="pet-back" href="pet.html">←</a>
@@ -15,25 +98,26 @@
       <div style="width:40px;"></div>
     </div>
 
-    <!-- Quiz Screen -->
     <div id="quizScreen">
       <div class="quiz-progress" id="progress">1/3</div>
-      <div style="position:relative;display:inline-block;width:100%;text-align:center;">
-        <span style="position:absolute;left:20%;top:10px;font-size:28px;color:var(--yellow);font-weight:900;">?</span>
-        <span style="position:absolute;right:20%;top:20px;font-size:24px;color:var(--blue);font-weight:900;">?</span>
-        <img class="quiz-cat" id="quizCat" src="assets/wide_s.jpg" alt="猫咪">
+      <div class="quiz-cat-wrap">
+        <span class="quiz-qmark" style="left:6px;top:6px;color:#ffb830;">?</span>
+        <span class="quiz-qmark" style="right:8px;top:24px;color:#7ec4e8;">?</span>
+        <div class="quiz-cat-frame">
+          <img id="quizCat" src="assets/pet-tabby-cat_1794193799191_6e955d81.png" alt="猫咪">
+        </div>
       </div>
       <div class="quiz-question" id="question"></div>
       <div class="quiz-options" id="options"></div>
     </div>
 
-    <!-- Result Screen -->
     <div id="resultScreen" class="hidden text-center">
+      <img class="result-crown" src="assets/pet-crown-banner_1794194976047_50f9a515.png" alt="">
       <div class="result-banner">测试结果</div>
       <div class="result-avatar-wrap">
-        <span class="result-laurel left">🌿</span>
-        <img class="result-avatar" id="resultImg" src="assets/sleep_s.jpg" alt="结果">
-        <span class="result-laurel right">🌿</span>
+        <img class="result-laurel left" src="assets/pet-laurel_1794194962007_adc4323b.png" alt="">
+        <img class="result-avatar" id="resultImg" src="assets/pet-tabby-cat_1794193799191_6e955d81.png" alt="结果">
+        <img class="result-laurel right" src="assets/pet-laurel_1794194962007_adc4323b.png" alt="">
       </div>
       <div class="result-type-banner" id="resultType"></div>
       <div class="result-desc" id="resultDesc"></div>
@@ -43,13 +127,17 @@
       </div>
     </div>
   </div>
+</div>
 
 <script>
 (() => {
+  const WHITE = "assets/pet-white-kitten_1794193772792_999ded05.png";
+  const BLACK = "assets/pet-black-cat_1794193784406_68681628.png";
+  const TABBY = "assets/pet-tabby-cat_1794193799191_6e955d81.png";
+
   const QUESTIONS = [
     {
       text: "你家宠物最喜欢做什么？",
-      cat: "wide",
       options: [
         { emoji: "🛏️", text: "睡觉", type: "sleep" },
         { emoji: "🧶", text: "玩毛线", type: "play" },
@@ -58,7 +146,6 @@
     },
     {
       text: "看到陌生人来了，它会？",
-      cat: "flat",
       options: [
         { emoji: "🙈", text: "躲起来", type: "shy" },
         { emoji: "🐾", text: "凑过去", type: "social" },
@@ -67,7 +154,6 @@
     },
     {
       text: "你回家时它的反应是？",
-      cat: "sit",
       options: [
         { emoji: "🏃", text: "冲过来迎接", type: "excited" },
         { emoji: "👀", text: "看一眼继续睡", type: "chill" },
@@ -77,15 +163,15 @@
   ];
 
   const RESULTS = {
-    sleep:   { img: "sleep",     type: "可爱治愈型", desc: "你家宠物是个温柔的小天使~\n总能带给你满满的快乐！" },
-    play:    { img: "bunny",     type: "活泼探险型", desc: "你家宠物是个精力充沛的小冒险家！\n每天都有新花样，生活充满惊喜~" },
-    food:    { img: "hashbrown", type: "吃货幸福型", desc: "你家宠物是个快乐的小吃货！\n美食就是猫生的全部意义~" },
-    shy:     { img: "flat",      type: "安静内向型", desc: "你家宠物是个害羞的小可爱~\n虽然慢热，但认定你就是全世界！" },
-    social:  { img: "sit",       type: "社交达人型", desc: "你家宠物是个自来熟的小明星！\n谁来了都能聊两句，人缘超好~" },
-    cool:    { img: "seal",      type: "高冷霸总型", desc: "你家宠物是个有个性的大佬！\n表面高冷，内心其实很在乎你~" },
-    excited: { img: "bunny",     type: "热情粘人型", desc: "你家宠物是个超级粘人的小宝贝！\n你就是它的全世界，满满的爱~" },
-    chill:   { img: "sleep",     type: "佛系养生型", desc: "你家宠物是个淡定的小哲学家~\n不以物喜不以己悲，猫生赢家！" },
-    drama:   { img: "lipstick",  type: "戏精本精型", desc: "你家宠物是个演技派小戏精！\n每天上演宫廷大戏，奥斯卡欠它一座奖杯~" },
+    sleep:   { img: WHITE, type: "可爱治愈型", desc: "你家宠物是个温柔的小天使~\n总能带给你满满的快乐！" },
+    play:    { img: TABBY, type: "活泼探险型", desc: "你家宠物是个精力充沛的小冒险家！\n每天都有新花样，生活充满惊喜~" },
+    food:    { img: TABBY, type: "吃货幸福型", desc: "你家宠物是个快乐的小吃货！\n美食就是猫生的全部意义~" },
+    shy:     { img: BLACK, type: "安静内向型", desc: "你家宠物是个害羞的小可爱~\n虽然慢热，但认定你就是全世界！" },
+    social:  { img: WHITE, type: "社交达人型", desc: "你家宠物是个自来熟的小明星！\n谁来了都能聊两句，人缘超好~" },
+    cool:    { img: BLACK, type: "高冷霸总型", desc: "你家宠物是个有个性的大佬！\n表面高冷，内心其实很在乎你~" },
+    excited: { img: WHITE, type: "热情粘人型", desc: "你家宠物是个超级粘人的小宝贝！\n你就是它的全世界，满满的爱~" },
+    chill:   { img: WHITE, type: "佛系养生型", desc: "你家宠物是个淡定的小哲学家~\n不以物喜不以己悲，猫生赢家！" },
+    drama:   { img: BLACK, type: "戏精本精型", desc: "你家宠物是个演技派小戏精！\n每天上演宫廷大戏，奥斯卡欠它一座奖杯~" },
   };
 
   let cur = 0;
@@ -94,7 +180,6 @@
   function showQuestion(idx) {
     const q = QUESTIONS[idx];
     document.getElementById("progress").textContent = `${idx + 1}/3`;
-    document.getElementById("quizCat").src = `assets/${q.cat}_s.jpg`;
     document.getElementById("question").textContent = q.text;
 
     const opts = document.getElementById("options");
@@ -117,11 +202,10 @@
   }
 
   function showResult() {
-    // Pick result based on most common answer, or last answer
     const lastType = answers[answers.length - 1];
     const result = RESULTS[lastType] || RESULTS.sleep;
 
-    document.getElementById("resultImg").src = `assets/${result.img}_s.jpg`;
+    document.getElementById("resultImg").src = result.img;
     document.getElementById("resultType").textContent = result.type;
     document.getElementById("resultDesc").textContent = result.desc;
 

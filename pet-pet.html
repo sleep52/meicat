@@ -74,7 +74,7 @@
     <img class="deco-float" src="assets/pet-star-deco_1794193906929_f5d7b26a.png" style="width:16px;top:35px;right:40px;animation-delay:2s;">
     <div class="pet-call-text"><span class="exclaim">❗</span>快来摸摸我呀~</div>
     <div class="pet-cat-frame" id="catFrame">
-      <img id="catImg" src="assets/sleep_s.jpg" alt="猫咪">
+      <img id="catImg" src="assets/pet-white-kitten_1794193772792_999ded05.png" alt="猫咪">
       <img class="hand-cursor" src="assets/pet-hand-cursor_1794193759189_8e5f4056.png" alt="">
     </div>
   </div>
@@ -92,7 +92,11 @@
   const heartCount = document.getElementById("heartCount");
   const progressFill = document.getElementById("progressFill");
   let count = 0;
-  const cats = ["sleep", "flat", "wide", "sit", "bunny", "seal"];
+  const cats = [
+    "assets/pet-white-kitten_1794193772792_999ded05.png",
+    "assets/pet-black-cat_1794193784406_68681628.png",
+    "assets/pet-tabby-cat_1794193799191_6e955d81.png",
+  ];
   let catIdx = 0;
   catFrame.addEventListener("click", (e) => {
     count++;
@@ -108,7 +112,7 @@
     setTimeout(() => heart.remove(), 1000);
     if (count % 10 === 0) {
       catIdx = (catIdx + 1) % cats.length;
-      catImg.src = "assets/" + cats[catIdx] + "_s.jpg";
+      catImg.src = cats[catIdx];
       progressFill.style.width = "0%";
     }
   });

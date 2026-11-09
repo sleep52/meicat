@@ -6,8 +6,29 @@
 <meta name="theme-color" content="#ffe4e9">
 <title>摸鱼挑战</title>
 <link rel="stylesheet" href="css/pet.css">
+<style>
+  .page-frame {
+    background: linear-gradient(180deg, #ffe0e8 0%, #fff0f3 100%);
+    border-radius: 24px; margin: 8px; padding: 0 0 16px;
+    box-shadow: 0 4px 20px #e8899a20; position: relative; overflow: hidden;
+  }
+  .cloud-top { height: 20px; background: var(--white); border-radius: 0 0 50% 50% / 0 0 100% 100%; margin: 0 -10px; }
+  .fish-hud { display: flex; justify-content: center; gap: 12px; margin: 0 12px 10px; }
+  .fish-hud-item {
+    background: var(--white); padding: 8px 18px; border-radius: 16px;
+    font-size: 15px; font-weight: 800; box-shadow: 0 2px 8px #00000010;
+  }
+  .fish-canvas-wrap {
+    margin: 0 12px; height: 420px; border-radius: 20px; overflow: hidden;
+    border: 4px solid var(--white); box-shadow: 0 4px 16px #e8899a20;
+  }
+  .fish-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+  .game-hint { margin: 12px 12px 0; }
+</style>
 </head>
 <body>
+<div class="page-frame">
+  <div class="cloud-top"></div>
   <div class="pet-container">
     <div class="pet-topbar">
       <a class="pet-back" href="pet.html">←</a>
@@ -31,6 +52,7 @@
       <span>🐾</span>
     </div>
   </div>
+</div>
 
 <script>
 (() => {
@@ -49,14 +71,14 @@
   window.addEventListener("resize", resize);
 
   let basketX = W / 2;
-  const basketW = 70, basketH = 40;
+  const basketW = 70;
   let score = 0, timeLeft = 30, running = false, gameOver = false;
   let fishes = [];
   let spawnTimer = 0;
   let lastTime = 0;
   let timerInterval = null;
 
-  const fishEmojis = ["🐟", "", "🐡", "🦐"];
+  const fishEmojis = ["🐟", "🐠", "🐡", "🦐"];
   const fishColors = ["#ff9f43", "#54a0ff", "#ff6b6b", "#ffa502"];
 
   function spawnFish() {
@@ -70,71 +92,46 @@
     });
   }
 
-  function drawBasket(x) {
-    // Basket body
-    ctx.fillStyle = "#d4a574";
-    ctx.beginPath();
-    ctx.moveTo(x - basketW / 2, H - basketH - 10);
-    ctx.lineTo(x - basketW / 2 + 8, H - 10);
-    ctx.lineTo(x + basketW / 2 - 8, H - 10);
-    ctx.lineTo(x + basketW / 2, H - basketH - 10);
-    ctx.closePath();
-    ctx.fill();
+  const catImg = new Image();
+  catImg.src = "assets/pet-fish-fence-cat_1794195506768_c6682585.png";
 
-    // Basket rim
-    ctx.fillStyle = "#c4956a";
-    ctx.fillRect(x - basketW / 2 - 3, H - basketH - 14, basketW + 6, 8);
+  function catSize() { return Math.min(W * 0.6, 230); }
+  function railY() { return H + 20 - catSize() * 0.36; }
 
-    // Basket lines
-    ctx.strokeStyle = "#b8855a";
-    ctx.lineWidth = 1.5;
-    for (let i = 0; i < 4; i++) {
-      const lx = x - basketW / 2 + 12 + i * 14;
-      ctx.beginPath();
-      ctx.moveTo(lx, H - basketH - 6);
-      ctx.lineTo(lx + 3, H - 14);
-      ctx.stroke();
+  function drawFence() {
+    const ry = railY();
+    ctx.fillStyle = "#d9b98c";
+    for (let i = 10; i < W; i += 40) {
+      ctx.fillRect(i, ry, 7, H - ry);
     }
-
-    // Paw print on basket
-    ctx.font = "16px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("🐾", x, H - 22);
+    ctx.fillStyle = "#e3c49a";
+    ctx.fillRect(0, ry, W, 8);
+    ctx.fillRect(0, ry + 26, W, 6);
   }
 
-  const catImg = new Image();
-  catImg.src = "assets/sit_s.jpg";
-
   function drawCat() {
-    const cx = basketX, cy = H - basketH - 70;
-    if (catImg.complete) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, 35, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.drawImage(catImg, cx - 35, cy - 35, 70, 70);
-      ctx.restore();
-      ctx.strokeStyle = "#ffffff88";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(cx, cy, 35, 0, Math.PI * 2);
-      ctx.stroke();
-    } else {
-      ctx.font = "40px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("🐱", cx, cy);
-    }
+    if (!catImg.complete) return;
+    const size = catSize();
+    const x = basketX - size / 2;
+    const yTop = H + 20 - size;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, yTop, size, size * 0.78);
+    ctx.clip();
+    ctx.drawImage(catImg, x, yTop, size, size);
+    ctx.restore();
+    const fade = ctx.createLinearGradient(0, yTop, 0, yTop + 45);
+    fade.addColorStop(0, "#92cfe8");
+    fade.addColorStop(1, "#92cfe800");
+    ctx.fillStyle = fade;
+    ctx.fillRect(x, yTop, size, 45);
   }
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
 
-    // Sky gradient
-    const sky = ctx.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, "#87ceeb");
-    sky.addColorStop(0.6, "#b8e4f0");
-    sky.addColorStop(1, "#d4f0d4");
-    ctx.fillStyle = sky;
+    // Sky
+    ctx.fillStyle = "#92cfe8";
     ctx.fillRect(0, 0, W, H);
 
     // Clouds
@@ -148,13 +145,9 @@
     ctx.fillText("⭐", 30, 120);
     ctx.fillText("✨", W - 40, 150);
 
-    // Fence
-    ctx.fillStyle = "#c4956a";
-    for (let i = 0; i < W; i += 40) {
-      ctx.fillRect(i, H - 60, 6, 50);
-    }
-    ctx.fillRect(0, H - 50, W, 6);
-    ctx.fillRect(0, H - 30, W, 6);
+    // Fence + cat
+    drawFence();
+    drawCat();
 
     // Fishes
     for (const f of fishes) {
@@ -166,10 +159,6 @@
       ctx.fillText(f.emoji, 0, 0);
       ctx.restore();
     }
-
-    // Cat + basket
-    drawCat();
-    drawBasket(basketX);
 
     // Game over overlay
     if (gameOver) {
@@ -215,8 +204,9 @@
       f.x += Math.sin(f.wobble) * 0.5;
 
       // Catch check
-      if (f.y > H - basketH - 20 && f.y < H - 10 &&
-          Math.abs(f.x - basketX) < basketW / 2 + 10) {
+      const ry = railY();
+      if (f.y > ry - 40 && f.y < ry + 20 &&
+          Math.abs(f.x - basketX) < catSize() * 0.35) {
         score += 10;
         scoreEl.textContent = score;
         fishes.splice(i, 1);

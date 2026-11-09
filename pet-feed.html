@@ -62,7 +62,7 @@
     <div class="feed-cat-wrap">
       <span class="feed-exclaim">❗❗</span>
       <div class="feed-cat-frame">
-        <img id="catImg" src="assets/wide_s.jpg" alt="猫咪">
+        <img id="catImg" src="assets/pet-black-cat_1794193784406_68681628.png" alt="猫咪">
       </div>
       <div class="feed-speech">给我💗<br>好吃的~💕</div>
     </div>
@@ -94,7 +94,6 @@
 </div>
 <script>
 (() => {
-  const catImg = document.getElementById("catImg");
   const loveCount = document.getElementById("loveCount");
   const reaction = document.getElementById("reaction");
   let love = 0;
@@ -104,7 +103,6 @@
     can: ["罐头！！豪华大餐！👑", "呜呜太好吃了吧！😭💕", "这是猫生巅峰！🌟"],
     kibble: ["嗯... 还行吧 😐", "日常口粮，谢谢~ 🙏", "吃饱了才有力气摸鱼 🐟"],
   };
-  const catImages = { fish: "bunny", chicken: "sit", can: "lipstick", kibble: "flat" };
   document.querySelectorAll(".food-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const food = btn.dataset.food;
@@ -115,7 +113,6 @@
       btn.classList.add("selected");
       const msgs = reactions[food];
       reaction.textContent = msgs[Math.floor(Math.random() * msgs.length)];
-      catImg.src = "assets/" + catImages[food] + "_s.jpg";
       for (let i = 0; i < pts; i++) {
         setTimeout(() => {
           const h = document.createElement("span");
