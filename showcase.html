@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a12">
+<title>H5互动定制 · 作品集</title>
+<style>
+  :root {
+    --bg: #0a0a12;
+    --card: #14141f;
+    --card2: #1a1a2e;
+    --ink: #f0ece4;
+    --muted: #8a8498;
+    --accent: #ffb830;
+    --accent2: #ff7a59;
+    --good: #6ee7a0;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-tap-highlight-color: transparent;
+  }
+  a { color: inherit; text-decoration: none; }
+  img { max-width: 100%; display: block; }
+
+  /* ===== NAV ===== */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #0a0a12ee;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #ffffff0a;
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-brand { font-weight: 800; font-size: 18px; letter-spacing: 1px; }
+  .nav-brand span { color: var(--accent); }
+  .nav-links { display: flex; gap: 20px; font-size: 14px; color: var(--muted); }
+  .nav-links a:hover { color: var(--ink); }
+
+  /* ===== HERO ===== */
+  .hero {
+    text-align: center;
+    padding: 60px 20px 50px;
+    background: radial-gradient(ellipse at 50% 0%, #1a1a3a 0%, var(--bg) 70%);
+  }
+  .hero-badge {
+    display: inline-block;
+    font-size: 12px; font-weight: 700;
+    color: var(--accent);
+    background: #ffb83015;
+    border: 1px solid #ffb83030;
+    border-radius: 20px;
+    padding: 5px 16px;
+    margin-bottom: 18px;
+    letter-spacing: 1px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 7vw, 44px);
+    font-weight: 800;
+    line-height: 1.3;
+    margin-bottom: 14px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 500px;
+    margin: 0 auto 28px;
+  }
+  .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block;
+    font-weight: 700; font-size: 15px;
+    padding: 12px 28px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    border: none;
+    font-family: inherit;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary {
+    color: #1a1000;
+    background: linear-gradient(135deg, var(--accent), #f0a010);
+    box-shadow: 0 4px 16px #ffb83033;
+  }
+  .btn-outline {
+    color: var(--ink);
+    background: transparent;
+    border: 1.5px solid #ffffff22;
+  }
+  .btn-outline:hover { border-color: #ffffff44; }
+
+  /* ===== SECTION ===== */
+  .section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 50px 20px;
+  }
+  .section-title {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .section-title h2 {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .section-title p {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* ===== PORTFOLIO ===== */
+  .portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+  .project-card {
+    background: var(--card);
+    border: 1px solid #ffffff0a;
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .project-card:hover {
+    transform: translateY(-4px);
+    border-color: #ffffff18;
+  }
+  .project-thumb {
+    width: 100%;
+    aspect-ratio: 16/10;
+    object-fit: cover;
+    background: var(--card2);
+  }
+  .project-info { padding: 18px; }
+  .project-tag {
+    display: inline-block;
+    font-size: 11px; font-weight: 700;
+    color: var(--accent);
+    background: #ffb83012;
+    border-radius: 6px;
+    padding: 3px 10px;
+    margin-bottom: 8px;
+  }
+  .project-info h3 { font-size: 17px; margin-bottom: 6px; }
+  .project-info p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+  .project-link {
+    font-size: 13px; font-weight: 700;
+    color: var(--accent);
+  }
+  .project-link:hover { text-decoration: underline; }
+
+  /* ===== SERVICES ===== */
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .service-card {
+    background: var(--card);
+    border: 1px solid #ffffff0a;
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .service-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+  }
+  .service-card h3 { font-size: 16px; margin-bottom: 8px; }
+  .service-card p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+  /* ===== PRICING ===== */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .price-card {
+    background: var(--card);
+    border: 1px solid #ffffff0a;
+    border-radius: var(--radius);
+    padding: 28px 22px;
+    text-align: center;
+    position: relative;
+  }
+  .price-card.featured {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, #1a1a2e, #14141f);
+  }
+  .price-card.featured::before {
+    content: "热门";
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; font-weight: 700;
+    color: #1a1000;
+    background: var(--accent);
+    padding: 3px 14px;
+    border-radius: 10px;
+  }
+  .price-name { font-size: 15px; color: var(--muted); margin-bottom: 8px; }
+  .price-amount {
+    font-size: 36px; font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .price-amount small { font-size: 14px; font-weight: 400; color: var(--muted); }
+  .price-desc { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+  .price-features {
+    list-style: none;
+    text-align: left;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .price-features li {
+    padding: 6px 0;
+    border-bottom: 1px solid #ffffff06;
+  }
+  .price-features li::before {
+    content: "✓ ";
+    color: var(--good);
+    font-weight: 700;
+  }
+
+  /* ===== PROCESS ===== */
+  .process-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    text-align: center;
+  }
+  .step-num {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #1a1000;
+    font-weight: 800; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px;
+  }
+  .step h3 { font-size: 15px; margin-bottom: 6px; }
+  .step p { font-size: 13px; color: var(--muted); }
+
+  /* ===== CONTACT ===== */
+  .contact-box {
+    background: var(--card);
+    border: 1px solid #ffffff0a;
+    border-radius: var(--radius);
+    padding: 40px 24px;
+    text-align: center;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  .contact-box h3 { font-size: 22px; margin-bottom: 10px; }
+  .contact-box p { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .qr-placeholder {
+    width: 160px; height: 160px;
+    background: #ffffff08;
+    border: 2px dashed #ffffff18;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .contact-note { font-size: 12px; color: var(--muted); }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    text-align: center;
+    padding: 30px 20px;
+    color: #4a4458;
+    font-size: 12px;
+    border-top: 1px solid #ffffff06;
+  }
+
+  @media (max-width: 600px) {
+    .nav-links { display: none; }
+    .hero { padding: 40px 16px 36px; }
+    .section { padding: 36px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand"><span>✦</span> H5互动定制</div>
+  <div class="nav-links">
+    <a href="#portfolio">作品</a>
+    <a href="#services">服务</a>
+    <a href="#pricing">价格</a>
+    <a href="#contact">联系</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">🎮 前端开发 · H5互动 · 小游戏定制</div>
+  <h1>让你的创意<br>变成<em>可玩的体验</em></h1>
+  <p>专注 H5 互动页面、小游戏、营销测试定制。纯前端实现，手机电脑都能玩，交付快、效果好。</p>
+  <div class="hero-btns">
+    <a class="btn btn-primary" href="#contact">立即咨询</a>
+    <a class="btn btn-outline" href="#portfolio">查看作品</a>
+  </div>
+</section>
+
+<section class="section" id="portfolio">
+  <div class="section-title">
+    <h2>作品展示</h2>
+    <p>以下均为实际交付项目，点击可在线体验</p>
+  </div>
+  <div class="portfolio-grid">
+    <div class="project-card">
+      <img class="project-thumb" src="assets/eleme_s.jpg" alt="敲地鼠">
+      <div class="project-info">
+        <span class="project-tag">反应游戏</span>
+        <h3>打工猫敲地鼠</h3>
+        <p>变装猫从洞里冒头，手快点它得分。连击倍率、狂热模式、音效反馈，完整的游戏体验。</p>
+        <a class="project-link" href="whack.html" target="_blank">在线体验 →</a>
+      </div>
+    </div>
+    <div class="project-card">
+      <img class="project-thumb" src="assets/hashbrown_s.jpg" alt="Flappy">
+      <div class="project-info">
+        <span class="project-tag">手感游戏</span>
+        <h3>脆薯饼猫大冒险</h3>
+        <p>经典 Flappy 玩法定制，点击飞行穿越障碍。难度递增、粒子特效、本地最高分记录。</p>
+        <a class="project-link" href="flappy.html" target="_blank">在线体验 →</a>
+      </div>
+    </div>
+    <div class="project-card">
+      <img class="project-thumb" src="assets/green_s.jpg" alt="合成">
+      <div class="project-info">
+        <span class="project-tag">物理合成</span>
+        <h3>合成大猫</h3>
+        <p>仿合成大西瓜玩法，matter.js 物理引擎。拖拽瞄准、碰撞合成、浮动分数、危险线判定。</p>
+        <a class="project-link" href="merge.html" target="_blank">在线体验 →</a>
+      </div>
+    </div>
+    <div class="project-card">
+      <img class="project-thumb" src="assets/lipstick_s.jpg" alt="MBTI">
+      <div class="project-info">
+        <span class="project-tag">互动测试</span>
+        <h3>猫咪 MBTI 测试</h3>
+        <p>12 道情境题测出 16 种人格。进度条、维度分析、结果分享，适合品牌营销引流。</p>
+        <a class="project-link" href="mbti.html" target="_blank">在线体验 →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="services" style="background: #0d0d18;">
+  <div class="section-title">
+    <h2>我能做什么</h2>
+    <p>纯前端实现，无需后端，部署简单</p>
+  </div>
+  <div class="services-grid">
+    <div class="service-card">
+      <div class="service-icon">🎮</div>
+      <h3>H5 小游戏</h3>
+      <p>敲地鼠、Flappy、合成、消消乐、答题闯关等各类休闲小游戏定制</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">📊</div>
+      <h3>互动测试/问卷</h3>
+      <p>MBTI、性格测试、品牌问卷、抽奖转盘，适合营销活动和社交传播</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">🎨</div>
+      <h3>品牌营销页</h3>
+      <p>活动落地页、产品展示页、节日贺卡，动画效果 + 移动端适配</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">🐱</div>
+      <h3>IP 表情包周边</h3>
+      <p>基于表情包/IP 形象定制互动内容，让粉丝玩起来、传出去</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="pricing">
+  <div class="section-title">
+    <h2>参考价格</h2>
+    <p>具体价格根据需求复杂度调整，先聊需求再报价</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-name">基础款</div>
+      <div class="price-amount">¥299<small> 起</small></div>
+      <div class="price-desc">简单互动页面</div>
+      <ul class="price-features">
+        <li>单页面 H5</li>
+        <li>基础动画效果</li>
+        <li>移动端适配</li>
+        <li>1 次修改</li>
+        <li>3 天交付</li>
+      </ul>
+      <a class="btn btn-outline" href="#contact" style="width:100%;text-align:center;">咨询</a>
+    </div>
+    <div class="price-card featured">
+      <div class="price-name">标准款</div>
+      <div class="price-amount">¥599<small> 起</small></div>
+      <div class="price-desc">小游戏 / 互动测试</div>
+      <ul class="price-features">
+        <li>完整游戏逻辑</li>
+        <li>音效 + 动画</li>
+        <li>计分 / 排行榜</li>
+        <li>3 次修改</li>
+        <li>5 天交付</li>
+      </ul>
+      <a class="btn btn-primary" href="#contact" style="width:100%;text-align:center;">咨询</a>
+    </div>
+    <div class="price-card">
+      <div class="price-name">定制款</div>
+      <div class="price-amount">¥999<small> 起</small></div>
+      <div class="price-desc">复杂项目 / 品牌定制</div>
+      <ul class="price-features">
+        <li>多页面 / 多关卡</li>
+        <li>物理引擎 / 复杂交互</li>
+        <li>品牌视觉定制</li>
+        <li>不限修改次数</li>
+        <li>7-14 天交付</li>
+      </ul>
+      <a class="btn btn-outline" href="#contact" style="width:100%;text-align:center;">咨询</a>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background: #0d0d18;">
+  <div class="section-title">
+    <h2>合作流程</h2>
+    <p>简单四步，从需求到交付</p>
+  </div>
+  <div class="process-steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>聊需求</h3>
+      <p>告诉我你想做什么，参考案例、功能要求</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>出方案</h3>
+      <p>确认功能、报价、交付时间</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>开发制作</h3>
+      <p>按时交付，中途可预览进度</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <h3>验收上线</h3>
+      <p>修改到满意，部署上线</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="contact">
+  <div class="contact-box">
+    <h3>📬 联系我</h3>
+    <p>有想法？聊聊看，免费评估需求和报价</p>
+    <div class="qr-placeholder">二维码占位<br>替换为你的微信/闲鱼码</div>
+    <p class="contact-note">扫码添加 · 或小红书私信「H5定制」</p>
+  </div>
+</section>
+
+<footer class="footer">
+  © 2026 H5互动定制 · 纯前端开发 · 手机电脑都能玩
+</footer>
+
+</body>
+</html>
