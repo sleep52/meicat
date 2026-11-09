@@ -92,39 +92,57 @@
     });
   }
 
-  const catImg = new Image();
-  catImg.src = "assets/pet-fish-fence-cat_1794195506768_c6682585.png";
+  const catCanvas = document.createElement("canvas");
+  let catReady = false;
+  const catSrc = new Image();
+  catSrc.onload = () => {
+    const N = catSrc.naturalWidth;
+    catCanvas.width = N;
+    catCanvas.height = N;
+    const c = catCanvas.getContext("2d");
+    c.drawImage(catSrc, 0, 0);
+    const img = c.getImageData(0, 0, N, N);
+    const d = img.data;
+    const k = N / 1024;
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        const i = (y * N + x) * 4;
+        const blue = d[i + 2] - d[i];
+        let a = 255;
+        if (blue > 25) a = 0;
+        else if (blue > 10) a = Math.round(((25 - blue) / 15) * 255);
+        if (y > 650 * k) {
+          const inPaw = (x > 340 * k && x < 480 * k) || (x > 545 * k && x < 690 * k);
+          if (!inPaw || y > 775 * k) a = 0;
+        }
+        d[i + 3] = a;
+      }
+    }
+    c.putImageData(img, 0, 0);
+    catReady = true;
+  };
+  catSrc.src = "assets/pet-fish-fence-cat_1794195506768_c6682585.png";
 
-  function catSize() { return Math.min(W * 0.6, 230); }
-  function railY() { return H + 20 - catSize() * 0.36; }
+  function catSize() { return Math.min(W * 0.95, 340); }
+  function beamY() { return H - 110; }
 
   function drawFence() {
-    const ry = railY();
+    const by = beamY();
     ctx.fillStyle = "#d9b98c";
-    for (let i = 10; i < W; i += 40) {
-      ctx.fillRect(i, ry, 7, H - ry);
+    for (let i = 10; i < W; i += 34) {
+      ctx.fillRect(i, by + 12, 8, H - by - 12);
     }
     ctx.fillStyle = "#e3c49a";
-    ctx.fillRect(0, ry, W, 8);
-    ctx.fillRect(0, ry + 26, W, 6);
+    ctx.fillRect(0, by, W, 12);
+    ctx.fillRect(0, by + 45, W, 8);
   }
 
   function drawCat() {
-    if (!catImg.complete) return;
-    const size = catSize();
-    const x = basketX - size / 2;
-    const yTop = H + 20 - size;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(x, yTop, size, size * 0.78);
-    ctx.clip();
-    ctx.drawImage(catImg, x, yTop, size, size);
-    ctx.restore();
-    const fade = ctx.createLinearGradient(0, yTop, 0, yTop + 45);
-    fade.addColorStop(0, "#92cfe8");
-    fade.addColorStop(1, "#92cfe800");
-    ctx.fillStyle = fade;
-    ctx.fillRect(x, yTop, size, 45);
+    if (!catReady) return;
+    const S = catSize();
+    const x = basketX - S / 2;
+    const yTop = beamY() - (650 / 1024) * S;
+    ctx.drawImage(catCanvas, x, yTop, S, S);
   }
 
   function draw() {
@@ -204,9 +222,9 @@
       f.x += Math.sin(f.wobble) * 0.5;
 
       // Catch check
-      const ry = railY();
+      const ry = beamY();
       if (f.y > ry - 40 && f.y < ry + 20 &&
-          Math.abs(f.x - basketX) < catSize() * 0.35) {
+          Math.abs(f.x - basketX) < catSize() * 0.22) {
         score += 10;
         scoreEl.textContent = score;
         fishes.splice(i, 1);
