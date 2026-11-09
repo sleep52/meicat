@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#ffe4e9">
+<title>性格测试</title>
+<link rel="stylesheet" href="css/pet.css">
+</head>
+<body>
+  <div class="pet-container">
+    <div class="pet-topbar">
+      <a class="pet-back" href="pet.html">←</a>
+      <div class="pet-title">性格测试 <span style="font-size:14px;">⭐</span></div>
+      <div style="width:40px;"></div>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div id="quizScreen">
+      <div class="quiz-progress" id="progress">1/3</div>
+      <img class="quiz-cat" id="quizCat" src="assets/wide_s.jpg" alt="猫咪">
+      <div class="quiz-question" id="question"></div>
+      <div class="quiz-options" id="options"></div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="resultScreen" class="hidden text-center">
+      <div class="result-banner">测试结果</div>
+      <div class="result-avatar-wrap">
+        <span class="result-laurel left">🌿</span>
+        <img class="result-avatar" id="resultImg" src="assets/sleep_s.jpg" alt="结果">
+        <span class="result-laurel right">🌿</span>
+      </div>
+      <div class="result-type-banner" id="resultType"></div>
+      <div class="result-desc" id="resultDesc"></div>
+      <div class="result-btns">
+        <a class="result-btn home" href="pet.html">🏠</a>
+        <button class="result-btn retry" id="retryBtn">🔄 再玩一次</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const QUESTIONS = [
+    {
+      text: "你家宠物最喜欢做什么？",
+      cat: "wide",
+      options: [
+        { emoji: "🛏️", text: "睡觉", type: "sleep" },
+        { emoji: "🧶", text: "玩毛线", type: "play" },
+        { emoji: "🍪", text: "吃零食", type: "food" },
+      ],
+    },
+    {
+      text: "看到陌生人来了，它会？",
+      cat: "flat",
+      options: [
+        { emoji: "🙈", text: "躲起来", type: "shy" },
+        { emoji: "🐾", text: "凑过去", type: "social" },
+        { emoji: "😐", text: "无视", type: "cool" },
+      ],
+    },
+    {
+      text: "你回家时它的反应是？",
+      cat: "sit",
+      options: [
+        { emoji: "🏃", text: "冲过来迎接", type: "excited" },
+        { emoji: "👀", text: "看一眼继续睡", type: "chill" },
+        { emoji: "😤", text: "假装生气要罐头", type: "drama" },
+      ],
+    },
+  ];
+
+  const RESULTS = {
+    sleep:   { img: "sleep",     type: "可爱治愈型", desc: "你家宠物是个温柔的小天使~\n总能带给你满满的快乐！" },
+    play:    { img: "bunny",     type: "活泼探险型", desc: "你家宠物是个精力充沛的小冒险家！\n每天都有新花样，生活充满惊喜~" },
+    food:    { img: "hashbrown", type: "吃货幸福型", desc: "你家宠物是个快乐的小吃货！\n美食就是猫生的全部意义~" },
+    shy:     { img: "flat",      type: "安静内向型", desc: "你家宠物是个害羞的小可爱~\n虽然慢热，但认定你就是全世界！" },
+    social:  { img: "sit",       type: "社交达人型", desc: "你家宠物是个自来熟的小明星！\n谁来了都能聊两句，人缘超好~" },
+    cool:    { img: "seal",      type: "高冷霸总型", desc: "你家宠物是个有个性的大佬！\n表面高冷，内心其实很在乎你~" },
+    excited: { img: "bunny",     type: "热情粘人型", desc: "你家宠物是个超级粘人的小宝贝！\n你就是它的全世界，满满的爱~" },
+    chill:   { img: "sleep",     type: "佛系养生型", desc: "你家宠物是个淡定的小哲学家~\n不以物喜不以己悲，猫生赢家！" },
+    drama:   { img: "lipstick",  type: "戏精本精型", desc: "你家宠物是个演技派小戏精！\n每天上演宫廷大戏，奥斯卡欠它一座奖杯~" },
+  };
+
+  let cur = 0;
+  const answers = [];
+
+  function showQuestion(idx) {
+    const q = QUESTIONS[idx];
+    document.getElementById("progress").textContent = `${idx + 1}/3`;
+    document.getElementById("quizCat").src = `assets/${q.cat}_s.jpg`;
+    document.getElementById("question").textContent = q.text;
+
+    const opts = document.getElementById("options");
+    opts.innerHTML = "";
+    q.options.forEach((opt) => {
+      const btn = document.createElement("button");
+      btn.className = "quiz-opt";
+      btn.innerHTML = `<span class="opt-emoji">${opt.emoji}</span><span>${opt.text}</span>`;
+      btn.addEventListener("click", () => {
+        answers.push(opt.type);
+        cur++;
+        if (cur < QUESTIONS.length) {
+          showQuestion(cur);
+        } else {
+          showResult();
+        }
+      });
+      opts.appendChild(btn);
+    });
+  }
+
+  function showResult() {
+    // Pick result based on most common answer, or last answer
+    const lastType = answers[answers.length - 1];
+    const result = RESULTS[lastType] || RESULTS.sleep;
+
+    document.getElementById("resultImg").src = `assets/${result.img}_s.jpg`;
+    document.getElementById("resultType").textContent = result.type;
+    document.getElementById("resultDesc").textContent = result.desc;
+
+    document.getElementById("quizScreen").classList.add("hidden");
+    document.getElementById("resultScreen").classList.remove("hidden");
+  }
+
+  document.getElementById("retryBtn").addEventListener("click", () => {
+    cur = 0;
+    answers.length = 0;
+    document.getElementById("resultScreen").classList.add("hidden");
+    document.getElementById("quizScreen").classList.remove("hidden");
+    showQuestion(0);
+  });
+
+  showQuestion(0);
+})();
+</script>
+</body>
+</html>

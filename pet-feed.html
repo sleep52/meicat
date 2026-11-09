@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#ffe4e9">
+<title>喂食屋</title>
+<link rel="stylesheet" href="css/pet.css">
+</head>
+<body>
+  <div class="pet-container">
+    <div class="pet-topbar">
+      <a class="pet-back" href="pet.html">←</a>
+      <div class="pet-title">喂食屋 <span style="font-size:14px;">🐟</span></div>
+      <div class="pet-score">❤️ <span id="loveCount">0</span></div>
+    </div>
+
+    <div class="game-area">
+      <span class="deco-star" style="top:10px;left:20px;font-size:18px;">✨</span>
+      <span class="deco-heart" style="top:20px;right:20px;font-size:16px;">💕</span>
+
+      <div style="position:relative;text-align:center;">
+        <img class="game-cat-img" id="catImg" src="assets/wide_s.jpg" alt="猫咪" style="max-width:240px;">
+        <div class="home-speech" style="right:-5px;top:10px;font-size:12px;max-width:120px;">
+          给我💗<br>好吃的~💕
+        </div>
+      </div>
+
+      <div class="food-grid">
+        <button class="food-btn" data-food="fish" data-love="3">
+          <div class="food-icon">🐟</div>
+          <div class="food-name">小鱼</div>
+        </button>
+        <button class="food-btn" data-food="chicken" data-love="5">
+          <div class="food-icon">🍗</div>
+          <div class="food-name">鸡腿</div>
+        </button>
+        <button class="food-btn" data-food="can" data-love="8">
+          <div class="food-icon"></div>
+          <div class="food-name">罐头</div>
+        </button>
+        <button class="food-btn" data-food="kibble" data-love="2">
+          <div class="food-icon">🍪</div>
+          <div class="food-name">猫粮</div>
+        </button>
+      </div>
+
+      <div class="feed-reaction" id="reaction"></div>
+    </div>
+
+    <div class="game-hint">
+      <span>🐾</span>
+      <span>选择美食，喂给我吧！</span>
+      <span>🐾</span>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const catImg = document.getElementById("catImg");
+  const loveCount = document.getElementById("loveCount");
+  const reaction = document.getElementById("reaction");
+  let love = 0;
+  const reactions = {
+    fish: ["喵~ 小鱼好好吃！😻", "鱼鱼！最爱了！🐟💕", "咕噜咕噜~ 幸福！✨"],
+    chicken: ["哇！大鸡腿！🍗😍", "肉肉！开心到转圈！💃", "铲屎官最好了！💖"],
+    can: ["罐头！！豪华大餐！👑", "呜呜太好吃了吧！😭💕", "这是猫生巅峰！🌟"],
+    kibble: ["嗯... 还行吧 😐", "日常口粮，谢谢~ 🙏", "吃饱了才有力气摸鱼 🐟"],
+  };
+  const catImages = {
+    fish: "bunny",
+    chicken: "sit",
+    can: "lipstick",
+    kibble: "flat",
+  };
+
+  document.querySelectorAll(".food-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const food = btn.dataset.food;
+      const pts = +btn.dataset.love;
+      love += pts;
+      loveCount.textContent = love;
+
+      // Highlight selected
+      document.querySelectorAll(".food-btn").forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+
+      // Show reaction
+      const msgs = reactions[food];
+      reaction.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+
+      // Change cat expression
+      catImg.src = `assets/${catImages[food]}_s.jpg`;
+      catImg.style.transform = "scale(1.05)";
+      setTimeout(() => { catImg.style.transform = ""; }, 200);
+
+      // Float hearts
+      for (let i = 0; i < pts; i++) {
+        setTimeout(() => {
+          const h = document.createElement("span");
+          h.className = "heart-float";
+          h.textContent = "❤️";
+          h.style.left = (100 + Math.random() * 100) + "px";
+          h.style.top = (80 + Math.random() * 60) + "px";
+          h.style.fontSize = (16 + Math.random() * 12) + "px";
+          document.querySelector(".game-area").appendChild(h);
+          setTimeout(() => h.remove(), 1000);
+        }, i * 100);
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

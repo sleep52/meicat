@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#ffe4e9">
+<title>摸摸乐</title>
+<link rel="stylesheet" href="css/pet.css">
+</head>
+<body>
+  <div class="pet-container">
+    <div class="pet-topbar">
+      <a class="pet-back" href="pet.html">←</a>
+      <div class="pet-title">摸摸乐</div>
+      <div class="pet-score">❤️ <span id="heartCount">0</span></div>
+    </div>
+
+    <div class="game-area" id="gameArea">
+      <span class="deco-heart" style="top:10px;left:20px;font-size:18px;">💗</span>
+      <span class="deco-heart" style="top:30px;right:30px;font-size:14px;animation-delay:0.5s;">💕</span>
+      <span class="deco-star" style="top:60px;left:40px;font-size:16px;">✨</span>
+      <span class="deco-heart" style="bottom:80px;right:20px;font-size:16px;animation-delay:1s;">💖</span>
+
+      <p style="text-align:center;font-size:16px;font-weight:700;color:var(--pink-dark);margin-bottom:12px;">
+        快来摸摸我呀~
+      </p>
+      <img class="game-cat-img" id="catImg" src="assets/sleep_s.jpg" alt="猫咪" style="max-width:260px;">
+    </div>
+
+    <div class="game-hint">
+      <span>🐾</span>
+      <span>点击猫咪，收集爱心吧！</span>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const catImg = document.getElementById("catImg");
+  const gameArea = document.getElementById("gameArea");
+  const heartCount = document.getElementById("heartCount");
+  let count = 0;
+  const cats = ["sleep", "flat", "wide", "sit", "bunny", "seal"];
+  let catIdx = 0;
+
+  catImg.addEventListener("click", (e) => {
+    count++;
+    heartCount.textContent = count;
+
+    // Float heart
+    const heart = document.createElement("span");
+    heart.className = "heart-float";
+    heart.textContent = ["❤️", "💗", "💕", "💖", ""][Math.floor(Math.random() * 5)];
+    const rect = gameArea.getBoundingClientRect();
+    heart.style.left = (e.clientX - rect.left - 12) + "px";
+    heart.style.top = (e.clientY - rect.top - 12) + "px";
+    gameArea.appendChild(heart);
+    setTimeout(() => heart.remove(), 1000);
+
+    // Change cat every 10 clicks
+    if (count % 10 === 0) {
+      catIdx = (catIdx + 1) % cats.length;
+      catImg.src = `assets/${cats[catIdx]}_s.jpg`;
+    }
+
+    // Cat bounce
+    catImg.style.transform = "scale(0.95)";
+    setTimeout(() => { catImg.style.transform = ""; }, 100);
+  });
+})();
+</script>
+</body>
+</html>
