@@ -102,12 +102,28 @@
     ctx.fillText("🐾", x, H - 22);
   }
 
+  const catImg = new Image();
+  catImg.src = "assets/sit_s.jpg";
+
   function drawCat() {
-    // Simple cat face above basket
-    const cx = basketX, cy = H - basketH - 50;
-    ctx.font = "40px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("🐱", cx, cy);
+    const cx = basketX, cy = H - basketH - 70;
+    if (catImg.complete) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 35, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(catImg, cx - 35, cy - 35, 70, 70);
+      ctx.restore();
+      ctx.strokeStyle = "#ffffff88";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 35, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.font = "40px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("🐱", cx, cy);
+    }
   }
 
   function draw() {

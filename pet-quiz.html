@@ -18,7 +18,11 @@
     <!-- Quiz Screen -->
     <div id="quizScreen">
       <div class="quiz-progress" id="progress">1/3</div>
-      <img class="quiz-cat" id="quizCat" src="assets/wide_s.jpg" alt="猫咪">
+      <div style="position:relative;display:inline-block;width:100%;text-align:center;">
+        <span style="position:absolute;left:20%;top:10px;font-size:28px;color:var(--yellow);font-weight:900;">?</span>
+        <span style="position:absolute;right:20%;top:20px;font-size:24px;color:var(--blue);font-weight:900;">?</span>
+        <img class="quiz-cat" id="quizCat" src="assets/wide_s.jpg" alt="猫咪">
+      </div>
       <div class="quiz-question" id="question"></div>
       <div class="quiz-options" id="options"></div>
     </div>

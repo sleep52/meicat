@@ -6,6 +6,72 @@
 <meta name="theme-color" content="#ffe4e9">
 <title>喂食屋</title>
 <link rel="stylesheet" href="css/pet.css">
+<style>
+  .feed-area {
+    background: var(--pink-card);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid var(--pink-border);
+  }
+  .feed-cat-wrap {
+    position: relative;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .feed-cat {
+    width: 100%;
+    max-width: 280px;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius);
+    margin: 0 auto;
+    display: block;
+  }
+  .feed-speech {
+    position: absolute;
+    right: 0; top: 10px;
+    background: var(--white);
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 2px 10px #00000010;
+    line-height: 1.5;
+  }
+  .feed-speech::after {
+    content: "";
+    position: absolute;
+    left: -8px; top: 20px;
+    border: 8px solid transparent;
+    border-right-color: var(--white);
+  }
+  .feed-exclaim {
+    position: absolute;
+    left: 10px; top: 10px;
+    font-size: 24px;
+    color: var(--yellow);
+    font-weight: 900;
+  }
+  .food-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .food-btn {
+    background: var(--white);
+    border: 2px solid var(--pink-border);
+    border-radius: var(--radius-sm);
+    padding: 14px 8px;
+    text-align: center;
+    transition: transform 0.1s, border-color 0.15s;
+  }
+  .food-btn:active { transform: scale(0.93); }
+  .food-btn.selected { border-color: var(--pink-accent); background: var(--pink-light); }
+  .food-btn .food-icon { font-size: 32px; margin-bottom: 6px; }
+  .food-btn .food-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+</style>
 </head>
 <body>
   <div class="pet-container">
@@ -15,15 +81,14 @@
       <div class="pet-score">❤️ <span id="loveCount">0</span></div>
     </div>
 
-    <div class="game-area">
-      <span class="deco-star" style="top:10px;left:20px;font-size:18px;">✨</span>
-      <span class="deco-heart" style="top:20px;right:20px;font-size:16px;">💕</span>
+    <div class="feed-area">
+      <span class="deco-float" style="top:10px;left:15px;font-size:18px;position:absolute;animation:decoFloat 3s ease-in-out infinite;">✨</span>
+      <span class="deco-float" style="top:20px;right:60px;font-size:14px;position:absolute;animation:decoFloat 3s ease-in-out infinite 0.5s;">💕</span>
 
-      <div style="position:relative;text-align:center;">
-        <img class="game-cat-img" id="catImg" src="assets/wide_s.jpg" alt="猫咪" style="max-width:240px;">
-        <div class="home-speech" style="right:-5px;top:10px;font-size:12px;max-width:120px;">
-          给我💗<br>好吃的~💕
-        </div>
+      <div class="feed-cat-wrap">
+        <span class="feed-exclaim">❗❗</span>
+        <img class="feed-cat" id="catImg" src="assets/wide_s.jpg" alt="猫咪">
+        <div class="feed-speech">给我💗<br>好吃的~💕</div>
       </div>
 
       <div class="food-grid">
@@ -36,7 +101,7 @@
           <div class="food-name">鸡腿</div>
         </button>
         <button class="food-btn" data-food="can" data-love="8">
-          <div class="food-icon"></div>
+          <div class="food-icon">🥫</div>
           <div class="food-name">罐头</div>
         </button>
         <button class="food-btn" data-food="kibble" data-love="2">
@@ -67,12 +132,7 @@
     can: ["罐头！！豪华大餐！👑", "呜呜太好吃了吧！😭💕", "这是猫生巅峰！🌟"],
     kibble: ["嗯... 还行吧 😐", "日常口粮，谢谢~ 🙏", "吃饱了才有力气摸鱼 🐟"],
   };
-  const catImages = {
-    fish: "bunny",
-    chicken: "sit",
-    can: "lipstick",
-    kibble: "flat",
-  };
+  const catImages = { fish: "bunny", chicken: "sit", can: "lipstick", kibble: "flat" };
 
   document.querySelectorAll(".food-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -81,29 +141,25 @@
       love += pts;
       loveCount.textContent = love;
 
-      // Highlight selected
       document.querySelectorAll(".food-btn").forEach((b) => b.classList.remove("selected"));
       btn.classList.add("selected");
 
-      // Show reaction
       const msgs = reactions[food];
       reaction.textContent = msgs[Math.floor(Math.random() * msgs.length)];
 
-      // Change cat expression
       catImg.src = `assets/${catImages[food]}_s.jpg`;
       catImg.style.transform = "scale(1.05)";
       setTimeout(() => { catImg.style.transform = ""; }, 200);
 
-      // Float hearts
       for (let i = 0; i < pts; i++) {
         setTimeout(() => {
           const h = document.createElement("span");
           h.className = "heart-float";
           h.textContent = "❤️";
-          h.style.left = (100 + Math.random() * 100) + "px";
-          h.style.top = (80 + Math.random() * 60) + "px";
+          h.style.left = (80 + Math.random() * 120) + "px";
+          h.style.top = (60 + Math.random() * 80) + "px";
           h.style.fontSize = (16 + Math.random() * 12) + "px";
-          document.querySelector(".game-area").appendChild(h);
+          document.querySelector(".feed-area").appendChild(h);
           setTimeout(() => h.remove(), 1000);
         }, i * 100);
       }

@@ -6,6 +6,75 @@
 <meta name="theme-color" content="#ffe4e9">
 <title>摸摸乐</title>
 <link rel="stylesheet" href="css/pet.css">
+<style>
+  .pet-game-area {
+    background: var(--pink-card);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid var(--pink-border);
+  }
+  .pet-call-text {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .pet-call-text::before { content: "✨"; position: absolute; left: 10px; top: -5px; font-size: 16px; }
+  .pet-call-text::after { content: "💕"; position: absolute; right: 10px; top: -5px; font-size: 16px; }
+  .pet-cat-large {
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius);
+    margin: 0 auto;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.1s;
+    position: relative;
+  }
+  .pet-cat-large:active { transform: scale(0.97); }
+  .hand-cursor {
+    position: absolute;
+    right: 20px;
+    bottom: 80px;
+    font-size: 40px;
+    animation: handBounce 1.5s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 5;
+  }
+  @keyframes handBounce {
+    0%, 100% { transform: translateY(0) rotate(-10deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+  }
+  .pet-progress {
+    height: 8px;
+    background: #ffffff60;
+    border-radius: 4px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .pet-progress-fill {
+    height: 100%;
+    background: var(--white);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s;
+  }
+  .deco-float {
+    position: absolute;
+    pointer-events: none;
+    animation: decoFloat 3s ease-in-out infinite;
+  }
+  @keyframes decoFloat {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(-10px); opacity: 0.8; }
+  }
+</style>
 </head>
 <body>
   <div class="pet-container">
@@ -15,21 +84,27 @@
       <div class="pet-score">❤️ <span id="heartCount">0</span></div>
     </div>
 
-    <div class="game-area" id="gameArea">
-      <span class="deco-heart" style="top:10px;left:20px;font-size:18px;">💗</span>
-      <span class="deco-heart" style="top:30px;right:30px;font-size:14px;animation-delay:0.5s;">💕</span>
-      <span class="deco-star" style="top:60px;left:40px;font-size:16px;">✨</span>
-      <span class="deco-heart" style="bottom:80px;right:20px;font-size:16px;animation-delay:1s;">💖</span>
+    <div class="pet-game-area" id="gameArea">
+      <span class="deco-float" style="top:10px;left:15px;font-size:20px;">💗</span>
+      <span class="deco-float" style="top:25px;right:20px;font-size:16px;animation-delay:0.5s;">💕</span>
+      <span class="deco-float" style="top:60px;left:30px;font-size:14px;animation-delay:1s;">✨</span>
+      <span class="deco-float" style="bottom:100px;right:15px;font-size:18px;animation-delay:1.5s;">💖</span>
+      <span class="deco-float" style="bottom:60px;left:20px;font-size:14px;animation-delay:0.8s;">🌸</span>
+      <span class="deco-float" style="top:40px;right:50px;font-size:12px;animation-delay:2s;">⭐</span>
 
-      <p style="text-align:center;font-size:16px;font-weight:700;color:var(--pink-dark);margin-bottom:12px;">
-        快来摸摸我呀~
-      </p>
-      <img class="game-cat-img" id="catImg" src="assets/sleep_s.jpg" alt="猫咪" style="max-width:260px;">
+      <div class="pet-call-text">快来摸摸我呀~</div>
+      <div style="position:relative;">
+        <img class="pet-cat-large" id="catImg" src="assets/sleep_s.jpg" alt="猫咪">
+        <span class="hand-cursor">👆</span>
+      </div>
     </div>
 
     <div class="game-hint">
       <span>🐾</span>
       <span>点击猫咪，收集爱心吧！</span>
+    </div>
+    <div class="pet-progress">
+      <div class="pet-progress-fill" id="progressFill"></div>
     </div>
   </div>
 
@@ -38,6 +113,7 @@
   const catImg = document.getElementById("catImg");
   const gameArea = document.getElementById("gameArea");
   const heartCount = document.getElementById("heartCount");
+  const progressFill = document.getElementById("progressFill");
   let count = 0;
   const cats = ["sleep", "flat", "wide", "sit", "bunny", "seal"];
   let catIdx = 0;
@@ -45,24 +121,23 @@
   catImg.addEventListener("click", (e) => {
     count++;
     heartCount.textContent = count;
+    progressFill.style.width = `${(count % 10) * 10}%`;
 
-    // Float heart
     const heart = document.createElement("span");
     heart.className = "heart-float";
-    heart.textContent = ["❤️", "💗", "💕", "💖", ""][Math.floor(Math.random() * 5)];
+    heart.textContent = ["❤️", "💗", "💕", "💖", "💘"][Math.floor(Math.random() * 5)];
     const rect = gameArea.getBoundingClientRect();
     heart.style.left = (e.clientX - rect.left - 12) + "px";
     heart.style.top = (e.clientY - rect.top - 12) + "px";
     gameArea.appendChild(heart);
     setTimeout(() => heart.remove(), 1000);
 
-    // Change cat every 10 clicks
     if (count % 10 === 0) {
       catIdx = (catIdx + 1) % cats.length;
       catImg.src = `assets/${cats[catIdx]}_s.jpg`;
+      progressFill.style.width = "0%";
     }
 
-    // Cat bounce
     catImg.style.transform = "scale(0.95)";
     setTimeout(() => { catImg.style.transform = ""; }, 100);
   });
