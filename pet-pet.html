@@ -40,9 +40,10 @@
   .pet-cat-large:active { transform: scale(0.97); }
   .hand-cursor {
     position: absolute;
-    right: 20px;
-    bottom: 80px;
-    font-size: 40px;
+    right: 10px;
+    bottom: 60px;
+    width: 60px; height: 60px;
+    object-fit: contain;
     animation: handBounce 1.5s ease-in-out infinite;
     pointer-events: none;
     z-index: 5;
@@ -85,17 +86,17 @@
     </div>
 
     <div class="pet-game-area" id="gameArea">
-      <span class="deco-float" style="top:10px;left:15px;font-size:20px;">💗</span>
-      <span class="deco-float" style="top:25px;right:20px;font-size:16px;animation-delay:0.5s;">💕</span>
-      <span class="deco-float" style="top:60px;left:30px;font-size:14px;animation-delay:1s;">✨</span>
-      <span class="deco-float" style="bottom:100px;right:15px;font-size:18px;animation-delay:1.5s;">💖</span>
-      <span class="deco-float" style="bottom:60px;left:20px;font-size:14px;animation-delay:0.8s;">🌸</span>
-      <span class="deco-float" style="top:40px;right:50px;font-size:12px;animation-delay:2s;">⭐</span>
+      <img class="deco-float" src="assets/pet-heart-deco_1794193821067_ac04d555.png" style="width:32px;top:10px;left:15px;">
+      <img class="deco-float" src="assets/pet-heart-deco_1794193821067_ac04d555.png" style="width:24px;top:25px;right:20px;animation-delay:0.5s;">
+      <img class="deco-float" src="assets/pet-star-deco_1794193906929_f5d7b26a.png" style="width:22px;top:60px;left:30px;animation-delay:1s;">
+      <img class="deco-float" src="assets/pet-heart-deco_1794193821067_ac04d555.png" style="width:28px;bottom:100px;right:15px;animation-delay:1.5s;">
+      <img class="deco-float" src="assets/pet-flower-deco_1794193833335_ca791ebb.png" style="width:24px;bottom:60px;left:20px;animation-delay:0.8s;">
+      <img class="deco-float" src="assets/pet-star-deco_1794193906929_f5d7b26a.png" style="width:18px;top:40px;right:50px;animation-delay:2s;">
 
       <div class="pet-call-text">快来摸摸我呀~</div>
       <div style="position:relative;">
         <img class="pet-cat-large" id="catImg" src="assets/sleep_s.jpg" alt="猫咪">
-        <span class="hand-cursor">👆</span>
+        <img class="hand-cursor" src="assets/pet-hand-cursor_1794193759189_8e5f4056.png" alt="">
       </div>
     </div>
 

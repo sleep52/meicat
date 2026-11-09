@@ -69,8 +69,12 @@
   }
   .food-btn:active { transform: scale(0.93); }
   .food-btn.selected { border-color: var(--pink-accent); background: var(--pink-light); }
-  .food-btn .food-icon { font-size: 32px; margin-bottom: 6px; }
+  .food-btn .food-icon { width: 40px; height: 40px; object-fit: contain; margin: 0 auto 6px; display: block; }
   .food-btn .food-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+  @keyframes decoFloat {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(-8px); opacity: 0.8; }
+  }
 </style>
 </head>
 <body>
@@ -82,8 +86,8 @@
     </div>
 
     <div class="feed-area">
-      <span class="deco-float" style="top:10px;left:15px;font-size:18px;position:absolute;animation:decoFloat 3s ease-in-out infinite;">✨</span>
-      <span class="deco-float" style="top:20px;right:60px;font-size:14px;position:absolute;animation:decoFloat 3s ease-in-out infinite 0.5s;">💕</span>
+      <img src="assets/pet-star-deco_1794193906929_f5d7b26a.png" style="width:28px;position:absolute;top:10px;left:15px;opacity:0.5;animation:decoFloat 3s ease-in-out infinite;">
+      <img src="assets/pet-heart-deco_1794193821067_ac04d555.png" style="width:22px;position:absolute;top:20px;right:60px;opacity:0.5;animation:decoFloat 3s ease-in-out infinite 0.5s;">
 
       <div class="feed-cat-wrap">
         <span class="feed-exclaim">❗❗</span>
@@ -93,19 +97,19 @@
 
       <div class="food-grid">
         <button class="food-btn" data-food="fish" data-love="3">
-          <div class="food-icon">🐟</div>
+          <img class="food-icon" src="assets/pet-food-fish_1794193845972_3e4b9844.png" alt="">
           <div class="food-name">小鱼</div>
         </button>
         <button class="food-btn" data-food="chicken" data-love="5">
-          <div class="food-icon">🍗</div>
+          <img class="food-icon" src="assets/pet-food-chicken_1794193858256_fb55aac6.png" alt="">
           <div class="food-name">鸡腿</div>
         </button>
         <button class="food-btn" data-food="can" data-love="8">
-          <div class="food-icon">🥫</div>
+          <img class="food-icon" src="assets/pet-food-can_1794193881643_06b95a8e.png" alt="">
           <div class="food-name">罐头</div>
         </button>
         <button class="food-btn" data-food="kibble" data-love="2">
-          <div class="food-icon">🍪</div>
+          <img class="food-icon" src="assets/pet-food-kibble_1794193894531_95d9f708.png" alt="">
           <div class="food-name">猫粮</div>
         </button>
       </div>
