@@ -1,4 +1,4 @@
-/* 粉色宠物游戏主题 */
+/* 粉色宠物游戏主题 - 精确还原版 */
 :root {
   --pink: #ffb6c1;
   --pink-light: #fff0f3;
@@ -19,11 +19,9 @@
   --radius: 20px;
   --radius-sm: 14px;
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 body {
-  background: linear-gradient(180deg, var(--pink-bg) 0%, var(--pink-light) 100%);
+  background: linear-gradient(180deg, #ffd6e0 0%, #ffe8ee 40%, #fff0f3 100%);
   color: var(--ink);
   font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
   min-height: 100vh;
@@ -31,418 +29,57 @@ body {
   touch-action: manipulation;
   overflow-x: hidden;
 }
-
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; display: block; }
 button { font-family: inherit; cursor: pointer; border: none; }
-
-/* ===== 顶部栏 ===== */
 .pet-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  position: relative;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; position: relative;
 }
 .pet-back {
-  width: 40px; height: 40px;
-  background: var(--white);
-  border-radius: 50%;
+  width: 40px; height: 40px; background: var(--white); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-  box-shadow: 0 2px 8px #00000010;
-  color: var(--pink-dark);
+  font-size: 20px; box-shadow: 0 2px 8px #00000010; color: var(--pink-dark);
 }
 .pet-title {
-  background: var(--yellow);
-  padding: 8px 24px;
-  border-radius: 20px;
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--ink);
-  box-shadow: 0 2px 8px #00000010;
-  position: relative;
+  background: var(--yellow); padding: 8px 24px; border-radius: 20px;
+  font-size: 18px; font-weight: 800; color: var(--ink);
+  box-shadow: 0 2px 8px #00000010; position: relative;
 }
-.pet-title::before, .pet-title::after {
-  content: "🌸";
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 14px;
-}
-.pet-title::before { left: -20px; }
-.pet-title::after { right: -20px; }
 .pet-score {
-  background: var(--white);
-  padding: 6px 14px;
-  border-radius: 16px;
-  font-size: 16px;
-  font-weight: 700;
-  display: flex; align-items: center; gap: 6px;
+  background: var(--white); padding: 6px 14px; border-radius: 16px;
+  font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 6px;
   box-shadow: 0 2px 8px #00000010;
 }
-
-/* ===== 装饰 ===== */
-.deco-paw { position: absolute; opacity: 0.3; font-size: 20px; pointer-events: none; }
-.deco-heart { position: absolute; opacity: 0.4; pointer-events: none; animation: floatHeart 3s ease-in-out infinite; }
-@keyframes floatHeart {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-8px) scale(1.1); }
-}
-.deco-star { position: absolute; opacity: 0.3; pointer-events: none; animation: twinkle 2s ease-in-out infinite; }
-@keyframes twinkle {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.2); }
-}
-
-/* ===== 卡片容器 ===== */
 .pet-container {
-  max-width: 420px;
-  margin: 0 auto;
-  padding: 0 16px 30px;
-  position: relative;
+  max-width: 420px; margin: 0 auto; padding: 0 12px 20px; position: relative;
 }
-
-/* ===== 主页 ===== */
-.home-hero {
-  text-align: center;
-  padding: 10px 0 20px;
-  position: relative;
+.deco-img { position: absolute; pointer-events: none; }
+.deco-float { position: absolute; pointer-events: none; animation: decoFloat 3s ease-in-out infinite; }
+@keyframes decoFloat {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(-8px); opacity: 0.9; }
 }
-.home-title {
-  font-size: 28px;
-  font-weight: 900;
-  color: var(--ink);
-  text-shadow: 2px 2px 0 var(--yellow);
-  margin-bottom: 6px;
-}
-.home-subtitle {
-  background: var(--yellow);
-  display: inline-block;
-  padding: 4px 16px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.home-cat {
-  width: 200px; height: 200px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 6px solid var(--white);
-  box-shadow: 0 8px 24px #e8899a33;
-  margin: 16px auto;
-  position: relative;
-}
-.home-speech {
-  position: absolute;
-  right: -10px; top: 20px;
-  background: var(--white);
-  padding: 10px 14px;
-  border-radius: 16px;
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 2px 10px #00000010;
-  max-width: 140px;
-  line-height: 1.5;
-}
-.home-speech::after {
-  content: "";
-  position: absolute;
-  left: -8px; top: 20px;
-  border: 8px solid transparent;
-  border-right-color: var(--white);
-}
-
-/* ===== 游戏按钮网格 ===== */
-.game-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin: 16px 0;
-}
-.game-btn {
-  background: var(--white);
-  border-radius: var(--radius);
-  padding: 20px 12px;
-  text-align: center;
-  box-shadow: 0 4px 12px #e8899a18;
-  border: 2px solid var(--pink-border);
-  transition: transform 0.15s, box-shadow 0.15s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-.game-btn:active { transform: scale(0.95); }
-.game-btn:hover { box-shadow: 0 6px 18px #e8899a28; }
-.game-btn .icon { font-size: 32px; }
-.game-btn .label { font-size: 15px; font-weight: 700; color: var(--ink); }
-.game-btn:nth-child(1) { background: var(--yellow-light); border-color: var(--yellow); }
-.game-btn:nth-child(2) { background: var(--blue-light); border-color: var(--blue); }
-.game-btn:nth-child(3) { background: var(--purple-light); border-color: var(--purple); }
-.game-btn:nth-child(4) { background: var(--pink-card); border-color: var(--pink); }
-
-.home-cta {
-  background: var(--pink);
-  color: var(--white);
-  padding: 14px 24px;
-  border-radius: 24px;
-  font-size: 15px;
-  font-weight: 700;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  box-shadow: 0 4px 12px #e8899a33;
-  margin-top: 8px;
-}
-
-/* ===== 游戏区域 ===== */
 .game-area {
-  background: var(--white);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: 0 4px 16px #e8899a18;
+  background: var(--pink-card); border-radius: var(--radius);
+  padding: 16px; position: relative; overflow: hidden;
   border: 2px solid var(--pink-border);
-  position: relative;
-  overflow: hidden;
-  min-height: 300px;
 }
-.game-cat-img {
-  width: 100%;
-  max-width: 280px;
-  margin: 0 auto;
-  border-radius: var(--radius);
-  object-fit: cover;
-  cursor: pointer;
-  transition: transform 0.1s;
-  display: block;
-}
-.game-cat-img:active { transform: scale(0.97); }
-
 .game-hint {
-  background: var(--pink);
-  color: var(--white);
-  padding: 12px 20px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  background: linear-gradient(90deg, #ffb6c1, #ffa0b4);
+  color: var(--white); padding: 14px 20px; border-radius: 24px;
+  font-size: 14px; font-weight: 700; text-align: center;
+  margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 3px 10px #e8899a25;
 }
-
-/* ===== 爱心收集 ===== */
+.game-hint img { width: 24px; height: 24px; object-fit: contain; }
 .heart-float {
-  position: absolute;
-  font-size: 24px;
-  pointer-events: none;
-  animation: heartUp 1s ease-out forwards;
-  z-index: 10;
+  position: absolute; font-size: 24px; pointer-events: none;
+  animation: heartUp 1s ease-out forwards; z-index: 10;
 }
 @keyframes heartUp {
   0% { opacity: 1; transform: translateY(0) scale(1); }
   100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
 }
-
-/* ===== 喂食 ===== */
-.food-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-top: 16px;
-}
-.food-btn {
-  background: var(--white);
-  border: 2px solid var(--pink-border);
-  border-radius: var(--radius-sm);
-  padding: 12px 8px;
-  text-align: center;
-  transition: transform 0.1s, border-color 0.15s;
-}
-.food-btn:active { transform: scale(0.93); }
-.food-btn.selected { border-color: var(--pink-accent); background: var(--pink-light); }
-.food-btn .food-icon { font-size: 28px; margin-bottom: 4px; }
-.food-btn .food-name { font-size: 12px; font-weight: 600; color: var(--ink); }
-
-.feed-reaction {
-  text-align: center;
-  font-size: 14px;
-  color: var(--pink-dark);
-  font-weight: 600;
-  margin-top: 12px;
-  min-height: 24px;
-}
-
-/* ===== 接鱼游戏 ===== */
-.fish-canvas-wrap {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 3/4;
-  background: linear-gradient(180deg, #87ceeb 0%, #b8e4f0 60%, #d4f0d4 100%);
-  border-radius: var(--radius);
-  overflow: hidden;
-  touch-action: none;
-}
-.fish-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-.fish-hud {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-.fish-hud-item {
-  background: var(--white);
-  padding: 6px 14px;
-  border-radius: 14px;
-  font-size: 14px;
-  font-weight: 700;
-  box-shadow: 0 2px 6px #00000010;
-}
-
-/* ===== 测试 ===== */
-.quiz-progress {
-  text-align: right;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--muted);
-  margin-bottom: 12px;
-}
-.quiz-cat {
-  width: 140px; height: 140px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 4px solid var(--yellow);
-  margin: 0 auto 16px;
-  display: block;
-}
-.quiz-question {
-  background: var(--pink-light);
-  padding: 16px;
-  border-radius: var(--radius-sm);
-  text-align: center;
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 16px;
-}
-.quiz-options {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.quiz-opt {
-  background: var(--white);
-  border: 2px solid var(--pink-border);
-  border-radius: var(--radius-sm);
-  padding: 14px 18px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: all 0.15s;
-  text-align: left;
-}
-.quiz-opt:active { transform: scale(0.97); }
-.quiz-opt:hover { border-color: var(--pink-accent); }
-.quiz-opt .opt-emoji { font-size: 22px; }
-
-/* ===== 结果页 ===== */
-.result-banner {
-  background: var(--yellow);
-  padding: 10px 28px;
-  border-radius: 20px;
-  font-size: 20px;
-  font-weight: 800;
-  text-align: center;
-  margin-bottom: 20px;
-  position: relative;
-  display: inline-block;
-}
-.result-banner::before { content: "👑"; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 22px; }
-.result-avatar-wrap {
-  width: 160px; height: 160px;
-  margin: 0 auto 16px;
-  position: relative;
-}
-.result-avatar {
-  width: 100%; height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 5px solid var(--yellow);
-}
-.result-laurel {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 40px;
-  opacity: 0.6;
-}
-.result-laurel.left { left: -30px; }
-.result-laurel.right { right: -30px; }
-.result-type-banner {
-  background: var(--pink);
-  color: var(--white);
-  padding: 10px 24px;
-  border-radius: 16px;
-  font-size: 18px;
-  font-weight: 800;
-  text-align: center;
-  margin: 0 auto 16px;
-  display: inline-block;
-}
-.result-desc {
-  text-align: center;
-  font-size: 14px;
-  color: var(--ink);
-  line-height: 1.8;
-  margin-bottom: 24px;
-}
-.result-btns {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-.result-btn {
-  padding: 12px 24px;
-  border-radius: 20px;
-  font-size: 15px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.result-btn.home {
-  background: var(--white);
-  color: var(--ink);
-  border: 2px solid var(--pink-border);
-}
-.result-btn.retry {
-  background: var(--pink);
-  color: var(--white);
-}
-
-/* ===== 通用按钮 ===== */
-.pet-btn {
-  background: var(--pink);
-  color: var(--white);
-  padding: 12px 28px;
-  border-radius: 20px;
-  font-size: 15px;
-  font-weight: 700;
-  box-shadow: 0 4px 12px #e8899a33;
-  transition: transform 0.1s;
-}
-.pet-btn:active { transform: scale(0.95); }
-
 .hidden { display: none !important; }
 .text-center { text-align: center; }
