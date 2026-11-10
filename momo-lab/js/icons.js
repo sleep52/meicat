@@ -43,6 +43,7 @@ window.ML_ICONS = (() => {
     crown: S('<path d="M8 34l-2-20 10 8 8-14 8 14 10-8-2 20z" fill="#F5E66B"/><path d="M8 38h32"/>'),
     shades: S('<path d="M6 18h36M10 18c0 10 2 14 8 14s8-4 8-14M26 18c0 10 2 14 8 14s8-4 8-14" fill="#222"/>'),
     bubble: S('<path d="M8 10h32v22H24l-8 8v-8H8z" fill="#fff"/><path d="M15 18h18M15 25h12"/>'),
+    moon: S('<path d="M30 6a18 18 0 1014 27A16 16 0 0130 6z" fill="#DCD2F5"/><path d="M36 12l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" fill="#F5E66B"/>'),
     home: S('<path d="M8 22L24 8l16 14M13 20v20h22V20"/><path d="M20 40v-11h8v11"/>'),
     paw: S('<ellipse cx="24" cy="31" rx="10" ry="8" fill="#F5E66B"/><circle cx="12" cy="20" r="4.5"/><circle cx="22" cy="13" r="4.5"/><circle cx="33" cy="16" r="4.5"/><circle cx="40" cy="26" r="4"/>'),
     note: S('<path d="M18 34a6 6 0 1 1-6-6c2 0 3 1 6 2V10l20-4v22a6 6 0 1 1-6-6c2 0 3 1 6 2"/><path d="M18 16l20-4"/>'),

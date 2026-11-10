@@ -8,12 +8,14 @@ window.ML_GAMES = (() => {
     meme: S(`<path d="M14 12h92v48H64l-16 16v-16H14z" fill="#fff"/><circle cx="44" cy="30" r="3" fill="#222" stroke="none"/><circle cx="76" cy="30" r="3" fill="#222" stroke="none"/><path d="M52 44c6 5 12 5 18 0" stroke-width="2.5"/><path d="M28 22l4-8 4 8M86 22l4-8 4 8" stroke-width="2.5"/>`),
     pet: S(`<ellipse cx="60" cy="60" rx="30" ry="24" fill="#E8A857"/><circle cx="60" cy="32" r="21" fill="#E8A857"/><path d="M44 18l-4-14 14 7zM76 18l4-14-14 7z" fill="#E8A857"/><circle cx="52" cy="30" r="2.6" fill="#222" stroke="none"/><circle cx="68" cy="30" r="2.6" fill="#222" stroke="none"/><path d="M88 66c12-4 14-18 8-24" /><path d="M30 74l-8 10M90 74l8 10" stroke-width="2.5"/>`),
     quiz: S(`<circle cx="60" cy="45" r="30" fill="#F5E66B"/><text x="60" y="58" text-anchor="middle" font-family="Arial" font-size="36" font-weight="900" fill="#222" stroke="none">?</text><path d="M18 20l6-8M102 20l-6-8"/>`),
+    kitten: S(`<ellipse cx="56" cy="60" rx="26" ry="22" fill="#E8A857"/><circle cx="56" cy="30" r="19" fill="#E8A857"/><path d="M42 18l-3-12 12 6zM70 18l3-12-12 6z" fill="#E8A857"/><circle cx="49" cy="29" r="2.4" fill="#222" stroke="none"/><circle cx="63" cy="29" r="2.4" fill="#222" stroke="none"/><path d="M56 35l-3 2 3 2 3-2z" fill="#fff"/><path d="M82 70c12 2 16-8 12-16" stroke-width="5"/><path d="M46 78l1 8M66 78l1 8" stroke-width="2.5"/><path d="M96 14l-2 6 6-2-6-2 2-6z" fill="#F5E66B"/>`),
   };
   window.ML_GAME_ART = SVG;
   return [
     { id: "jump", n: "蓄力跳家具", sub: "按住松手，跳到该跳的地方", href: "game/jump.html", rec: "jump", time: "60 秒", art: { svg: "jump" }, tags: ["蓄力", "落点判定", "连击"] },
     { id: "sneak", n: "偷吃木头人", sub: "她转身时，一动不动", href: "game/sneak.html", rec: "sneak", time: "60 秒", art: { svg: "sneak" }, tags: ["反应", "静止判定", "心理战"] },
     { id: "dressup", n: "MOMO 换装室", sub: "给它戴帽子，导出成品图", href: "game/dressup.html", rec: null, time: "自由玩", art: { svg: "dressup" }, tags: ["创作", "PNG 导出", "收藏"] },
+    { id: "kitten", n: "我家猫", sub: "真实猫部件装配，能摸能逗", href: "game/kitten.html", rec: null, time: "自由玩", art: { svg: "kitten" }, tags: ["分层布偶", "分区触摸", "养成"] },
     { id: "meme", n: "表情包制造机", sub: "照片 + 文案 + 贴纸", href: "game/meme-maker.html", rec: null, time: "自由玩", art: { img: "assets/games/meme-cover.png" }, tags: ["图片创作", "PNG 导出"] },
     { id: "escape", n: "紧急撤离", sub: "主人 45 秒后到家", href: "game/escape.html", rec: "escape", time: "45 秒", art: { img: "assets/games/escape-cover.png" }, tags: ["限时操作", "随机事件"] },
     { id: "chaos", n: "混乱现场", sub: "越乱越好的 30 秒", href: "game/chaos.html", rec: "chaos", time: "30 秒", art: { img: "assets/games/chaos-cover.png" }, tags: ["自由操作", "连锁反应"] },
