@@ -62,6 +62,7 @@ window.ML = (() => {
     return { best: r.best, isNew, plays: r.plays };
   }
   const best = game => (records[game] || {}).best || 0;
+  const plays = game => (records[game] || {}).plays || 0;
 
   function machine() {
     let s = "READY"; const ls = [];
@@ -119,7 +120,8 @@ window.ML = (() => {
       customText: ["眉姐姐：你最好有事。", "人类，你解释一下。"]
     }
   };
-  const petId = () => new URLSearchParams(location.search).get("pet") || (document.body.dataset.pet || "pet001");
+  const petId = () => new URLSearchParams(location.search).get("pet") || document.body.dataset.pet
+    || localStorage.getItem("ml-pet") || "pet001";
   async function pet() {
     const id = petId();
     let j = PETS[id] || PETS.pet001;
@@ -176,9 +178,68 @@ window.ML = (() => {
     setTimeout(() => s.remove(), 800);
   }
 
+  const TABS = [
+    ["home", "index.html", "首页", "home"],
+    ["games", "games.html", "游戏", "paw"],
+    ["collection", "collection.html", "收藏", "heart"],
+    ["settings", "settings.html", "设置", "gear"],
+  ];
+
+  const STATS0 = { interactions: 0, points: 0, gamesPlayed: 0, memesMade: 0, outfitsMade: 0 };
+  function stats() {
+    let o = {};
+    try { o = JSON.parse(localStorage.getItem("ml-stats") || "{}") || {}; } catch (e) { o = {}; }
+    return Object.assign({}, STATS0, o);
+  }
+  function patchStats(patch) {
+    const s = stats();
+    for (const k in patch) s[k] = (s[k] || 0) + patch[k];
+    try { localStorage.setItem("ml-stats", JSON.stringify(s)); } catch (e) {}
+    return s;
+  }
+  function works() {
+    let a = [];
+    try { a = JSON.parse(localStorage.getItem("ml-works") || "[]"); } catch (e) { a = []; }
+    return Array.isArray(a) ? a : [];
+  }
+  function addWork(w) {
+    const a = works(); a.unshift(w);
+    while (a.length > 60) a.pop();
+    try { localStorage.setItem("ml-works", JSON.stringify(a)); } catch (e) {}
+    return a.length;
+  }
+  function dropWork(id) {
+    const a = works().filter(w => w.id !== id);
+    try { localStorage.setItem("ml-works", JSON.stringify(a)); } catch (e) {}
+    return a.length;
+  }
+  const today = () => new Date().toISOString().slice(0, 10);
+  // 今日任务：以当天第一次打开时的累计值为基线，跨天自动归零
+  function daily() {
+    let d = {};
+    try { d = JSON.parse(localStorage.getItem("ml-daily") || "{}") || {}; } catch (e) { d = {}; }
+    if (d.date !== today()) {
+      const s = stats();
+      d = { date: today(), base: { interactions: s.interactions, gamesPlayed: s.gamesPlayed, memesMade: s.memesMade, outfitsMade: s.outfitsMade }, claimed: {}, points: 0 };
+      try { localStorage.setItem("ml-daily", JSON.stringify(d)); } catch (e) {}
+    }
+    if (!d.base) d.base = { interactions: 0, gamesPlayed: 0, memesMade: 0, outfitsMade: 0 };
+    if (!d.claimed) d.claimed = {};
+    return d;
+  }
+  function saveDaily(d) { try { localStorage.setItem("ml-daily", JSON.stringify(d)); } catch (e) {} }
+
   function chrome() {
     const b = document.body.dataset.base || "./";
     const page = document.body.dataset.page || "";
+    if (document.body.dataset.app) {
+      const nav = document.createElement("nav");
+      nav.className = "ml-tabbar";
+      nav.innerHTML = `<div class="tb-in">` + TABS.map(([id, href, label, ico]) =>
+        `<a href="${b}${href}"${id === page ? ' class="active" aria-current="page"' : ""}>${ML_ICONS[ico]}<span>${label}</span></a>`).join("") + `</div>`;
+      document.body.append(nav);
+      return;
+    }
     const nav = document.createElement("header"); nav.className = "ml-nav";
     nav.innerHTML = `<div class="wrap bar">
       <a class="logo" href="${b}index.html"><span class="mark">${ML_ICONS.asterisk}</span>MOMO 事务所</a>
@@ -222,5 +283,6 @@ window.ML = (() => {
   }
   document.addEventListener("DOMContentLoaded", chrome);
 
-  return { $, $$, clamp, rand, irand, pick, shuffle, base, asset, settings, sound, onSound, record, best, machine, bindPause, img, cut, pet, petId, shareCard, floatSticker, rr };
+  return { $, $$, clamp, rand, irand, pick, shuffle, base, asset, settings, saveSettings, sound, onSound, record, best, plays, machine, bindPause, img, cut, pet, petId, shareCard, floatSticker, rr,
+    stats, patchStats, works, addWork, dropWork, daily, saveDaily, today };
 })();

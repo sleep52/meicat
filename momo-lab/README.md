@@ -7,8 +7,12 @@
 
 ```
 momo-lab/
-├── index.html          首页
-├── play.html           游戏大厅
+├── index.html          App 首页（移动端主视觉 + 今日任务 + 快捷入口）
+├── games.html          App「游戏」tab：全部游戏清单
+├── collection.html     App「收藏」tab：本机作品与成绩
+├── settings.html       App「设置」tab：开关 / 宠物 / 数据
+├── studio.html         品牌官网首页（原 index 内容，营销用）
+├── play.html           游戏大厅（网页版）
 ├── custom.html         定制案例
 ├── service.html        服务内容 + 联系
 ├── gift.html           电子礼物 + 纪念卡生成器
@@ -18,17 +22,21 @@ momo-lab/
 │   ├── meme-maker.html  游戏 03 表情包制造机（PNG 导出）
 │   ├── boss.html        游戏 04 谁是老板（4 场景 × 3 选择）
 │   ├── snack-panic.html 游戏 05 零食危机（45s）
-│   └── pet-world.html   游戏 06 宠物世界（3D 角色实时渲染）
+│   ├── pet-world.html   游戏 06 宠物世界（3D 角色实时渲染）
+│   ├── jump.html        游戏 07 蓄力跳家具（按住蓄力 + 落点分级）
+│   ├── sneak.html       游戏 08 偷吃木头人（主人回头就定住）
+│   └── dressup.html     游戏 09 MOMO 换装室（30 件单品 + PNG 导出）
 ├── pet/
 │   ├── pet001/index.html  客户专属页（MOMO）
 │   └── pet002/index.html  客户专属页（眉姐姐）
 ├── tools/glb-check.html   生产工具：外包 GLB 契约体检（本地解析，不上传）
 ├── docs/pet-character-spec.md  3D 角色规格 + AI 生产管线 + 验收清单
-├── css/  base.css（全站视觉规范） game.css（游戏外壳）
-├── js/   core.js（导航/页脚/设置/音效/状态机/分享卡/宠物加载） icons.js（SVG 图标）
+├── css/  base.css（全站视觉规范） game.css（游戏外壳） app.css（App 外壳专用）
+├── js/   core.js（导航/页脚/设置/音效/状态机/分享卡/宠物加载/收藏与任务） icons.js（SVG 图标）
+│         registry.js（游戏清单，首页 / 游戏 tab / 收藏 tab 共用）
 │         pet3d.js（3D 角色控制器） vendor/（three r169 + GLTF 加载/导出，已内置）
 ├── data/pets/pet001.json / pet002.json  宠物配置
-└── assets/{hero,games,pets,backgrounds,icons,effects,custom}
+└── assets/{hero,games,pets,backgrounds,icons,effects,custom,dressup}
 ```
 
 ## 本地运行
@@ -74,6 +82,28 @@ python -m http.server 8010
 - 表情包制造机：上传照片或角色素材（自动抠白底）；8+ 预设文案、自定义文字；8 贴纸可拖动/双击删除；文字位置/字体/颜色；Canvas 真实导出 PNG。
 - 谁是老板：4 场景 ×3 选择；权限/耐心/自由三数值；5 种结局均可达成；键盘 A/B/C。
 - 零食危机：Canvas 接物；5 奖励 5 危险；生命/连击/加分；连续失误生气表情；末 10 秒加速；触摸 + 方向键。
+
+## 移动端 App 外壳
+
+四个页面（`index / games / collection / settings`）带 `data-app="1"`，`ML.chrome()` 因此只注入底部 `.ml-tabbar`，不注入网页版导航与页脚——游戏页和品牌页仍是原来的顶栏 + 页脚，两套外壳互不干扰。四个 tab 是真链接真路由，不是假切换。
+
+数据全部来自本机 localStorage，首页显示的不是写死的数字：
+
+| 键 | 内容 |
+|---|---|
+| `ml-stats` | 互动次数 / 积分 / 开过的局 / 表情包数 / 换装数 |
+| `ml-records` | 每款游戏的 best 与 plays |
+| `ml-works` | 收藏作品（≤60 条，含 PNG dataURL、来源游戏、标题、日期） |
+| `ml-daily` | 今日任务：以当天第一次打开时的累计值为基线，跨天自动归零 |
+| `ml-dressup` | 换装室搭配记忆 |
+
+撸猫（首页主视觉点击）加互动次数并弹表情贴纸；任意游戏开局加「开过的局」；导出表情包 / 换装图加对应计数并可写进 `ml-works`；任务领奖励才加积分。设置页可分别重置今日任务、清空作品、清空全部数据。
+
+## 新游戏（第一批）
+
+- 蓄力跳家具 `game/jump.html`：按住蓄力、松手起跳，抛物线由蓄力量决定；落点按中心偏差分 perfect / good / edge 三档，只有完美落点涨连击并加时间，蓄力过头或跳不够会掉命；60 秒限时，家具程序化生成。
+- 偷吃木头人 `game/sneak.html`：BACK → WARN → LOOK → SNAP 四相循环，主人回头时必须定住；警告相有真回头 / 假动作 / 打电话三种随机事件；吃到碗进下一回合，完美静止有额外分，被抓扣命；结束时把现场画成 600×760 结案写真，可导出并存进收藏。
+- MOMO 换装室 `game/dressup.html`：7 个分类 30 件单品（表情 / 头饰 / 衣服 / 颈部 / 手持 / 贴纸 / 背景），全部由 Canvas 程序化绘制，锚点跟随体型、头身、耳距三个滑块；随机一套、1080×1350 PNG 导出、一键存进收藏、搭配记忆与重置。素材换成真图的口子见 `assets/dressup/README.md`。
 
 ## 3D 角色层（游戏 06 宠物世界）
 

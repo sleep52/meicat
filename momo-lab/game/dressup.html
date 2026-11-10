@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F3">
+<title>MOMO 换装室 — MOMO 事务所</title>
+<meta name="description" content="给 MOMO 换表情、戴帽子、搭衣服，导出 1080×1350 的成品 PNG。">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/game.css">
+<style>
+  /* 本页专属布局，不动共享 CSS */
+  .dz-wrap{max-width:860px}
+  .dz-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+  .dz-col{min-width:0}
+  .dz-stage{position:relative;border:var(--bd);border-radius:16px;box-shadow:var(--sh);overflow:hidden;
+    background:linear-gradient(#F6F1E7 0 62%,#E7DCC8 62% 100%)}
+  #cv{display:block;width:100%;max-width:100%;height:auto;touch-action:none;-webkit-tap-highlight-color:transparent}
+  .dz-corner{position:absolute;right:10px;top:10px;background:var(--card);border:var(--bd);border-radius:999px;
+    padding:3px 10px;font-size:9px;font-weight:800;letter-spacing:.16em;box-shadow:2px 2px 0 var(--ink)}
+  .dz-note{font-size:11px;line-height:1.5;color:var(--mut);margin-top:8px;min-height:16px}
+  .dz-note.warn{color:var(--red);font-weight:700}
+  /* 横向滚动的分类 chips */
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip-btn{flex:none;border:var(--bd);border-radius:999px;background:#fff;padding:9px 15px;font-size:13px;font-weight:800;
+    letter-spacing:.08em;box-shadow:3px 3px 0 rgba(34,34,34,.18);white-space:nowrap;min-height:40px}
+  .chip-btn i{font-style:normal;font-size:10px;font-weight:900;color:var(--mut);margin-left:5px}
+  .chip-btn.sel{background:var(--yel);box-shadow:3px 3px 0 var(--ink)}
+  .chip-btn.sel i{color:var(--ink)}
+  /* 横向滚动的单品卡片 */
+  .items{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .items::-webkit-scrollbar{display:none}
+  .item{flex:none;width:94px;border:var(--bd);border-radius:14px;background:#fff;box-shadow:3px 3px 0 rgba(34,34,34,.18);
+    padding:7px 5px 6px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .item:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(34,34,34,.2)}
+  .item.sel{background:var(--pur);box-shadow:3px 3px 0 var(--ink)}
+  .item.none{width:62px;justify-content:center;background:var(--bg)}
+  .item.none.sel{background:var(--yel)}
+  .item .th{width:58px;height:58px;display:grid;place-items:center;background:#fff;border:var(--bd);border-radius:10px;overflow:hidden}
+  .item.none .th{background:repeating-linear-gradient(45deg,#fff 0 6px,#EFE9DD 6px 12px)}
+  .item .th svg{width:100%;height:100%}
+  .item .nm{font-size:12px;font-weight:800;line-height:1.25;text-align:center}
+  .item .bdg{font-size:9px;font-weight:900;letter-spacing:.1em;border:1px solid var(--ink);border-radius:999px;padding:0 6px;color:var(--mut)}
+  .item .bdg.img{background:var(--mint);color:var(--ink)}
+  /* 滑块 */
+  .dz-slider{display:grid;grid-template-columns:74px 1fr 42px;align-items:center;gap:10px;margin:8px 0}
+  .dz-slider .k{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--mut)}
+  .dz-slider .v{font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;text-align:right}
+  .dz-slider input[type=range]{width:100%;height:34px;accent-color:var(--ink);background:none}
+  .furs{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
+  .fur{width:34px;height:34px;border-radius:50%;border:var(--bd);cursor:pointer;box-shadow:2px 2px 0 rgba(34,34,34,.2)}
+  .fur.sel{outline:3px solid var(--ink);outline-offset:2px}
+  .dz-mini{font-size:11px;color:var(--mut);margin-top:6px;line-height:1.5}
+  /* 底部动作条：移动端吸底 */
+  .dz-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .dz-actions .btn{flex:1 1 auto}
+  .dz-actions [data-icon]{display:grid;place-items:center;width:18px;height:18px;flex:none}
+  .dz-actions svg{width:18px;height:18px;display:block;flex:none}
+  @media(max-width:759px){
+    .dz-actions{position:sticky;bottom:0;z-index:35;background:rgba(250,248,243,.96);border-top:var(--bd);
+      margin:14px -10px 0;padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
+  }
+  @media(min-width:760px){
+    .dz-grid{grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);align-items:start;gap:18px}
+    .dz-left{position:sticky;top:78px}
+    .dz-note{font-size:12px}
+  }
+</style>
+</head>
+<body data-page="dressup" data-base="../">
+
+<div class="g-wrap dz-wrap">
+  <div class="g-top">
+    <a class="icon-btn" href="../games.html" aria-label="返回"><span data-icon="back"></span></a>
+    <div class="title">MOMO 换装室<small>创作台 · <span id="whoName">MOMO</span> 主演</small></div>
+    <span class="tag yel" id="eqTag">已穿 0 件</span>
+  </div>
+
+  <div class="dz-grid">
+    <div class="dz-col dz-left">
+      <div class="dz-stage" id="stage">
+        <canvas id="cv" width="600" height="600" aria-label="换装实时预览画布"></canvas>
+        <span class="dz-corner">LIVE · 600</span>
+      </div>
+      <p class="dz-note" id="note">点下面的卡片给 MOMO 穿戴，所有变化都是实时画在画布上的。</p>
+    </div>
+
+    <div class="dz-col dz-right">
+      <div class="card ed-sec">
+        <span class="label">01 / 分类 · 单品（再点一次脱下）</span>
+        <div class="chips" id="chips"></div>
+        <div class="items" id="items"></div>
+      </div>
+
+      <div class="card ed-sec">
+        <span class="label">02 / 体型 · 毛色</span>
+        <div class="dz-slider"><span class="k">体型</span><input type="range" id="sBody" min="0.85" max="1.25" step="0.01" value="1.05" aria-label="体型胖瘦"><span class="v" id="vBody">1.05</span></div>
+        <div class="dz-slider"><span class="k">头身</span><input type="range" id="sHead" min="0.90" max="1.20" step="0.01" value="1.05" aria-label="头部大小"><span class="v" id="vHead">1.05</span></div>
+        <div class="furs" id="furs"></div>
+        <div class="ed-row" style="margin-top:12px">
+          <button class="ed-btn" id="stickerBtn">表情贴纸：关</button>
+          <button class="ed-btn" id="animBtn">待机动画：开</button>
+        </div>
+        <p class="dz-mini">体型与头身会同时改变耳朵、帽子、衣服、项圈的落点。</p>
+      </div>
+
+      <div class="card ed-sec">
+        <span class="label">03 / 名牌文案（进导出图）</span>
+        <input class="ed-input" id="capText" maxlength="18" placeholder="例如：职业拆家 · 一级拆迁户" aria-label="名牌文案">
+        <div class="ed-row" style="margin-top:10px" id="capPresets"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dz-actions" id="actions">
+    <button class="btn yel" id="randBtn"><span data-icon="shuffle"></span>随机一套</button>
+    <button class="btn" id="expBtn"><span data-icon="download"></span>导出 PNG</button>
+    <button class="btn mint" id="favBtn">存进收藏</button>
+    <button class="btn red small" id="resetBtn">重置</button>
+  </div>
+
+  <div class="ov hide" id="ov" style="position:fixed">
+    <div class="panel">
+      <h2 class="h2" style="font-size:22px">成品图已生成</h2>
+      <img class="result-img" id="ovImg" alt="换装成品图">
+      <p class="mut" style="font-size:12px" id="ovNote">1080 × 1350 · 手机可长按保存。</p>
+      <div class="row">
+        <a class="btn yel small" id="ovDl" download="momo-dressup.png">下载 PNG</a>
+        <button class="btn small" id="ovClose">继续搭配</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/icons.js"></script>
+<script src="../js/core.js"></script>
+<script>
+(() => {
+  "use strict";
+  const $ = ML.$, $$ = ML.$$, clamp = ML.clamp, pick = ML.pick, sound = ML.sound;
+  const LOGICAL = 600, INK = "#222222";
+  const stage = $("#stage"), cv = $("#cv"), ctx = cv.getContext("2d");
+
+  /* ---------------- 状态 ---------------- */
+  let ITEMS = [];                  // 单品库在下一段填充
+  let petCfg = null;
+  const exprImgs = {};             // 表情 PNG（可选贴纸）
+  const assetImgs = {};            // 单品换图 assets/dressup/<id>.png
+  const assetTried = {};
+  let dpr = 1, scale = 1, tNow = 0;
+
+  const CATS = [["expr", "表情"], ["head", "头饰"], ["cloth", "衣服"], ["neck", "颈部"], ["hand", "手持"], ["sticker", "贴纸"], ["bg", "背景"]];
+  const EXPR_KEYS = ["happy", "angry", "surprised", "innocent", "sleep", "deadpan", "mischief"];
+  const FUR_OPTS = ["#E8A857", "#D8B26A", "#8E8E93", "#4A4A4A"];
+  const state = {
+    eq: { expr: "happy", head: "", cloth: "", neck: "", hand: "", sticker: "", bg: "studio" },
+    fur: "#E8A857", bodyFat: 1.05, headWidth: 1.05, earSpread: 1,
+    caption: "", cat: "expr", sticker: false, anim: true
+  };
+  const itemById = id => ITEMS.find(it => it.id === id) || null;
+  const equipped = () => CATS.map(([k]) => state.eq[k]).filter(id => id && id !== "none").map(itemById).filter(Boolean);
+  const animOn = () => ML.settings.anim && state.anim;
+
+  /* ---------------- 小工具 ---------------- */
+  function hx2(h) { h = String(h).replace("#", ""); if (h.length === 3) h = h.split("").map(c => c + c).join(""); const n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function mixc(a, b, t) { const A = hx2(a), B = hx2(b); return "#" + A.map((v, i) => clamp(Math.round(v + (B[i] - v) * t), 0, 255).toString(16).padStart(2, "0")).join(""); }
+  function ink(x, w) { x.lineWidth = w || 5; x.strokeStyle = INK; x.lineJoin = "round"; x.lineCap = "round"; }
+  function ell(x, cx, cy, rx, ry, rot) { x.beginPath(); x.ellipse(cx, cy, Math.max(0.5, rx), Math.max(0.5, ry), rot || 0, 0, Math.PI * 2); }
+  function fs(x, f) { x.fillStyle = f; x.fill(); x.stroke(); }
+  function poly(x, pts) { x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.closePath(); }
+  function starPath(x, cx, cy, r, n, inner) {
+    x.beginPath();
+    for (let i = 0; i < n * 2; i++) { const rad = i % 2 ? r * inner : r, a = -Math.PI / 2 + i * Math.PI / n; const px = cx + Math.cos(a) * rad, py = cy + Math.sin(a) * rad; i ? x.lineTo(px, py) : x.moveTo(px, py); }
+    x.closePath();
+  }
+
+  /* ---------------- 换图素材（可选，全部 try/catch） ---------------- */
+  function loadAsset(id) {
+    if (assetTried[id]) return;
+    assetTried[id] = 1;
+    try {
+      ML.img(ML.asset("assets/dressup/" + id + ".png")).then(img => {
+        assetImgs[id] = img; markBadges(); render();
+      }).catch(() => { assetImgs[id] = null; markBadges(); });
+    } catch (e) { assetImgs[id] = null; }
+  }
+
+  /* ---------------- 几何：所有落点跟着滑块走 ---------------- */
+  function geo(t) {
+    const hw = state.headWidth, bf = state.bodyFat, es = state.earSpread;
+    const hx = 300, hy = 238, hrx = 90 * hw, hry = 78 * Math.sqrt(hw);
+    const bx = 300, by = 404, brx = 108 * bf, bry = 102 * (0.80 + 0.20 * bf);
+    const a = animOn();
+    const breathe = a ? Math.sin(t / 640) * 3.2 : 0;
+    const wag = a ? Math.sin(t / 480) : 0;
+    const s = (t % 4300) / 4300;
+    const lid = a && s > 0.955 ? Math.abs(Math.cos((s - 0.955) / 0.045 * Math.PI)) : 1;
+    const earOf = side => ({ x: hx + side * hrx * 0.80 * es, y: hy - hry * 0.66 - hrx * 0.52 });
+    const A = {
+      "head-top": { x: hx, y: hy - hry }, "head": { x: hx, y: hy }, "face": { x: hx, y: hy - hry * 0.04 },
+      "ear-L": earOf(-1), "ear-R": earOf(1),
+      "neck": { x: hx, y: hy + hry * 0.90 },
+      "chest": { x: bx, y: by - bry * 0.34 + breathe },
+      "paw-L": { x: bx - brx * 0.44, y: by + bry * 0.76 }, "paw-R": { x: bx + brx * 0.44, y: by + bry * 0.76 },
+      "back": { x: bx + brx * 0.86, y: by - bry * 0.44 },
+      "cheek": { x: hx + hrx * 0.58, y: hy + hry * 0.26 }, "cheek-L": { x: hx - hrx * 0.58, y: hy + hry * 0.26 },
+      "side-L": { x: hx - hrx * 0.98, y: hy - hrx * 0.02 }, "side-R": { x: hx + hrx * 0.98, y: hy - hrx * 0.02 },
+      "tail": { x: bx + brx * 0.98, y: by + bry * 0.20 }, "floor": { x: bx, y: by + bry + 8 }
+    };
+    return {
+      hx, hy, hrx, hry, bx, by, brx, bry, hw, bf, es, t, A, breathe, wag, lid,
+      eyeY: hy - hry * 0.06, eyeDx: hrx * 0.35, eyeR: hrx * 0.12,
+      noseY: hy + hry * 0.26, mouthY: hy + hry * 0.44,
+      fur: state.fur, dark: mixc(state.fur, "#000000", 0.22), light: mixc(state.fur, "#FFFFFF", 0.30),
+      belly: mixc(state.fur, "#FFFFFF", 0.66), inner: mixc(state.fur, "#F16D5B", 0.45),
+      anchor(n) { return A[n] || A.chest; }
+    };
+  }
+
+  /* ---------------- 表情：程序化五官 ---------------- */
+  const FACE = {
+    none: { eye: "round", brow: 0, mouth: "soft" },
+    happy: { eye: "up", brow: 0, mouth: "open" },
+    angry: { eye: "sharp", brow: -1, mouth: "frown" },
+    surprised: { eye: "wide", brow: 1, mouth: "o" },
+    innocent: { eye: "big", brow: 0.5, mouth: "tiny" },
+    sleep: { eye: "down", brow: 0, mouth: "line" },
+    deadpan: { eye: "half", brow: 0.25, mouth: "line" },
+    mischief: { eye: "wink", brow: -0.4, mouth: "smirk" }
+  };
+  function pupil(x, cx, cy, rx, ry) {
+    x.fillStyle = INK; ell(x, cx, cy, rx, ry); x.fill();
+    x.fillStyle = "#fff"; ell(x, cx - rx * 0.32, cy - ry * 0.34, rx * 0.3, ry * 0.28); x.fill();
+  }
+  function eyeUp(x, cx, cy, r) { x.beginPath(); x.arc(cx, cy + r * 0.5, r * 1.2, Math.PI * 1.1, Math.PI * 1.9); x.stroke(); }
+  function eyeDown(x, cx, cy, r) { x.beginPath(); x.arc(cx, cy - r * 0.5, r * 1.2, Math.PI * 0.1, Math.PI * 0.9); x.stroke(); }
+  function eyeLine(x, cx, cy, r) { x.beginPath(); x.moveTo(cx - r * 1.15, cy); x.lineTo(cx + r * 1.15, cy); x.stroke(); }
+  function drawEyes(x, g, kind) {
+    const ey = g.eyeY, dx = g.eyeDx, r = g.eyeR, L = g.hx - dx, R = g.hx + dx, lid = g.lid;
+    ink(x, 4.5);
+    const shut = lid < 0.3;
+    if (kind === "up" || kind === "down") { (kind === "up" ? eyeUp : eyeDown)(x, L, ey, r); (kind === "up" ? eyeUp : eyeDown)(x, R, ey, r); return; }
+    if (kind === "wink") { eyeUp(x, L, ey, r); pupil(x, R, ey, r * 0.9, r * (shut ? 0.14 : 1)); return; }
+    if (shut) { eyeLine(x, L, ey, r); eyeLine(x, R, ey, r); return; }
+    if (kind === "wide") {
+      [L, R].forEach(cx => { x.fillStyle = "#fff"; ell(x, cx, ey, r * 1.5, r * 1.55 * lid); x.fill(); x.stroke(); pupil(x, cx, ey, r * 0.72, r * 0.86 * lid); });
+      return;
+    }
+    if (kind === "big") {
+      [L, R].forEach(cx => {
+        x.fillStyle = "#fff"; ell(x, cx, ey, r * 1.7, r * 1.8 * lid); x.fill(); x.stroke();
+        pupil(x, cx, ey + r * 0.1, r * 1.02, r * 1.12 * lid);
+        x.fillStyle = "#fff"; ell(x, cx + r * 0.5, ey - r * 0.7, r * 0.34, r * 0.3); x.fill();
+      });
+      return;
+    }
+    if (kind === "sharp") {
+      [L, R].forEach((cx, i) => { const sgn = i ? 1 : -1; pupil(x, cx, ey, r * 0.85, r * 0.6); x.beginPath(); x.moveTo(cx - sgn * r * 1.6, ey - r * 1.5); x.lineTo(cx + sgn * r * 0.9, ey - r * 0.5); x.stroke(); });
+      return;
+    }
+    if (kind === "half") {
+      [L, R].forEach(cx => {
+        pupil(x, cx, ey, r * 0.8, r * 0.9);
+        x.fillStyle = g.fur; x.beginPath(); x.rect(cx - r * 1.4, ey - r * 1.6, r * 2.8, r * 0.85); x.fill();
+        x.beginPath(); x.moveTo(cx - r * 1.3, ey - r * 0.7); x.lineTo(cx + r * 1.3, ey - r * 0.7); x.stroke();
+      });
+      return;
+    }
+    [L, R].forEach(cx => pupil(x, cx, ey, r * 0.8, r * (0.95 * lid)));
+  }
+  function drawMouth(x, g, kind) {
+    const nx = g.hx, my = g.mouthY, w = g.hrx * 0.2;
+    ink(x, 4);
+    if (kind === "open") {
+      x.beginPath(); x.moveTo(nx - w, my - w * .2); x.quadraticCurveTo(nx, my + w * 1.1, nx + w, my - w * .2); x.closePath();
+      x.fillStyle = INK; x.fill(); x.stroke();
+      x.fillStyle = "#F16D5B"; x.beginPath(); x.ellipse(nx, my + w * 0.35, w * 0.45, w * 0.3, 0, 0, 7); x.fill();
+      return;
+    }
+    if (kind === "frown") { x.beginPath(); x.arc(nx - w * .55, my + w * .55, w * .6, Math.PI * 1.15, Math.PI * 1.9); x.arc(nx + w * .55, my + w * .55, w * .6, Math.PI * 1.1, Math.PI * 1.85); x.stroke(); return; }
+    if (kind === "o") { x.fillStyle = INK; ell(x, nx, my + w * .3, w * .5, w * .62); x.fill(); x.stroke(); return; }
+    if (kind === "line") { x.beginPath(); x.moveTo(nx - w * .8, my + w * .3); x.lineTo(nx + w * .8, my + w * .3); x.stroke(); return; }
+    if (kind === "tiny") { x.beginPath(); x.arc(nx, my, w * .3, Math.PI * 0.15, Math.PI * 0.85); x.stroke(); return; }
+    if (kind === "smirk") { x.beginPath(); x.moveTo(nx - w * .8, my); x.quadraticCurveTo(nx + w * .5, my + w * .7, nx + w * 1.05, my - w * .45); x.stroke(); return; }
+    x.beginPath(); x.arc(nx - w * .5, my, w * .55, Math.PI * 0.12, Math.PI * 0.9); x.arc(nx + w * .5, my, w * .55, Math.PI * 0.1, Math.PI * 0.88); x.stroke();
+  }
+  function drawFace(x, g) {
+    const key = state.eq.expr && FACE[state.eq.expr] ? state.eq.expr : "none";
+    const f = FACE[key];
+    // 鼻子 + 口吻
+    x.save(); ink(x, 4);
+    x.fillStyle = mixc(g.inner, "#F16D5B", 0.4);
+    poly(x, [[g.hx - g.hrx * 0.09, g.noseY - g.hry * 0.05], [g.hx + g.hrx * 0.09, g.noseY - g.hry * 0.05], [g.hx, g.noseY + g.hry * 0.06]]);
+    x.fill(); x.stroke(); x.restore();
+    drawEyes(x, g, f.eye);
+    drawMouth(x, g, f.mouth);
+    if (f.brow) {
+      ink(x, 4); const dy = f.brow * g.hry * 0.16;
+      [-1, 1].forEach(s => { const cx = g.hx + s * g.eyeDx, cy = g.eyeY - g.eyeR * 2.1;
+        x.beginPath(); x.moveTo(cx - s * g.eyeR * 1.2, cy + dy); x.lineTo(cx + s * g.eyeR * 1.2, cy - dy); x.stroke(); });
+    }
+    // 胡须
+    ink(x, 3);
+    [-1, 1].forEach(s => {
+      for (let i = 0; i < 3; i++) {
+        const y0 = g.hy + g.hry * (0.14 + i * 0.13), x0 = g.hx + s * g.hrx * 0.42;
+        x.beginPath(); x.moveTo(x0, y0); x.quadraticCurveTo(x0 + s * g.hrx * 0.5, y0 - g.hry * 0.06 + i * 4, x0 + s * g.hrx * 0.92, y0 - g.hry * 0.14 + i * 9); x.stroke();
+      }
+    });
+    if (key === "sleep" && animOn()) {
+      x.fillStyle = INK; x.font = '900 26px "PingFang SC","Microsoft YaHei",Arial,sans-serif'; x.textAlign = "left";
+      const p = (g.t % 2600) / 2600;
+      x.globalAlpha = 0.85; x.fillText("z", g.hx + g.hrx * 0.9, g.hy - g.hry * 0.9 - p * 34);
+      x.font = '900 18px "PingFang SC","Microsoft YaHei",Arial,sans-serif'; x.fillText("z", g.hx + g.hrx * 1.2, g.hy - g.hry * 1.2 - p * 30); x.globalAlpha = 1;
+    }
+  }
+  function drawFaceSticker(x, g) {
+    const im = exprImgs[state.eq.expr];
+    if (!im || !state.sticker) return;
+    const a = g.anchor("ear-R"), s = 92;
+    x.save(); x.translate(a.x + 16, a.y - 6); x.rotate(0.12);
+    x.fillStyle = "#fff"; ink(x, 3); x.beginPath(); x.rect(-s / 2 - 5, -s / 2 - 5, s + 10, s + 10); x.fill(); x.stroke();
+    x.drawImage(im, -s / 2, -s / 2, s, s); x.restore();
+  }
+
+  /* ---------------- 本体：坐姿奶猫 ---------------- */
+  function drawTail(x, g) {
+    const cx = g.bx + g.brx * 0.92, cy = g.by + g.bry * 0.16;
+    const sw = g.wag * 0.22;
+    x.save(); ink(x, 26); x.strokeStyle = g.fur; x.beginPath();
+    x.moveTo(cx, cy); x.quadraticCurveTo(cx + g.brx * 0.62 + sw * 22, cy - g.bry * 0.1, cx + g.brx * 0.52 + sw * 30, cy - g.bry * 0.72); x.stroke();
+    ink(x, 18); x.strokeStyle = g.dark; x.beginPath();
+    x.moveTo(cx + g.brx * 0.52 + sw * 30, cy - g.bry * 0.72); x.quadraticCurveTo(cx + g.brx * 0.18 + sw * 18, cy - g.bry * 1.16, cx - g.brx * 0.04, cy - g.bry * 0.86); x.stroke();
+    x.restore();
+  }
+  function drawEar(x, g, s) {
+    const tip = g.anchor(s < 0 ? "ear-L" : "ear-R");
+    const p1 = [g.hx + s * g.hrx * 0.62, g.hy - g.hry * 0.56], p2 = [g.hx + s * g.hrx * 0.08, g.hy - g.hry * 0.95];
+    ink(x, 5); x.fillStyle = g.fur; poly(x, [p1, [tip.x, tip.y], p2]); x.fill(); x.stroke();
+    x.fillStyle = g.inner; poly(x, [[p1[0] - s * g.hrx * 0.06, p1[1] + g.hry * 0.12], [tip.x - s * g.hrx * 0.06, tip.y + g.hry * 0.24], [p2[0] - s * g.hrx * 0.06, p2[1] + g.hry * 0.18]]); x.fill();
+  }
+  function drawPaw(x, g, s) {
+    const a = g.anchor(s < 0 ? "paw-L" : "paw-R");
+    ink(x, 4.5); x.fillStyle = g.light;
+    ell(x, a.x, a.y, g.brx * 0.22, g.bry * 0.14); x.fill(); x.stroke();
+    x.beginPath();
+    for (let i = -1; i <= 1; i++) { x.moveTo(a.x + i * g.brx * 0.1, a.y - g.bry * 0.06); x.lineTo(a.x + i * g.brx * 0.1, a.y + g.bry * 0.06); }
+    ink(x, 2.5); x.stroke();
+  }
+  function drawCat(x, g) {
+    x.save(); x.globalAlpha = 0.15; x.fillStyle = INK; ell(x, g.bx, g.A.floor.y + 4, g.brx * 1.06, 20); x.fill(); x.restore();
+    drawTail(x, g);
+    ink(x, 5.5); x.fillStyle = g.fur; ell(x, g.bx, g.by + g.breathe, g.brx, g.bry); x.fill(); x.stroke();
+    x.fillStyle = g.belly; ell(x, g.bx, g.by + g.bry * 0.16 + g.breathe, g.brx * 0.5, g.bry * 0.6); x.fill();
+    drawPaw(x, g, -1); drawPaw(x, g, 1);
+    drawEar(x, g, -1); drawEar(x, g, 1);
+    ink(x, 5.5); x.fillStyle = g.fur; ell(x, g.hx, g.hy, g.hrx, g.hry); x.fill(); x.stroke();
+    x.fillStyle = g.light; ell(x, g.hx, g.hy + g.hry * 0.34, g.hrx * 0.42, g.hry * 0.26); x.fill();
+    drawFace(x, g);
+  }
+
+  /* ---------------- 场景合成 ---------------- */
+  function layerList() {
+    return equipped().filter(it => it.cat !== "bg" && it.cat !== "expr").sort((a, b) => (a.layer || 20) - (b.layer || 20));
+  }
+  function drawItem(x, it, g, withImgs) {
+    const im = withImgs ? assetImgs[it.id] : null;
+    if (im) { const a = g.anchor(it.anchor), s = it.imgSize || 150; x.drawImage(im, a.x - s / 2, a.y - s / 2, s, s); return; }
+    if (it.draw) it.draw(x, g);
+  }
+  function drawScene(x, opt) {
+    opt = opt || {};
+    const g = geo(opt.t == null ? tNow : opt.t);
+    x.save(); x.beginPath(); x.rect(0, 0, LOGICAL, LOGICAL); x.clip();
+    const bg = itemById(state.eq.bg);
+    if (bg) drawItem(x, bg, g, opt.withImgs !== false);
+    else { x.fillStyle = "#FAF8F3"; x.fillRect(0, 0, LOGICAL, LOGICAL); }
+    const eq = layerList();
+    eq.filter(it => (it.layer || 20) < 5).forEach(it => drawItem(x, it, g, opt.withImgs !== false));
+    drawCat(x, g);
+    eq.filter(it => (it.layer || 20) >= 5 && (it.layer || 20) < 44).forEach(it => drawItem(x, it, g, opt.withImgs !== false));
+    if (opt.withImgs !== false) drawFaceSticker(x, g);   // 表情原图也会让画布“中毒”，退回时不画
+    eq.filter(it => (it.layer || 20) >= 44).forEach(it => drawItem(x, it, g, opt.withImgs !== false));
+    x.restore();
+    return g;
+  }
+  function render() {
+    const k = dpr * scale;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    drawScene(ctx, { withImgs: true, t: tNow });
+    hudTag();
+  }
+  function size() {
+    const w = Math.max(240, stage.clientWidth || 360);
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    scale = w / LOGICAL;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(w * dpr);
+    render();
+  }
+  /* ---------------- 单品库 ---------------- */
+  const SV = b => `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">${b}</svg>`;
+  const NOOP = () => {};
+  ITEMS = [
+    /* ---- 表情（五官由 drawFace 程序化绘制，卡片只切换 kind） ---- */
+    { id: "none", cat: "expr", name: "无", anchor: "face", layer: 45, draw: NOOP,
+      svg: SV('<circle cx="18" cy="21" r="2.4" fill="#222"/><circle cx="30" cy="21" r="2.4" fill="#222"/><path d="M19 31c3 3 7 3 10 0"/>') },
+    { id: "happy", cat: "expr", name: "开心", anchor: "face", layer: 45, draw: NOOP,
+      svg: SV('<path d="M13 22c2-4 6-4 8 0M27 22c2-4 6-4 8 0"/><path d="M18 29c4 5 8 5 12 0"/><path d="M22 31c2 1.5 4 1.5 5 0" fill="#F16D5B"/>') },
+    { id: "angry", cat: "expr", name: "生气", anchor: "face", layer: 45, draw: NOOP,
+      svg: SV('<path d="M11 16l9 4M37 16l-9 4"/><circle cx="17" cy="25" r="2" fill="#222"/><circle cx="31" cy="25" r="2" fill="#222"/><path d="M18 34c3-3 9-3 12 0"/>') },
+    { id: "surprised", cat: "expr", name: "惊讶", anchor: "face", layer: 45, draw: NOOP,
+      svg: SV('<circle cx="17" cy="22" r="4.5"/><circle cx="31" cy="22" r="4.5"/><circle cx="17" cy="22" r="1.6" fill="#222"/><circle cx="31" cy="22" r="1.6" fill="#222"/><ellipse cx="24" cy="33" rx="3.5" ry="4" fill="#222"/>') },
+    { id: "innocent", cat: "expr", name: "无辜", anchor: "face", layer: 45, draw: NOOP,
+      svg: SV('<circle cx="16" cy="23" r="6"/><circle cx="32" cy="23" r="6"/><circle cx="16" cy="24" r="2.6" fill="#222"/><circle cx="32" cy="24" r="2.6" fill="#222"/><path d="M22 34c2 1.5 4 1.5 5 0"/>') },
+    { id: "sleep", cat: "expr", name: "睡觉", anchor: "face", layer: 45, draw: NOOP,
+      svg: SV('<path d="M12 22c2 4 6 4 8 0M28 22c2 4 6 4 8 0"/><path d="M20 32h8"/><path d="M34 8h5l-4 5h4" stroke-width="2.4"/>') },
+    { id: "deadpan", cat: "expr", name: "无语", anchor: "face", layer: 45, draw: NOOP,
+      svg: SV('<path d="M12 19h9M27 19h9"/><circle cx="17" cy="24" r="2.2" fill="#222"/><circle cx="31" cy="24" r="2.2" fill="#222"/><path d="M19 32h10"/>') },
+    { id: "mischief", cat: "expr", name: "坏心眼", anchor: "face", layer: 45, draw: NOOP,
+      svg: SV('<path d="M12 22c2-4 6-4 8 0"/><circle cx="31" cy="23" r="2.4" fill="#222"/><path d="M14 14l7 3"/><path d="M18 31c5 4 9 2 12-2"/>') },
+
+    /* ---- 背景 ---- */
+    {
+      id: "studio", cat: "bg", name: "工作室", anchor: "floor", layer: -10, imgSize: 600,
+      svg: SV('<rect x="6" y="8" width="36" height="32" rx="3" fill="#fff"/><path d="M6 28h36M14 8v20M14 28v12"/>'),
+      draw(x) {
+        const grd = x.createLinearGradient(0, 0, 0, LOGICAL);
+        grd.addColorStop(0, "#F8F3E9"); grd.addColorStop(0.62, "#F1E9DA"); grd.addColorStop(0.63, "#E7DCC8"); grd.addColorStop(1, "#D9CBAF");
+        x.fillStyle = grd; x.fillRect(0, 0, LOGICAL, LOGICAL);
+        x.strokeStyle = "rgba(34,34,34,.28)"; x.lineWidth = 4; x.beginPath(); x.moveTo(0, 378); x.lineTo(LOGICAL, 378); x.stroke();
+        x.fillStyle = "#BFE4D0"; x.globalAlpha = .75; ell(x, 300, 500, 210, 54); x.fill(); x.globalAlpha = 1;
+        x.strokeStyle = INK; x.lineWidth = 4; ell(x, 300, 500, 210, 54); x.stroke();
+        x.strokeStyle = "rgba(34,34,34,.2)"; x.lineWidth = 3;
+        for (let i = 0; i < 4; i++) { x.beginPath(); x.moveTo(120 + i * 120, 392); x.lineTo(96 + i * 120, 552); x.stroke(); }
+      }
+    },
+    {
+      id: "mintroom", cat: "bg", name: "薄荷房", anchor: "floor", layer: -10, imgSize: 600,
+      svg: SV('<rect x="6" y="8" width="36" height="32" rx="3" fill="#BFE4D0"/><path d="M6 30h36"/><path d="M18 12h12v10H18z" fill="#fff"/>'),
+      draw(x) {
+        x.fillStyle = "#BFE4D0"; x.fillRect(0, 0, LOGICAL, 388);
+        x.fillStyle = "#F3EEE5"; x.fillRect(0, 388, LOGICAL, LOGICAL - 388);
+        ink(x, 5); x.beginPath(); x.moveTo(0, 388); x.lineTo(LOGICAL, 388); x.stroke();
+        x.fillStyle = "#fff"; x.beginPath(); x.rect(72, 92, 140, 110); x.fill(); x.stroke();
+        x.fillStyle = "#F5E66B"; x.fillRect(86, 106, 112, 82);
+        x.fillStyle = "#F16D5B"; x.beginPath(); x.arc(142, 168, 22, 0, 7); x.fill(); ink(x, 3); x.stroke();
+        x.save(); x.globalAlpha = .35; x.fillStyle = "#fff"; poly(x, [[430, 60], [560, 60], [470, 388], [340, 388]]); x.fill(); x.restore();
+      }
+    },
+    {
+      id: "dusk", cat: "bg", name: "黄昏窗", anchor: "floor", layer: -10, imgSize: 600,
+      svg: SV('<rect x="6" y="8" width="36" height="32" rx="3" fill="#F5E66B"/><circle cx="24" cy="26" r="7" fill="#F16D5B"/><path d="M24 8v36M6 24h36"/>'),
+      draw(x) {
+        const grd = x.createLinearGradient(0, 0, 0, 420);
+        grd.addColorStop(0, "#DCD2F5"); grd.addColorStop(.55, "#F5C98A"); grd.addColorStop(1, "#F16D5B");
+        x.fillStyle = grd; x.fillRect(0, 0, LOGICAL, LOGICAL);
+        x.fillStyle = "#3A3350"; x.fillRect(0, 420, LOGICAL, LOGICAL - 420);
+        ink(x, 6); x.beginPath(); x.moveTo(0, 420); x.lineTo(LOGICAL, 420); x.stroke();
+        x.save(); x.fillStyle = "rgba(255,255,255,.22)"; x.beginPath(); x.rect(340, 70, 210, 250); x.fill(); x.stroke();
+        x.beginPath(); x.moveTo(445, 70); x.lineTo(445, 320); x.moveTo(340, 195); x.lineTo(550, 195); x.stroke(); x.restore();
+        x.fillStyle = "#FBE7A0"; x.beginPath(); x.arc(400, 250, 46, 0, 7); x.fill();
+      }
+    },
+    {
+      id: "night", cat: "bg", name: "夜猫档", anchor: "floor", layer: -10, imgSize: 600,
+      svg: SV('<rect x="6" y="8" width="36" height="32" rx="3" fill="#4A4A55"/><circle cx="32" cy="18" r="6" fill="#F5E66B"/><path d="M12 22h3M16 30h4" stroke="#F5E66B"/>'),
+      draw(x) {
+        const grd = x.createLinearGradient(0, 0, 0, LOGICAL);
+        grd.addColorStop(0, "#2B2B36"); grd.addColorStop(.7, "#3C3B4C"); grd.addColorStop(.71, "#4C4257"); grd.addColorStop(1, "#2A2530");
+        x.fillStyle = grd; x.fillRect(0, 0, LOGICAL, LOGICAL);
+        x.fillStyle = "#F5E66B";
+        for (let i = 0; i < 26; i++) { const sx = (i * 97) % 600, sy = (i * 53) % 330 + 20, r = 2 + (i % 3); x.globalAlpha = .5 + (i % 4) * .12; ell(x, sx, sy, r, r); x.fill(); }
+        x.globalAlpha = 1;
+        x.fillStyle = "#F5E66B"; ink(x, 4); x.beginPath(); x.arc(486, 96, 44, 0, 7); x.fill(); x.stroke();
+        x.fillStyle = "#3C3B4C"; x.beginPath(); x.arc(506, 84, 38, 0, 7); x.fill();
+      }
+    },
+    {
+      id: "dots", cat: "bg", name: "波点棚", anchor: "floor", layer: -10, imgSize: 600,
+      svg: SV('<rect x="6" y="8" width="36" height="32" rx="3" fill="#fff"/><circle cx="16" cy="18" r="3" fill="#F5E66B"/><circle cx="32" cy="30" r="3" fill="#DCD2F5"/><circle cx="18" cy="34" r="2" fill="#F16D5B"/>'),
+      draw(x) {
+        x.fillStyle = "#FBF7EE"; x.fillRect(0, 0, LOGICAL, LOGICAL);
+        const cols = ["#F5E66B", "#DCD2F5", "#BFE4D0", "#F16D5B"];
+        for (let r = 0; r < 7; r++) for (let c = 0; c < 7; c++) {
+          x.fillStyle = cols[(r + c) % 4]; x.globalAlpha = .5;
+          ell(x, 30 + c * 92 + (r % 2) * 46, 40 + r * 88, 13, 13); x.fill();
+        }
+        x.globalAlpha = 1;
+        x.fillStyle = "rgba(255,255,255,.72)"; x.fillRect(0, 400, LOGICAL, 200);
+        x.strokeStyle = "rgba(34,34,34,.3)"; x.lineWidth = 4; x.beginPath(); x.moveTo(0, 400); x.lineTo(LOGICAL, 400); x.stroke();
+      }
+    },
+
+    /* ---- 头饰 ---- */
+    {
+      id: "straw-hat", cat: "head", name: "草帽", anchor: "head-top", layer: 20, imgSize: 220,
+      svg: SV('<path d="M8 30c0-9 7-16 16-16s16 7 16 16z" fill="#E9D8B8"/><path d="M4 30h40"/><path d="M9 24h30" stroke="#F16D5B"/>'),
+      draw(x, g) {
+        const a = g.anchor("head-top"), w = g.hrx * 1.18;
+        ink(x, 5);
+        x.fillStyle = "#EFDCA8"; poly(x, [[a.x - g.hrx * 0.62, a.y + 10], [a.x - g.hrx * 0.30, a.y - g.hry * 0.52], [a.x + g.hrx * 0.30, a.y - g.hry * 0.52], [a.x + g.hrx * 0.62, a.y + 10]]); x.fill(); x.stroke();
+        x.fillStyle = "#F7E7BC"; ell(x, a.x, a.y + 12, w, g.hry * 0.2); x.fill(); x.stroke();
+        x.fillStyle = "#F16D5B"; x.beginPath(); x.rect(a.x - g.hrx * 0.56, a.y - 2, g.hrx * 1.12, 13); x.fill();
+        ink(x, 4); x.strokeRect(a.x - g.hrx * 0.56, a.y - 2, g.hrx * 1.12, 13);
+        x.strokeStyle = "rgba(34,34,34,.28)"; x.lineWidth = 2.5;
+        for (let i = 1; i < 4; i++) { x.beginPath(); x.arc(a.x, a.y + 12, w - i * 12, Math.PI * 1.08, Math.PI * 1.92); x.stroke(); }
+      }
+    },
+    {
+      id: "crown", cat: "head", name: "皇冠", anchor: "head-top", layer: 20, imgSize: 170,
+      svg: SV('<path d="M8 34l-2-18 10 7 8-13 8 13 10-7-2 18z" fill="#F5E66B"/><path d="M8 38h32"/>'),
+      draw(x, g) {
+        const a = g.anchor("head-top"), w = g.hrx * 0.72, h = g.hry * 0.52;
+        ink(x, 5); x.fillStyle = "#F5E66B";
+        poly(x, [[a.x - w, a.y + 4], [a.x - w * 1.02, a.y - h], [a.x - w * 0.44, a.y - h * 0.38], [a.x, a.y - h * 1.24], [a.x + w * 0.44, a.y - h * 0.38], [a.x + w * 1.02, a.y - h], [a.x + w, a.y + 4]]);
+        x.fill(); x.stroke();
+        [["#F16D5B", -w * 0.5], ["#fff", 0], ["#BFE4D0", w * 0.5]].forEach(jewel => {
+          x.fillStyle = jewel[0]; ell(x, a.x + jewel[1], a.y - 1, w * 0.12, w * 0.12); x.fill(); ink(x, 3); x.stroke();
+        });
+      }
+    },
+    {
+      id: "nightcap", cat: "head", name: "睡帽", anchor: "head-top", layer: 20, imgSize: 190,
+      svg: SV('<path d="M10 32c2-14 12-22 26-22l-2 22z" fill="#DCD2F5"/><circle cx="36" cy="10" r="5" fill="#fff"/><path d="M8 32h32"/>'),
+      draw(x, g) {
+        const a = g.anchor("head-top"), tilt = 0.22 + (state.earSpread - 1) * 0.2;
+        x.save(); x.translate(a.x, a.y + 6); x.rotate(tilt);
+        ink(x, 5); x.fillStyle = "#DCD2F5";
+        poly(x, [[-g.hrx * 0.7, 0], [-g.hrx * 0.2, -g.hry * 0.9], [g.hrx * 0.95, -g.hry * 0.72], [g.hrx * 0.72, 0]]); x.fill(); x.stroke();
+        x.fillStyle = "#fff"; ell(x, g.hrx * 0.95, -g.hry * 0.74, g.hrx * 0.2, g.hrx * 0.2); x.fill(); x.stroke();
+        x.fillStyle = "#F5E66B"; ell(x, 0, 0, g.hrx * 0.78, g.hry * 0.14); x.fill(); x.stroke();
+        x.restore();
+      }
+    },
+    {
+      id: "headphones", cat: "head", name: "耳机", anchor: "head", layer: 20, imgSize: 230,
+      svg: SV('<path d="M10 28v-6a14 14 0 0 1 28 0v6"/><rect x="6" y="26" width="10" height="14" rx="4" fill="#F16D5B"/><rect x="32" y="26" width="10" height="14" rx="4" fill="#F16D5B"/>'),
+      draw(x, g) {
+        const L = g.anchor("side-L"), R = g.anchor("side-R"), top = g.anchor("head-top");
+        x.lineCap = "round"; x.strokeStyle = "#222"; x.lineWidth = 12;
+        x.beginPath(); x.moveTo(L.x, L.y - g.hrx * 0.1); x.quadraticCurveTo(top.x, top.y - g.hry * 0.42, R.x, R.y - g.hrx * 0.1); x.stroke();
+        ink(x, 5);
+        [L, R].forEach((p, i) => {
+          x.save(); x.translate(p.x, p.y); x.rotate(i ? -0.08 : 0.08);
+          x.fillStyle = "#F16D5B"; x.beginPath(); x.rect(-16, -30, 32, 60); x.fill(); x.stroke();
+          x.fillStyle = "#fff"; x.beginPath(); x.rect(-9, -18, 18, 36); x.fill(); x.restore();
+        });
+      }
+    },
+    {
+      id: "glasses", cat: "head", name: "眼镜", anchor: "face", layer: 26, imgSize: 190,
+      svg: SV('<circle cx="16" cy="24" r="8"/><circle cx="32" cy="24" r="8"/><path d="M24 22v4M8 22l-4-4M40 22l4-4"/>'),
+      draw(x, g) {
+        const ey = g.eyeY, dx = g.eyeDx, r = g.eyeR * 2.0;
+        x.save(); ink(x, 4.5); x.fillStyle = "rgba(191,228,208,.55)";
+        [-1, 1].forEach(s => { x.beginPath(); x.rect(g.hx + s * dx - r, ey - r * 0.82, r * 2, r * 1.64); x.fill(); x.stroke(); });
+        x.beginPath(); x.moveTo(g.hx - dx + r, ey - r * 0.2); x.quadraticCurveTo(g.hx, ey - r * 0.7, g.hx + dx - r, ey - r * 0.2); x.stroke();
+        [-1, 1].forEach(s => { x.beginPath(); x.moveTo(g.hx + s * (dx + r), ey - r * 0.4); x.lineTo(g.hx + s * (g.hrx * 0.94), ey - r * 0.1); x.stroke(); });
+        x.restore();
+      }
+    },
+
+    /* ---- 衣服 ---- */
+    {
+      id: "sweater", cat: "cloth", name: "条纹毛衣", anchor: "chest", layer: 10, imgSize: 260,
+      svg: SV('<path d="M12 14l12-6 12 6 6 8-8 4v18H14V26l-8-4z" fill="#DCD2F5"/><path d="M12 30h24M12 38h24" stroke="#fff"/>'),
+      draw(x, g) {
+        const rx = g.brx * 0.985, ry = g.bry * 0.985, cy = g.by + g.breathe;
+        x.save(); ell(x, g.bx, cy, rx, ry); x.clip();
+        x.fillStyle = "#DCD2F5"; x.fillRect(g.bx - rx, cy - ry, rx * 2, ry * 2);
+        x.fillStyle = "#FBF7EE";
+        for (let i = 0; i < 8; i++) x.fillRect(g.bx - rx, cy - ry + i * (ry * 2 / 8) + 10, rx * 2, ry * 0.12);
+        x.fillStyle = "#F16D5B"; x.fillRect(g.bx - rx, cy + ry * 0.66, rx * 2, ry * 0.16);
+        x.restore();
+        ink(x, 5); ell(x, g.bx, cy, rx, ry); x.stroke();
+        x.fillStyle = "#DCD2F5"; ell(x, g.bx, cy - ry * 0.84, g.brx * 0.44, g.bry * 0.15); x.fill(); x.stroke();
+      }
+    },
+    {
+      id: "overalls", cat: "cloth", name: "背带裤", anchor: "chest", layer: 11, imgSize: 260,
+      svg: SV('<path d="M12 22h24v20H12z" fill="#BFE4D0"/><path d="M17 22V12M31 22V12"/><circle cx="17" cy="26" r="2" fill="#F5E66B"/><circle cx="31" cy="26" r="2" fill="#F5E66B"/>'),
+      draw(x, g) {
+        const rx = g.brx * 0.98, ry = g.bry * 0.98, cy = g.by + g.breathe, n = g.anchor("neck");
+        x.save(); ell(x, g.bx, cy, rx, ry); x.clip();
+        x.fillStyle = "#BFE4D0"; x.fillRect(g.bx - rx, cy - ry * 0.28, rx * 2, ry * 2);
+        x.fillStyle = "#A6D5BC"; x.fillRect(g.bx - rx, cy - ry * 0.28, rx * 2, 9);
+        x.strokeStyle = INK; x.lineWidth = 13; x.lineCap = "round";
+        [-1, 1].forEach(s => { x.beginPath(); x.moveTo(g.bx + s * rx * 0.34, cy - ry * 0.3); x.lineTo(n.x + s * g.brx * 0.22, n.y + 4); x.stroke(); });
+        [-1, 1].forEach(s => { x.fillStyle = "#F5E66B"; ell(x, g.bx + s * rx * 0.34, cy - ry * 0.26, 9, 9); x.fill(); x.lineWidth = 3; x.strokeStyle = INK; x.stroke(); });
+        x.lineWidth = 4; x.strokeStyle = INK; x.strokeRect(g.bx - rx * 0.3, cy + ry * 0.06, rx * 0.6, ry * 0.34);
+        x.restore();
+        ink(x, 5); x.strokeStyle = INK; ell(x, g.bx, cy, rx, ry); x.stroke();
+      }
+    },
+    {
+      id: "cape", cat: "cloth", name: "斗篷", anchor: "back", layer: 0, imgSize: 320,
+      svg: SV('<path d="M10 40c0-18 6-28 14-28s14 10 14 28z" fill="#F16D5B"/><path d="M24 12v28"/>'),
+      draw(x, g) {
+        const n = g.anchor("neck"), w = g.brx * 1.34, h = g.bry * 1.5;
+        ink(x, 5); x.fillStyle = "#F16D5B";
+        x.beginPath(); x.moveTo(n.x, n.y - 6);
+        x.quadraticCurveTo(n.x - w, n.y + h * 0.16, n.x - w * 0.86, n.y + h);
+        for (let i = 0; i < 5; i++) {
+          const p = i / 5, q = (i + 1) / 5;
+          x.quadraticCurveTo(n.x - w * (0.86 - p * 1.72) - w * 0.17, n.y + h + 22, n.x - w * (0.86 - q * 1.72), n.y + h);
+        }
+        x.quadraticCurveTo(n.x + w, n.y + h * 0.16, n.x, n.y - 6);
+        x.fill(); x.stroke();
+        x.fillStyle = "#F5E66B"; ell(x, n.x, n.y - 4, g.brx * 0.2, g.bry * 0.07); x.fill(); ink(x, 4); x.stroke();
+      }
+    },
+
+    /* ---- 颈部 ---- */
+    {
+      id: "bowtie", cat: "neck", name: "领结", anchor: "neck", layer: 15, imgSize: 130,
+      svg: SV('<path d="M24 24 8 14v20zM24 24 40 14v20z" fill="#F16D5B"/><circle cx="24" cy="24" r="4" fill="#F5E66B"/>'),
+      draw(x, g) {
+        const a = g.anchor("neck"), w = g.hrx * 0.34, h = g.hry * 0.2;
+        ink(x, 4.5); x.fillStyle = "#F16D5B";
+        poly(x, [[a.x, a.y], [a.x - w, a.y - h], [a.x - w * 0.82, a.y + h]]); x.fill(); x.stroke();
+        poly(x, [[a.x, a.y], [a.x + w, a.y - h], [a.x + w * 0.82, a.y + h]]); x.fill(); x.stroke();
+        x.fillStyle = "#F5E66B"; ell(x, a.x, a.y, w * 0.22, h * 0.44); x.fill(); x.stroke();
+      }
+    },
+    {
+      id: "scarf", cat: "neck", name: "围巾", anchor: "neck", layer: 15, imgSize: 200,
+      svg: SV('<path d="M8 20c10 6 22 6 32 0v8c-10 6-22 6-32 0z" fill="#F5E66B"/><path d="M30 28l6 14h-8l-2-12"/>'),
+      draw(x, g) {
+        const a = g.anchor("neck"), w = g.hrx * 0.92;
+        ink(x, 5); x.fillStyle = "#F5E66B";
+        x.beginPath(); x.moveTo(a.x - w, a.y - 4);
+        x.quadraticCurveTo(a.x, a.y + g.hry * 0.34, a.x + w, a.y - 4);
+        x.quadraticCurveTo(a.x + w * 0.9, a.y + g.hry * 0.16, a.x, a.y + g.hry * 0.14);
+        x.quadraticCurveTo(a.x - w * 0.9, a.y + g.hry * 0.16, a.x - w, a.y - 4); x.fill(); x.stroke();
+        x.beginPath(); x.rect(a.x + w * 0.34, a.y + 4, g.hrx * 0.3, g.bry * 0.5); x.fill(); x.stroke();
+        ink(x, 3);
+        for (let i = 0; i < 4; i++) { const fx = a.x + w * 0.34 + i * g.hrx * 0.08 + 2; x.beginPath(); x.moveTo(fx, a.y + 4 + g.bry * 0.5); x.lineTo(fx, a.y + 4 + g.bry * 0.5 + 12); x.stroke(); }
+      }
+    },
+    {
+      id: "bell-collar", cat: "neck", name: "铃铛项圈", anchor: "neck", layer: 16, imgSize: 150,
+      svg: SV('<path d="M8 18h32v8H8z" fill="#F16D5B"/><circle cx="24" cy="32" r="6" fill="#F5E66B"/><path d="M24 36v3"/>'),
+      draw(x, g) {
+        const a = g.anchor("neck"), w = g.hrx * 0.86;
+        ink(x, 4.5); x.fillStyle = "#F16D5B";
+        x.beginPath(); x.moveTo(a.x - w, a.y - 6); x.quadraticCurveTo(a.x, a.y + g.hry * 0.24, a.x + w, a.y - 6);
+        x.lineTo(a.x + w, a.y + 8); x.quadraticCurveTo(a.x, a.y + g.hry * 0.36, a.x - w, a.y + 8); x.closePath(); x.fill(); x.stroke();
+        x.fillStyle = "#F5E66B"; ell(x, a.x, a.y + g.hry * 0.30, g.hrx * 0.15, g.hrx * 0.15); x.fill(); x.stroke();
+        x.beginPath(); x.moveTo(a.x, a.y + g.hry * 0.30 + g.hrx * 0.14); x.lineTo(a.x, a.y + g.hry * 0.30 + g.hrx * 0.26); x.stroke();
+      }
+    },
+
+    /* ---- 手持 ---- */
+    {
+      id: "fish", cat: "hand", name: "小鱼干", anchor: "paw-R", layer: 30, imgSize: 130,
+      svg: SV('<path d="M6 24c8-8 20-10 28-4l8-8v24l-8-8c-8 6-20 4-28-4z" fill="#BFE4D0"/><circle cx="14" cy="22" r="2" fill="#222"/>'),
+      draw(x, g) {
+        const a = g.anchor("paw-R");
+        x.save(); x.translate(a.x + g.brx * 0.16, a.y - g.bry * 0.18); x.rotate(-0.35);
+        ink(x, 4.5); x.fillStyle = "#BFE4D0";
+        x.beginPath(); x.moveTo(-40, 0); x.quadraticCurveTo(-14, -24, 24, -10); x.lineTo(44, -22); x.lineTo(42, 20); x.lineTo(24, 10); x.quadraticCurveTo(-14, 24, -40, 0); x.fill(); x.stroke();
+        x.fillStyle = INK; ell(x, -22, -2, 3.4, 3.4); x.fill();
+        x.strokeStyle = "rgba(34,34,34,.45)"; x.lineWidth = 3;
+        for (let i = 0; i < 3; i++) { x.beginPath(); x.arc(-4 + i * 12, 0, 9, -1, 1); x.stroke(); }
+        x.restore();
+      }
+    },
+    {
+      id: "fan", cat: "hand", name: "纸扇", anchor: "paw-L", layer: 30, imgSize: 160,
+      svg: SV('<path d="M24 40 8 12a24 24 0 0 1 32 0z" fill="#fff"/><path d="M24 40V14M16 36 12 16M32 36l4-20"/>'),
+      draw(x, g) {
+        const a = g.anchor("paw-L");
+        x.save(); x.translate(a.x - g.brx * 0.14, a.y - g.bry * 0.22); x.rotate(0.32);
+        ink(x, 5); x.fillStyle = "#FBF7EE";
+        x.beginPath(); x.moveTo(0, 44); x.arc(0, 44, 74, Math.PI * 1.22, Math.PI * 1.78); x.closePath(); x.fill(); x.stroke();
+        ink(x, 3); x.strokeStyle = "rgba(34,34,34,.5)";
+        for (let i = 0; i <= 6; i++) { const an = Math.PI * 1.22 + i * (Math.PI * 0.56 / 6); x.beginPath(); x.moveTo(0, 44); x.lineTo(Math.cos(an) * 74, 44 + Math.sin(an) * 74); x.stroke(); }
+        ink(x, 4); x.strokeStyle = INK; x.beginPath(); x.arc(0, 44, 74, Math.PI * 1.22, Math.PI * 1.78); x.stroke();
+        x.restore();
+      }
+    },
+
+    /* ---- 贴纸 ---- */
+    {
+      id: "blush", cat: "sticker", name: "腮红", anchor: "cheek", layer: 46, imgSize: 120,
+      svg: SV('<circle cx="14" cy="26" r="6" fill="#F16D5B"/><circle cx="34" cy="26" r="6" fill="#F16D5B"/><path d="M12 14c4-3 8-3 12 0"/>'),
+      draw(x, g) {
+        [g.anchor("cheek"), g.anchor("cheek-L")].forEach(p => {
+          x.save(); x.globalAlpha = .62; x.fillStyle = "#F16D5B";
+          ell(x, p.x, p.y, g.hrx * 0.17, g.hry * 0.11); x.fill();
+          x.globalAlpha = .34;
+          for (let i = -1; i <= 1; i++) { ell(x, p.x + i * g.hrx * 0.08, p.y - g.hry * 0.02, g.hrx * 0.04, g.hry * 0.03); x.fill(); }
+          x.restore();
+        });
+      }
+    },
+    {
+      id: "star", cat: "sticker", name: "星星贴纸", anchor: "back", layer: 47, imgSize: 110,
+      svg: SV('<path d="M24 6l5 12 13 1-10 9 3 13-11-7-11 7 3-13-10-9 13-1z" fill="#F5E66B"/>'),
+      draw(x, g) {
+        const a = g.anchor("back");
+        x.save(); x.translate(a.x, a.y); x.rotate(-0.22);
+        ink(x, 4.5); x.fillStyle = "#F5E66B"; starPath(x, 0, 0, 34, 5, 0.45); x.fill(); x.stroke();
+        x.fillStyle = "#fff"; ell(x, -9, -10, 5, 4); x.fill();
+        x.restore();
+      }
+    },
+    {
+      id: "nameplate", cat: "sticker", name: "名牌", anchor: "chest", layer: 34, imgSize: 170,
+      svg: SV('<rect x="8" y="18" width="32" height="14" rx="5" fill="#fff"/><path d="M24 18v-6"/><circle cx="24" cy="10" r="3"/>'),
+      draw(x, g) {
+        const a = g.anchor("chest"), w = Math.max(120, g.brx * 1.1), h = 40, ty = a.y + g.bry * 0.14;
+        x.save(); ink(x, 4);
+        x.beginPath(); x.moveTo(a.x, a.y - h * 0.7); x.lineTo(a.x, ty - h / 2); x.stroke();
+        x.fillStyle = "#fff"; x.beginPath(); x.rect(a.x - w / 2, ty - h / 2, w, h); x.fill(); x.stroke();
+        x.fillStyle = INK; x.font = '900 20px "PingFang SC","Microsoft YaHei",Arial,sans-serif';
+        x.textAlign = "center"; x.textBaseline = "middle";
+        const txt = capText();
+        x.fillText(x.measureText(txt).width > w - 18 ? txt.slice(0, 7) : txt, a.x, ty + 1);
+        x.restore();
+      }
+    }
+  ];
+  /* ---------------- UI 接线 ---------------- */
+  const els = {
+    chips: $("#chips"), items: $("#items"), furs: $("#furs"), note: $("#note"), eqTag: $("#eqTag"),
+    sBody: $("#sBody"), vBody: $("#vBody"), sHead: $("#sHead"), vHead: $("#vHead"),
+    capText: $("#capText"), capPresets: $("#capPresets"), stickerBtn: $("#stickerBtn"), animBtn: $("#animBtn"),
+    whoName: $("#whoName")
+  };
+  const DEFAULT_NOTE = "点下面的卡片给 MOMO 穿戴，所有变化都是实时画在画布上的。";
+  const CAPS = ["职业拆家", "一级拆迁户", "零食黑洞", "装睡专家", "深夜跑酷选手", "本届最可爱"];
+  let noteT = 0, pendingI = 0, iTimer = 0;
+
+  function capText() {
+    const raw = String(state.caption || (petCfg && petCfg.petName) || "MOMO").trim();
+    return raw.slice(0, 18) || "MOMO";
+  }
+  function setNote(t, warn) { els.note.textContent = t; els.note.classList.toggle("warn", !!warn); }
+  function flashNote(t) { setNote(t, false); clearTimeout(noteT); noteT = setTimeout(() => setNote(DEFAULT_NOTE), 2000); }
+  /* 批量写 ml-stats：一次搭配只落一次 */
+  function queueInteraction() {
+    pendingI++;
+    clearTimeout(iTimer);
+    iTimer = setTimeout(() => {
+      if (!pendingI) return;
+      try { ML.patchStats({ interactions: pendingI }); } catch (e) { setNote("互动次数没能写入本机存储（浏览器限制了 localStorage）。", true); }
+      pendingI = 0;
+    }, 900);
+  }
+  function hudTag() {
+    const n = equipped().filter(it => it.cat !== "bg" && it.cat !== "expr" && it.id !== "none").length;
+    els.eqTag.textContent = "已穿 " + n + " 件";
+  }
+
+  function buildChips() {
+    els.chips.innerHTML = CATS.map(([k, cn]) => {
+      const cur = state.eq[k], it = itemById(cur);
+      const on = cur && cur !== "none";
+      return `<button class="chip-btn${state.cat === k ? " sel" : ""}" data-cat="${k}">${cn}<i>${on ? (it ? it.name : "已穿") : "—"}</i></button>`;
+    }).join("");
+    $$("#chips .chip-btn").forEach(b => b.onclick = () => {
+      state.cat = b.dataset.cat; sound.tap(); buildChips(); buildItems();
+    });
+  }
+
+  function buildItems() {
+    const cat = state.cat, list = ITEMS.filter(it => it.cat === cat), cur = state.eq[cat];
+    list.forEach(it => loadAsset(it.id));           // 懒加载：只请求当前分类的换图
+    const noneSvg = SV('<path d="M13 13l22 22M35 13 13 35"/>');
+    els.items.innerHTML = `<button class="item none${!cur || cur === "none" ? " sel" : ""}" data-id="" aria-label="无">
+        <span class="th">${noneSvg}</span><span class="nm">无</span><span class="bdg">卸下</span></button>` +
+      list.map(it => {
+        const sel = cur === it.id, has = !!assetImgs[it.id];
+        return `<button class="item${sel ? " sel" : ""}" data-id="${it.id}">
+          <span class="th">${it.svg || ""}</span><span class="nm">${it.name}</span>
+          <span class="bdg${has ? " img" : ""}" data-bdg="${it.id}">${has ? "图片" : "自绘"}</span></button>`;
+      }).join("");
+    $$("#items .item").forEach(b => b.onclick = () => equip(cat, b.dataset.id));
+  }
+  function markBadges() {
+    $$("#items .bdg[data-bdg]").forEach(el => {
+      const has = !!assetImgs[el.dataset.bdg];
+      el.textContent = has ? "图片" : "自绘";
+      el.classList.toggle("img", has);
+    });
+  }
+
+  function equip(cat, id) {
+    const want = id || (cat === "expr" ? "none" : "");
+    const prev = itemById(state.eq[cat]);
+    const already = state.eq[cat] === want;
+    const next = already ? (cat === "expr" ? "none" : "") : want;
+    state.eq[cat] = next;
+    const nowIt = itemById(next);
+    if (id) loadAsset(id);
+    let msg;
+    if (!id) msg = cat === "expr" ? "换成默认脸（仍是程序化五官）" : (prev ? "卸下 " + prev.name : "这一栏本来就空着");
+    else if (already) msg = "卸下 " + (prev ? prev.name : id);
+    else msg = "穿上 " + (nowIt ? nowIt.name : id);
+    (already || !next) ? sound.tick() : sound.tap();
+    queueInteraction();
+    flashNote(msg);
+    buildChips(); buildItems(); render(); persistSoon();
+  }
+
+  function bindSlider(inp, out, key) {
+    const apply = () => {
+      state[key] = clamp(parseFloat(inp.value) || 1, parseFloat(inp.min), parseFloat(inp.max));
+      out.textContent = state[key].toFixed(2);
+      render(); persistSoon();
+    };
+    inp.addEventListener("input", apply);
+    inp.addEventListener("change", () => { sound.tick(); queueInteraction(); });
+    inp.value = String(state[key]); out.textContent = state[key].toFixed(2);
+  }
+
+  function buildFurs() {
+    els.furs.innerHTML = FUR_OPTS.map(c => `<button class="fur${state.fur === c ? " sel" : ""}" data-c="${c}" style="background:${c}" aria-label="毛色 ${c}"></button>`).join("");
+    $$("#furs .fur").forEach(b => b.onclick = () => {
+      state.fur = b.dataset.c; sound.tap(); queueInteraction(); buildFurs(); render(); persistSoon();
+      flashNote("毛色换成 " + b.dataset.c.toUpperCase());
+    });
+  }
+
+  function buildCaps() {
+    const extra = (petCfg && petCfg.customText) ? petCfg.customText : [];
+    const list = CAPS.concat(extra).filter(t => typeof t === "string" && t.length).slice(0, 10);
+    els.capPresets.innerHTML = list.map(t => `<button class="ed-btn" data-t="${t.replace(/"/g, "&quot;")}">${t.length > 12 ? t.slice(0, 12) + "…" : t}</button>`).join("");
+    $$("#capPresets .ed-btn").forEach(b => b.onclick = () => {
+      state.caption = b.dataset.t; els.capText.value = b.dataset.t;
+      markCapSel(); sound.tap(); queueInteraction(); render(); persistSoon();
+    });
+    markCapSel();
+  }
+  function markCapSel() {
+    $$("#capPresets .ed-btn").forEach(b => b.classList.toggle("sel", b.dataset.t === state.caption));
+  }
+
+  function syncToggles() {
+    const useAnim = ML.settings.anim && state.anim;
+    els.stickerBtn.textContent = "表情贴纸：" + (state.sticker ? "开" : "关");
+    els.stickerBtn.classList.toggle("sel", state.sticker);
+    els.animBtn.textContent = "待机动画：" + (useAnim ? "开" : "关");
+    els.animBtn.classList.toggle("sel", useAnim);
+  }
+
+  function wireUI() {
+    els.stickerBtn.onclick = () => {
+      state.sticker = !state.sticker; sound.tap();
+      if (state.sticker) loadExprImgs();
+      syncToggles(); render(); persistSoon();
+      flashNote(state.sticker ? "已在头顶贴上原始表情图（没有素材就只显示程序化脸）" : "只保留程序化五官");
+    };
+    els.animBtn.onclick = () => {
+      state.anim = !state.anim; sound.tap(); syncToggles(); render(); persistSoon();
+      flashNote(state.anim ? "呼吸 / 尾巴 / 眨眼已开启" : "待机动画已关闭");
+    };
+    els.capText.addEventListener("input", e => {
+      state.caption = e.target.value.slice(0, 18); markCapSel(); render(); persistSoon();
+    });
+    els.capText.addEventListener("change", () => { sound.tick(); queueInteraction(); });
+    els.capText.value = state.caption || "";
+    bindSlider(els.sBody, els.vBody, "bodyFat");
+    bindSlider(els.sHead, els.vHead, "headWidth");
+    buildChips(); buildItems(); buildFurs(); buildCaps(); syncToggles();
+  }
+  /* ---------------- 组合名 / 随机一套 ---------------- */
+  function comboName() {
+    const parts = CATS.filter(([k]) => k !== "bg").map(([k]) => state.eq[k])
+      .filter(id => id && id !== "none").map(id => { const it = itemById(id); return it ? it.name : ""; }).filter(Boolean);
+    const bg = itemById(state.eq.bg);
+    return (parts.join("·") || "素颜") + (bg ? "@" + bg.name : "");
+  }
+  function randomOutfit() {
+    const pool = cat => ITEMS.filter(it => it.cat === cat);
+    state.eq.expr = pick(EXPR_KEYS);
+    ["head", "cloth", "neck", "hand"].forEach(cat => {
+      const l = pool(cat);
+      state.eq[cat] = (l.length && Math.random() < 0.8) ? pick(l).id : "";
+    });
+    const st = pool("sticker");
+    state.eq.sticker = st.length ? pick(st).id : "";
+    const bg = pool("bg");
+    if (bg.length) state.eq.bg = pick(bg).id;
+    queueInteraction(); sound.bonus();
+    flashNote("随机一套：" + comboName());
+    buildChips(); buildItems(); buildFurs(); render(); persistSoon();
+  }
+
+  /* ---------------- 导出海报 1080×1350 ---------------- */
+  const F = (w, s) => `${w} ${s}px "PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",Arial,sans-serif`;
+  function drawPoster(x, o) {
+    const W = 1080, H = 1350;
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.fillStyle = "#FAF8F3"; x.fillRect(0, 0, W, H);
+    x.fillStyle = "#fff"; ML.rr(x, 28, 28, W - 56, H - 56, 22); x.fill();
+    x.lineWidth = 6; x.strokeStyle = INK; ML.rr(x, 28, 28, W - 56, H - 56, 22); x.stroke();
+    // 场景
+    x.save(); x.beginPath(); x.rect(60, 64, 960, 960); x.clip();
+    x.translate(60, 64); x.scale(960 / LOGICAL, 960 / LOGICAL);
+    drawScene(x, { withImgs: o.withImgs !== false, t: tNow });
+    x.restore();
+    x.lineWidth = 5; x.strokeStyle = INK; x.strokeRect(60, 64, 960, 960);
+    // 黄色信息带
+    x.fillStyle = "#F5E66B"; x.fillRect(60, 1044, 960, 118);
+    x.lineWidth = 4; x.strokeStyle = INK; x.strokeRect(60, 1044, 960, 118);
+    x.textAlign = "left"; x.textBaseline = "alphabetic";
+    x.fillStyle = INK; x.font = F("900", 42); x.fillText((petCfg && petCfg.petName) || "MOMO", 88, 1116);
+    x.textAlign = "right"; x.font = F("700", 24);
+    x.fillText("MOMO LAB · 换装室", 992, 1090);
+    x.fillStyle = "#5C574F"; x.font = F("700", 22); x.fillText(o.date || "", 992, 1128);
+    // 文案胶囊
+    x.textAlign = "center";
+    let fz = 46; const txt = capText();
+    x.font = F("900", fz);
+    while (x.measureText(txt).width > 700 && fz > 20) { fz -= 2; x.font = F("900", fz); }
+    x.fillStyle = "#DCD2F5"; ML.rr(x, 150, 1200, 780, 74, 37); x.fill(); x.lineWidth = 4; x.strokeStyle = INK; x.stroke();
+    x.fillStyle = INK; x.textBaseline = "middle"; x.fillText(txt, 540, 1238);
+    x.textBaseline = "alphabetic";
+    x.fillStyle = "#88847D"; x.font = F("700", 20); x.fillText("搭配：" + comboName(), 540, 1306);
+  }
+  function dateStr() {
+    try { return ML.today(); } catch (e) {
+      try { return new Date().toISOString().slice(0, 10); } catch (e2) { return "2026-11-10"; }
+    }
+  }
+  function posterCanvas(withImgs, date) {
+    const c = document.createElement("canvas"); c.width = 1080; c.height = 1350;
+    drawPoster(c.getContext("2d"), { withImgs, date });
+    return c;
+  }
+  function makePNG() {
+    const date = dateStr();
+    try {
+      return { url: posterCanvas(true, date).toDataURL("image/png"), fallback: false };
+    } catch (e) {
+      // 导入的 PNG 会让画布被“污染”：换一张全新画布、只用自绘图层再导一次
+      try { return { url: posterCanvas(false, date).toDataURL("image/png"), fallback: true }; }
+      catch (e2) { return { url: "", fallback: true }; }
+    }
+  }
+  function showOv(url, name, fallback) {
+    $("#ovNote").textContent = fallback
+      ? "已改用「自绘」图层导出：本机素材图片被浏览器安全策略拦下（常见于 file:// 打开）。"
+      : "1080 × 1350 · 手机可长按图片保存。";
+    if (url) $("#ovImg").src = url; else $("#ovImg").removeAttribute("src");
+    $("#ovDl").href = url || "#"; $("#ovDl").download = name;
+    $("#ov").classList.remove("hide");
+  }
+  function doDownload() {
+    const r = makePNG();
+    const name = "momo-dressup-" + Date.now() + ".png";
+    if (!r.url) { setNote("当前浏览器不允许把画布导出成 PNG（画布被安全策略锁住）。可以截图，或用本地服务器打开本页。", true); sound.bad(); return; }
+    try {
+      const a = document.createElement("a"); a.href = r.url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) { setNote("自动下载被拦截，请点弹窗里的「下载 PNG」。", true); }
+    showOv(r.url, name, r.fallback); sound.good(); queueInteraction();
+  }
+  function saveToFav() {
+    const r = makePNG();
+    if (!r.url) { setNote("收藏失败：这台设备上的画布无法导出 PNG。", true); sound.bad(); return; }
+    const work = {
+      id: "dressup-" + Date.now(), game: "dressup", gameName: "换装室",
+      title: "换装室 · " + comboName(), score: 0, rating: "满分喵",
+      time: dateStr(), png: r.url
+    };
+    let ok = false;
+    try {
+      ML.addWork(work);
+      ok = ML.works().some(w => w.id === work.id);   // 真的写进去了才算成功
+    } catch (e) { ok = false; }
+    if (!ok) { setNote("收藏没存下：1080×1350 的图太大，本机存储写不进去。可以先点「导出 PNG」自己保存图片。", true); sound.bad(); return; }
+    try { ML.patchStats({ outfitsMade: 1 }); } catch (e) { setNote("作品已存下，但「换装套数」统计没写进去。", true); }
+    try { ML.floatSticker(stage, "已存进收藏", stage.clientWidth * 0.5 - 46, stage.clientHeight * 0.14); } catch (e) {}
+    setNote("已存进收藏：" + work.title + (r.fallback ? "（自绘导出）" : "") + "，到「收藏」页可以看大图。", false);
+    sound.win(); queueInteraction();
+  }
+
+  /* ---------------- 记忆 / 重置 ---------------- */
+  const KEY = "ml-dressup";
+  let saveT = 0;
+  function persistSoon() { clearTimeout(saveT); saveT = setTimeout(persistNow, 420); }
+  function persistNow() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        v: 1, eq: state.eq, fur: state.fur, bodyFat: state.bodyFat, headWidth: state.headWidth,
+        earSpread: state.earSpread, caption: state.caption, sticker: state.sticker, anim: state.anim, cat: state.cat
+      }));
+    } catch (e) { setNote("这套搭配没能记住：本机存储不可用，下次打开会回到默认。", true); }
+  }
+  function restore() {
+    let o = null;
+    try { o = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { o = null; }
+    if (!o || typeof o !== "object") return false;
+    if (o.eq && typeof o.eq === "object") CATS.forEach(([k]) => {
+      const id = o.eq[k];
+      if (k === "bg") state.eq.bg = itemById(id) ? id : "studio";
+      else if (typeof id === "string") state.eq[k] = (id === "" || id === "none" || itemById(id)) ? id : "";
+    });
+    if (FUR_OPTS.indexOf(o.fur) >= 0) state.fur = o.fur;
+    if (typeof o.bodyFat === "number") state.bodyFat = clamp(o.bodyFat, 0.85, 1.25);
+    if (typeof o.headWidth === "number") state.headWidth = clamp(o.headWidth, 0.9, 1.2);
+    if (typeof o.earSpread === "number") state.earSpread = clamp(o.earSpread, 0.6, 1.6);
+    if (typeof o.caption === "string") state.caption = o.caption.slice(0, 18);
+    state.sticker = !!o.sticker; state.anim = o.anim !== false;
+    if (CATS.some(([k]) => k === o.cat)) state.cat = o.cat;
+    setNote("已恢复上次在换装室的搭配。", false);
+    return true;
+  }
+  function resetAll() {
+    state.eq = { expr: "happy", head: "", cloth: "", neck: "", hand: "", sticker: "", bg: "studio" };
+    state.caption = ""; state.sticker = false; state.anim = true; state.cat = "expr";
+    const sp = (petCfg && petCfg.shapeParams) || {};
+    state.fur = (petCfg && petCfg.furColor && FUR_OPTS.indexOf(petCfg.furColor) >= 0) ? petCfg.furColor : FUR_OPTS[0];
+    state.bodyFat = clamp(typeof sp.bodyFat === "number" ? sp.bodyFat : 1.05, 0.85, 1.25);
+    state.headWidth = clamp(typeof sp.headWidth === "number" ? sp.headWidth : 1.05, 0.9, 1.2);
+    state.earSpread = clamp(typeof sp.earSpread === "number" ? sp.earSpread : 1, 0.6, 1.6);
+    try { localStorage.removeItem(KEY); } catch (e) { setNote("存储不可用，重置只作用于当前页面。", true); }
+    els.capText.value = "";
+    sound.bad(); flashNote("已恢复到角色默认样子。");
+    buildChips(); buildItems(); buildFurs(); buildCaps(); syncToggles();
+    els.sBody.value = String(state.bodyFat); els.vBody.textContent = state.bodyFat.toFixed(2);
+    els.sHead.value = String(state.headWidth); els.vHead.textContent = state.headWidth.toFixed(2);
+    render();
+  }
+
+  /* ---------------- 表情原图（可选贴纸） ---------------- */
+  let exprImgLoaded = false;
+  function loadExprImgs() {
+    if (exprImgLoaded || !petCfg) return;
+    exprImgLoaded = true;
+    const map = petCfg.petExpressions || {};
+    EXPR_KEYS.forEach(k => {
+      if (!map[k] || exprImgs[k]) return;
+      try {
+        ML.img(map[k]).then(i => { exprImgs[k] = i; if (state.sticker) render(); }).catch(() => { exprImgs[k] = null; });
+      } catch (e) { exprImgs[k] = null; }
+    });
+  }
+
+  /* ---------------- 待机循环 ---------------- */
+  let lastLoop = 0;
+  function loop(ts) {
+    tNow = ts || 0;
+    if (animOn() && tNow - lastLoop > 33) { lastLoop = tNow; render(); }
+    requestAnimationFrame(loop);
+  }
+
+  /* ---------------- 启动 ---------------- */
+  const restored = restore();
+  $("#randBtn").onclick = randomOutfit;
+  $("#expBtn").onclick = doDownload;
+  $("#favBtn").onclick = saveToFav;
+  $("#resetBtn").onclick = resetAll;
+  $("#ovClose").onclick = () => { $("#ov").classList.add("hide"); sound.tap(); };
+  document.addEventListener("keydown", e => { if (e.key === "Escape") $("#ov").classList.add("hide"); });
+  equipped().forEach(it => loadAsset(it.id));   // 其余分类在 buildItems() 里懒加载
+  wireUI();
+  size();
+  window.addEventListener("resize", size);
+  if (window.ResizeObserver) new ResizeObserver(size).observe(stage);
+  requestAnimationFrame(loop);
+
+  ML.pet().then(cfg => {
+    petCfg = cfg;
+    els.whoName.textContent = (cfg.petName || "MOMO") + " 主演";
+    const sp = cfg.shapeParams || {};
+    if (!restored) {
+      if (cfg.furColor) state.fur = FUR_OPTS.indexOf(cfg.furColor) >= 0 ? cfg.furColor : FUR_OPTS[0];
+      if (typeof sp.bodyFat === "number") state.bodyFat = clamp(sp.bodyFat, 0.85, 1.25);
+      if (typeof sp.headWidth === "number") state.headWidth = clamp(sp.headWidth, 0.9, 1.2);
+      if (typeof sp.earSpread === "number") state.earSpread = clamp(sp.earSpread, 0.6, 1.6);
+      els.sBody.value = String(state.bodyFat); els.vBody.textContent = state.bodyFat.toFixed(2);
+      els.sHead.value = String(state.headWidth); els.vHead.textContent = state.headWidth.toFixed(2);
+      buildFurs();
+    }
+    buildCaps();
+    loadExprImgs();
+    render(); persistSoon();
+    setNote((cfg.petDescription ? "角色设定：" + cfg.petDescription + " · " : "") + "换好之后点「导出 PNG」拿 1080×1350 成图。", false);
+  }).catch(() => {
+    setNote("宠物资料读取失败，用默认角色 MOMO 继续搭配。", true);
+    render();
+  });
+})();
+</script>
+</body>
+</html>

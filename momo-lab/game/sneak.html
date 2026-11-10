@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F3">
+<title>偷吃木头人 — MOMO 事务所</title>
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/game.css">
+<style>
+  /* 本页专属补丁：不动共享 CSS */
+  #wrap{
+    position:relative; height:auto; aspect-ratio:4/5;
+    max-height:min(62vh,600px); max-height:min(62svh,600px); max-width:100%; margin:0 auto;
+    user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+    background:linear-gradient(#F6F1E7 0 26%,#E9DDC7 26% 100%);
+  }
+  #wrap *{-webkit-tap-highlight-color:transparent}
+  #cv{display:block;touch-action:none}
+  .ov{touch-action:pan-y}
+  .ov .panel{max-height:100%;overflow:auto}
+  .s-status{display:flex;gap:8px;margin-top:10px}
+  .s-cell{flex:1;min-width:0;background:var(--card);border:var(--bd);border-radius:12px;padding:6px 8px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:2px 2px 0 rgba(34,34,34,.15)}
+  .s-cell .k{font-size:9px;font-weight:800;letter-spacing:.14em;color:var(--mut);white-space:nowrap}
+  .s-cell .v{font-size:13px;font-weight:900;display:flex;align-items:center;gap:4px;white-space:nowrap}
+  .paws{display:flex;gap:3px}
+  .paws i{display:block;width:19px;height:19px}
+  .paws i.off{opacity:.2}
+  .paws svg{width:100%;height:100%}
+  .badge{border:1.5px solid var(--ink);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:900;background:var(--mint);max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .badge.move{background:var(--red);color:#fff}
+  .badge.warn{background:var(--yel)}
+  .badge.look{background:var(--pur)}
+  .badge.snap{background:#fff}
+  .s-track{margin-top:8px;display:flex;align-items:center;gap:8px}
+  .s-track .progress{flex:1}
+  #hProg{transition:none}
+  .s-note{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--mut);white-space:nowrap}
+  .s-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 4px}
+  .s-stats div{border:var(--bd);border-radius:12px;background:var(--bg);padding:8px 6px;display:flex;flex-direction:column;gap:2px}
+  .s-stats b{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
+  .s-stats span{font-size:10px;letter-spacing:.12em;color:var(--mut);font-weight:700}
+  .newrec{display:inline-block;background:var(--red);color:#fff;border:var(--bd);border-radius:999px;padding:2px 12px;
+    font-size:11px;font-weight:900;letter-spacing:.1em;margin-bottom:6px}
+  .hint{font-size:11px;line-height:1.5;margin-top:6px}
+  .stamp-pop{position:absolute;left:50%;top:34%;z-index:45;width:112px;height:112px;margin-left:-56px;
+    border:var(--bd);border-radius:20px;background:var(--card);box-shadow:var(--sh);overflow:hidden;
+    display:grid;place-items:center;pointer-events:none;animation:stampIn .8s ease-out forwards}
+  .stamp-pop img{width:100%;height:100%;object-fit:cover;transform:scale(1.1)}
+  .stamp-pop b{font-size:24px;font-weight:900;color:var(--mut)}
+  .legend{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+  .legend span{font-size:10px;font-weight:800;letter-spacing:.08em;border:var(--bd);border-radius:999px;padding:2px 9px;background:var(--card)}
+  @keyframes stampIn{0%{transform:scale(.4) rotate(-14deg);opacity:0}35%{transform:scale(1.1) rotate(4deg);opacity:1}
+    75%{transform:scale(1) rotate(-2deg);opacity:1}100%{transform:scale(1.05) rotate(-2deg);opacity:0}}
+  @media(max-height:560px){
+    #wrap{aspect-ratio:16/9;max-height:calc(100vh - 150px);max-height:calc(100svh - 150px)}
+    .s-status{margin-top:6px}
+    .s-cell{padding:4px 6px}
+    .s-track{margin-top:6px}
+    .legend{margin-top:6px}
+    .legend span{font-size:9px;padding:1px 7px}
+  }
+</style>
+</head>
+<body data-page="sneak" data-base="../">
+
+<div class="g-wrap">
+  <div class="g-top">
+    <a class="icon-btn" href="../play.html" aria-label="返回"><span data-icon="back"></span></a>
+    <div class="title">偷吃木头人<small>游戏 08 · 1、2、3 木头人</small></div>
+    <button class="icon-btn" id="pauseBtn" aria-label="暂停"><span data-icon="pause"></span></button>
+  </div>
+
+  <div class="hud">
+    <div class="chip hot"><div class="k">时间</div><div class="v" id="hTime">60</div></div>
+    <div class="chip yel"><div class="k">得分</div><div class="v" id="hScore">0</div></div>
+    <div class="chip"><div class="k">连击</div><div class="v" id="hCombo">×0</div></div>
+    <div class="chip"><div class="k">回合</div><div class="v" id="hRound">1</div></div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="cv-wrap" id="wrap">
+    <canvas id="cv" aria-label="潜行现场：按住前进，主人回头就松手"></canvas>
+
+    <div class="ov" id="startOv">
+      <div class="panel">
+        <span class="tag red">1、2、3 木头人</span>
+        <h2 class="h2">偷吃木头人</h2>
+        <ul class="desc">
+          <li>按住屏幕（或空格 / ↑）MOMO 就往零食碗挪；<b>松手立刻定住</b>。</li>
+          <li>铲屎官背对着你时随便动；她开始回头（<b>!!</b> 预警）就得马上停。</li>
+          <li>她转过来盯着你时，<b>只要还在动就被抓</b>：-1 生命、连击清零、猫退回一小段。</li>
+          <li>松手有 0.12 秒的定身缓冲，贴着回头点松手也算停住。</li>
+          <li>第 3 回合起她会演「假回头」，骗你白停；稳稳走完预警期不吃亏。</li>
+          <li>第 5 回合起她举手机拍照：闪光灯亮 0.5 秒，那期间动一下照样被抓。</li>
+          <li>60 秒、3 条命。吃得越快、连击越高、静止越干净，分越高。</li>
+        </ul>
+        <div class="row"><button class="btn yel big" id="startBtn">开始潜行</button></div>
+        <div class="legend">
+          <span>P / Esc 暂停</span><span>画面下方看「已冻结 / 移动中」</span><span id="petName">MOMO 主演</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ov hide" id="pauseOv">
+      <div class="panel">
+        <h2 class="h2">已暂停</h2>
+        <p class="mut" style="font-size:13px">她也暂停回头了。深呼吸，回来继续装木头猫。</p>
+        <div class="row"><button class="btn yel" id="resumeBtn">继续</button><a class="btn" href="../play.html">离开</a></div>
+      </div>
+    </div>
+
+    <div class="ov hide" id="endOv">
+      <div class="panel">
+        <div id="endNew"></div>
+        <span class="rating" id="endRating">C</span>
+        <h2 class="h2" id="endTitle" style="font-size:22px"></h2>
+        <p class="mut" style="font-size:13px" id="endDesc"></p>
+        <div class="s-stats">
+          <div><b id="stScore">0</b><span>本局得分</span></div>
+          <div><b id="stBowls">0</b><span>吃到碗数</span></div>
+          <div><b id="stCombo">×0</b><span>最高连击</span></div>
+          <div><b id="stBest">0</b><span>历史最佳</span></div>
+          <div><b id="stPerfect">0</b><span>完美静止</span></div>
+          <div><b id="stCatch">0</b><span>被抓次数</span></div>
+        </div>
+        <img class="result-img" id="endImg" alt="分享卡">
+        <p class="mut hint" id="endHint"></p>
+        <div class="row">
+          <a class="btn yel small" id="saveBtn" download="momo-sneak.png"><span data-icon="download"></span>保存卡片</a>
+          <button class="btn mint small" id="favBtn">保存到收藏</button>
+          <button class="btn small" id="retryBtn">再来一次</button>
+          <a class="btn small" href="../play.html">大厅</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="s-status">
+    <div class="s-cell"><span class="k">生命</span><span class="v"><span class="paws" id="paws"></span></span></div>
+    <div class="s-cell"><span class="k">铲屎官</span><span class="v"><span class="badge warn" id="hState">背对着</span></span></div>
+    <div class="s-cell"><span class="k">MOMO</span><span class="v"><span class="badge" id="hFrozen">已冻结</span></span></div>
+  </div>
+  <div class="s-track">
+    <span class="s-note">MOMO</span>
+    <div class="progress"><i id="hProg"></i></div>
+    <span class="s-note">零食碗</span>
+  </div>
+
+  <div class="g-actions"><span class="label">按住 = 前进 · 松手 = 定住 · 空格 / ↑ · P 暂停</span></div>
+</div>
+
+<script src="../js/icons.js"></script>
+<script src="../js/core.js"></script>
+<script>
+(() => {
+  const { $, clamp, rand, sound } = ML;
+  const cv = $("#cv"), wrap = $("#wrap"), x = cv.getContext("2d");
+  const mac = ML.machine();
+
+  /* ---------------- 数值（未做实机手感校准，见交付说明） ---------------- */
+  const ROUND_TIME = 60;       // 一局秒数
+  const LIVES = 3;
+  const CREEP = 0.215;         // 潜行速度：进度单位/秒（1 = 到碗边）≈ 4.6 秒纯走
+  const SETTLE = 0.12;         // 松手后的定身缓冲
+  const LOOK_GRACE = 0.08;     // 盯视期首帧宽限
+  const PERFECT_NEED = 0.25;   // 提前多久定住才算「完美静止」
+  const BACK = [1.6, 3.4];     // 安全期时长区间
+  const WARN_D = .55, WARN_MIN = .3;
+  const LOOK = [1.0, 1.4];
+  const SNAP_D = 0.5;          // 手机闪光灯窗口
+  const FAKE_FROM = 3, SNAP_FROM = 5;
+  const FAKE_P = .24, SNAP_P = .26;
+  const EAT_PUSH = 0.045;      // 被抓后猫被推回的距离
+  const SLIDE_T = 0.34;        // 退回动画时长
+  const PERFECT_PTS = 80;      // 完美静止
+  const nervePts = dur => Math.round(16 + 54 * clamp((dur - .34) / .22, 0, 1)); // 走完预警期的胆量分
+  const bowlGain = () => Math.round(100 * round * (0.5 + 0.5 * clamp(timeLeft / ROUND_TIME, 0, 1)) * (1 + Math.min(combo, 6) * .12));
+
+  const PHASE_WORD = { BACK: "背对着", WARN: "要回头 !!", LOOK: "盯着你", SNAP: "拍照中" };
+  const PHASE_CLS = { BACK: "", WARN: "warn", LOOK: "look", SNAP: "snap" };
+
+  /* ---------------- 运行时 ---------------- */
+  let W = 0, H = 0, dpr = 1, k = 1, DW = 448, DH = 560, U = 1;
+  let shXv = 0, shYv = 0;
+  let L = { ax: 0, ay: 0, bx: 0, by: 0, ox: 0, oy: 0, gt: 0 };
+  let phase = "BACK", phaseT = 0, phaseD = 2, turnKind = "body";
+  let pressing = false, settleT = 9, frozenFor = 9;
+  let p = 0, walkAcc = 0, slide = null;
+  let cleanFreeze = false, lookMoved = false, warnPanicked = false, faceTurn = 0;
+  let score = 0, combo = 0, maxCombo = 0, lives = LIVES, round = 1, bowls = 0, catches = 0, perfects = 0;
+  let pressure = 0, timeLeft = ROUND_TIME, elapsed = 0, tNow = 0, last = 0;
+  let shake = 0, redFlash = 0, whiteFlash = 0, sweepT = 0, vign = 0;
+  let parts = [], floats = [], bubble = null, bannerT = 0, stampTimer = null;
+  let petCfg = null, EXPR = {}, FUR = "#E8A857";
+  const hudCache = {};
+
+  /* ---------------- 尺寸 / 取景 ---------------- */
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function size() {
+    const r = wrap.getBoundingClientRect();
+    W = Math.max(240, Math.round(r.width)); H = Math.max(240, Math.round(r.height));
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    layout();
+    if (mac.get() !== "PLAYING") draw();
+  }
+  function layout() {
+    k = clamp(H / 560, .42, 1.3);
+    DW = W / k; DH = H / k; U = DH / 560;
+    L.ax = DW * .10; L.ay = DH * .88;          // 猫起点
+    L.bx = DW * .74; L.by = DH * .355;         // 零食碗
+    L.gt = DH * .26;                            // 墙地交界
+    const t = .5, lx = lerp(L.ax, L.bx, t), ly = lerp(L.ay, L.by, t);
+    L.ox = lx - 10 * U; L.oy = ly - 22 * U;     // 主人站位（略靠路径左上）
+  }
+  function setWorld() { x.setTransform(dpr * k, 0, 0, dpr * k, dpr * shXv, dpr * shYv); }
+  function setScreen() { x.setTransform(dpr, 0, 0, dpr, dpr * shXv, dpr * shYv); }
+  const catXY = () => ({ x: lerp(L.ax, L.bx, p), y: lerp(L.ay, L.by, p) });
+  const depthSc = () => lerp(1, .6, p);
+
+  /* ---------------- 阶段机 ---------------- */
+  const speedF = () => clamp(1 - (round - 1) * .05 - pressure * .12, .45, 1);
+  // 「还在动」= 按着，或松手还没到定身缓冲
+  const movingNow = () => pressing || settleT < SETTLE;
+  const staring = () => phase === "LOOK" || phase === "SNAP";
+  function pickKind() {
+    if (round >= FAKE_FROM && Math.random() < FAKE_P) return "fake";
+    if (round >= SNAP_FROM && Math.random() < SNAP_P) return "phone";
+    return "body";
+  }
+  function enterPhase(next) {
+    phase = next; phaseT = 0;
+    const f = speedF();
+    if (next === "BACK") {
+      phaseD = rand(BACK[0], BACK[1]) * f;
+      turnKind = "body";
+    } else if (next === "WARN") {
+      phaseD = clamp(WARN_D * (.72 + .28 * f), WARN_MIN, WARN_D);
+      turnKind = pickKind();
+      warnPanicked = false;
+    } else if (next === "LOOK") {
+      phaseD = Math.max(.7, rand(LOOK[0], LOOK[1]) * f);
+      // 完美静止：盯视开始前已经定住 ≥ PERFECT_NEED，且整个盯视期一步没动
+      cleanFreeze = frozenFor >= PERFECT_NEED;
+      lookMoved = false;
+    } else if (next === "SNAP") {
+      phaseD = SNAP_D;
+      cleanFreeze = frozenFor >= PERFECT_NEED;
+      lookMoved = false;
+      whiteFlash = .9; sweepT = .0001; sound.tick();
+      say("她举起手机拍照！", "red");
+    }
+    hudState();
+  }
+
+  function stepPhase(dt) {
+    phaseT += dt;
+    // 定身计时（frozenFor 只在 BACK/WARN 里被清 0，用来判定"提前定住"）
+    if (movingNow()) frozenFor = 0; else frozenFor += dt;
+    if (phase === "WARN" && !movingNow()) warnPanicked = true;   // 白停记录（假动作要用）
+    if (staring() && movingNow()) lookMoved = true;
+
+    // 头转动的实际角度（BACK 转回去用缓动，读起来不突兀）
+    let target = 0;
+    if (phase === "WARN") target = turnKind === "fake"
+      ? clamp(Math.sin(Math.PI * clamp(phaseT / phaseD, 0, 1)) * .6, 0, 1)
+      : clamp((phaseT / phaseD - .34) / .5, 0, 1);
+    else if (staring()) target = 1;
+    faceTurn += (target - faceTurn) * (1 - Math.exp(-14 * dt));
+
+    // 被抓：盯视期只要还在动，立刻判
+    if (staring() && phaseT > LOOK_GRACE && !slide && movingNow()) { caught(); return; }
+
+    if (phaseT >= phaseD) {
+      if (phase === "BACK") enterPhase("WARN");
+      else if (phase === "WARN") {
+        if (turnKind === "fake") {
+          if (!warnPanicked) { addScore(nervePts(phaseD), "没上当"); sound.good(); }
+          else say("假动作！她只是扭了扭脖子，你白停了一下", "pur");
+          enterPhase("BACK");
+        } else if (turnKind === "phone") enterPhase("SNAP");
+        else enterPhase("LOOK");
+      } else if (phase === "LOOK" || phase === "SNAP") {
+        if (cleanFreeze && !lookMoved) { addScore(PERFECT_PTS, "完美静止"); perfects++; sound.good(); }
+        enterPhase("BACK");
+      }
+    }
+  }
+
+  function caught() {
+    lives--; catches++; combo = 0; pressure++;
+    slide = { from: p, to: Math.max(0, p - EAT_PUSH), t: 0 };
+    shake = .5; redFlash = .55; sound.bad();
+    say("动了！被看到了 -1 生命", "red");
+    spawnParts(catXY().x, catXY().y, "#F16D5B", 12);
+    showStamp("surprised");
+    addBubble("我看见了哦", L.ox, L.oy - 150 * U);
+    enterPhase("BACK");
+    if (lives <= 0) { hud(); finish(); }
+  }
+
+  function eat() {
+    const gain = bowlGain();
+    bowls++; combo++; maxCombo = Math.max(combo, maxCombo);
+    addScore(gain, "吃到了");
+    sound.bonus();
+    round++;
+    p = 0; walkAcc = 0; slide = null;
+    spawnParts(L.bx, L.by - 8 * U, "#F5E66B", 18);
+    spawnParts(L.bx, L.by - 8 * U, "#F16D5B", 8);
+    showStamp("happy");
+    const r = wrap.getBoundingClientRect();
+    ML.floatSticker(wrap, "+" + gain, r.width * .58, r.height * .32);
+    say("干掉了 " + bowls + " 碗！第 " + round + " 回合格外快", "yel");
+    enterPhase("BACK");
+  }
+
+  function addScore(n, label) {
+    score += n;
+    const c = catXY();
+    floats.push({ t: "+" + n, x: c.x, y: c.y - 60 * U, life: 1 });
+    if (label) floats.push({ t: label, x: c.x, y: c.y - 84 * U, life: 1, c: "#F16D5B" });
+  }
+
+  /* ---------------- 主循环 ---------------- */
+  function update(dt) {
+    elapsed += dt; timeLeft -= dt;
+    if (settleT < 9) settleT += dt;
+    if (slide) {
+      slide.t += dt;
+      p = lerp(slide.from, slide.to, clamp(slide.t / SLIDE_T, 0, 1));
+      if (slide.t >= SLIDE_T) slide = null;
+    } else if (movingNow()) {
+      p += CREEP * dt; walkAcc += CREEP * dt;
+    }
+    if (p >= 1 && !slide) { p = 1; eat(); }   // 先结算「吃到碗」，再走阶段机
+    stepPhase(dt);
+    if (mac.get() !== "PLAYING") return;       // caught() 可能已经把这局结算掉了
+
+    const secBefore = Math.ceil(timeLeft + dt), secNow = Math.ceil(timeLeft);
+    if (timeLeft <= 10 && secNow !== secBefore && secNow >= 0) { sound.tick(); if (secNow > 0) say("最后 " + secNow + " 秒！", "red"); }
+    if (timeLeft <= 0) { timeLeft = 0; hud(); finish(); return; }
+    stepFx(dt);
+    hud();
+  }
+  function stepFx(dt) {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const q = parts[i]; q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 780 * dt;
+      if (q.life <= 0) parts.splice(i, 1);
+    }
+    for (let i = floats.length - 1; i >= 0; i--) { const f = floats[i]; f.life -= dt; f.y -= 26 * dt * U; if (f.life <= 0) floats.splice(i, 1); }
+    if (bubble) { bubble.life -= dt; if (bubble.life <= 0) bubble = null; }
+    if (shake > 0) shake = Math.max(0, shake - dt * 2.2);
+    if (redFlash > 0) redFlash = Math.max(0, redFlash - dt * 1.8);
+    if (whiteFlash > 0) whiteFlash = Math.max(0, whiteFlash - dt * 2.4);
+    if (sweepT > 0 && sweepT < 1) sweepT = Math.min(1, sweepT + dt * 2.6);
+    vign = phase === "WARN" ? clamp(.3 + .5 * Math.abs(Math.sin(tNow * 11)), 0, 1)
+      : phase === "SNAP" ? .8 : 0;
+    if (bannerT > 0 && tNow > bannerT) { $("#banner").innerHTML = ""; bannerT = 0; }
+  }
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    const box = wrap.getBoundingClientRect();
+    if (Math.round(box.width) !== W || Math.round(box.height) !== H) size();
+    const dt = clamp((ts - last) / 1000, 0, .05); last = ts; tNow += dt;
+    if (mac.get() === "PLAYING") update(dt);
+    else { settleT = 9; stepFx(dt * .3); }
+    draw();
+  }
+
+  /* ---------------- 绘制：房间 ---------------- */
+  function draw() {
+    shXv = shake > 0 ? rand(-5, 5) * shake * k : 0;
+    shYv = shake > 0 ? rand(-4, 4) * shake * k : 0;
+    setScreen();
+    const g = x.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#F8F4EB"); g.addColorStop(1, "#EFE7D8");
+    x.fillStyle = g; x.fillRect(-14, -14, W + 28, H + 28);
+
+    setWorld();
+    drawRoom();
+    drawBowl();
+    // 纵深排序：脚位更靠上（更远）的先画
+    const c = catXY();
+    if (c.y >= L.oy) { drawOwner(); drawCat(c); } else { drawCat(c); drawOwner(); }
+    drawParts();
+    drawFloats();
+    drawBubble();
+
+    setScreen();
+    drawVignette();
+    if (sweepT > 0 && sweepT < 1) drawSweep();
+    drawBar();
+    if (redFlash > 0) { x.fillStyle = "rgba(241,109,91," + (.4 * redFlash) + ")"; x.fillRect(0, 0, W, H); }
+    if (whiteFlash > 0) { x.fillStyle = "rgba(255,255,255," + (.7 * whiteFlash) + ")"; x.fillRect(0, 0, W, H); }
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function drawRoom() {
+    // 墙面
+    x.fillStyle = "#F3EEE5"; x.fillRect(-40, -40, DW + 80, L.gt + 40);
+    // 地板（越远越亮，给纵深）
+    const fg = x.createLinearGradient(0, L.gt, 0, DH);
+    fg.addColorStop(0, "#EADFCB"); fg.addColorStop(1, "#D9C7A6");
+    x.fillStyle = fg; x.fillRect(-40, L.gt, DW + 80, DH - L.gt + 40);
+    x.strokeStyle = "rgba(34,34,34,.35)"; x.lineWidth = 2 * U;
+    x.beginPath(); x.moveTo(-40, L.gt); x.lineTo(DW + 40, L.gt); x.stroke();
+    // 冰箱轮廓（纵深参考）
+    const fx = DW * .08, fy = L.gt - 150 * U;
+    x.fillStyle = "#E4E7EA"; x.strokeStyle = "#222"; x.lineWidth = 2.4 * U;
+    ML.rr(x, fx, fy, 92 * U, 150 * U, 8 * U); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(fx, fy + 56 * U); x.lineTo(fx + 92 * U, fy + 56 * U); x.stroke();
+    x.strokeStyle = "rgba(34,34,34,.6)"; x.lineWidth = 3 * U;
+    x.beginPath(); x.moveTo(fx + 76 * U, fy + 30 * U); x.lineTo(fx + 76 * U, fy + 46 * U); x.stroke();
+    // 操作台 + 零食罐
+    const cx0 = DW * .62;
+    x.fillStyle = "#E9D8B8"; x.strokeStyle = "#222"; x.lineWidth = 2.4 * U;
+    ML.rr(x, cx0, L.gt - 52 * U, DW * .34, 52 * U, 6 * U); x.fill(); x.stroke();
+    x.fillStyle = "#DCD2F5"; ML.rr(x, cx0 + 22 * U, L.gt - 88 * U, 34 * U, 36 * U, 8 * U); x.fill(); x.stroke();
+    // 地板透视砖
+    x.strokeStyle = "rgba(34,34,34,.16)"; x.lineWidth = 1.6 * U;
+    const vpx = (L.ax + L.bx) / 2, span = Math.ceil(DW / (120 * U)) + 2;
+    for (let i = -span; i <= span; i++) {
+      const gx = vpx + i * 120 * U;
+      x.beginPath(); x.moveTo(gx, DH + 20); x.lineTo(lerp(gx, vpx, .55), L.gt); x.stroke();
+    }
+    for (let r = 0; r < 6; r++) {
+      const t = r / 5, yy = lerp(L.gt + 6 * U, DH + 30 * U, t * t);
+      x.beginPath(); x.moveTo(-40, yy); x.lineTo(DW + 40, yy); x.stroke();
+    }
+    // 潜行路径（虚线，从猫到碗）
+    x.save();
+    x.strokeStyle = "rgba(34,34,34,.22)"; x.lineWidth = 2 * U; x.setLineDash([8 * U, 10 * U]);
+    x.beginPath(); x.moveTo(L.ax, L.ay + 12 * U); x.lineTo(L.bx, L.by + 12 * U); x.stroke();
+    x.restore();
+  }
+  function drawBowl() {
+    const sc = .62 * U, bx = L.bx, by = L.by;
+    x.save(); x.translate(bx, by); x.scale(sc / U, sc / U);
+    x.fillStyle = "rgba(34,34,34,.14)"; x.beginPath(); x.ellipse(0, 8, 34, 8, 0, 0, 6.3); x.fill();
+    x.fillStyle = "#F5E66B"; x.strokeStyle = "#222"; x.lineWidth = 3;
+    for (let i = -2; i <= 2; i++) { x.beginPath(); x.arc(i * 9, -6, 4.4, 0, 6.3); x.fill(); x.stroke(); }
+    x.beginPath(); x.moveTo(-32, 0); x.quadraticCurveTo(0, 26, 32, 0); x.closePath(); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(-32, 0); x.quadraticCurveTo(0, -12, 32, 0); x.stroke();
+    x.restore();
+    // 碗标
+    x.save(); x.fillStyle = "#88847D"; x.font = "800 " + (10 * U).toFixed(1) + "px Arial"; x.textAlign = "center";
+    x.fillText("零食碗", bx, by + 24 * U); x.restore();
+  }
+
+  /* ---------------- 绘制：铲屎官 ---------------- */
+  function drawOwner() {
+    const sc = .92 * U;
+    let lean = 0;
+    if (phase === "WARN") lean = Math.sin(phaseT * 13) * .035 * sc;
+    else if (phase === "LOOK") lean = -.02 * sc;
+    x.save(); x.translate(L.ox, L.oy); x.scale(sc, sc); x.rotate(lean);
+    x.lineJoin = "round"; x.lineCap = "round";
+    x.fillStyle = "rgba(34,34,34,.15)"; x.beginPath(); x.ellipse(0, 6, 46, 11, 0, 0, 6.3); x.fill();
+
+    // 腿
+    x.fillStyle = "#4A5568"; ink(2.6);
+    ML.rr(x, -26, -86, 22, 88, 9); x.fill(); x.stroke();
+    ML.rr(x, 4, -86, 22, 88, 9); x.fill(); x.stroke();
+    x.fillStyle = "#222"; ML.rr(x, -30, -6, 30, 10, 5); x.fill(); x.stroke();
+    ML.rr(x, 0, -6, 30, 10, 5); x.fill(); x.stroke();
+
+    // front 由 stepPhase 缓动的 faceTurn 驱动：0 = 后脑勺，1 = 正脸
+    const front = clamp(faceTurn, 0, 1);
+    const back = 1 - front;
+
+    // 上身：背面 = 纯色卫衣 + 横向接缝；正面 = 领口 V + 抱臂
+    x.fillStyle = "#DCD2F5"; ink(2.8);
+    x.beginPath();
+    x.moveTo(-38, -176); x.quadraticCurveTo(0, -192, 38, -176);
+    x.lineTo(34, -80); x.quadraticCurveTo(0, -70, -34, -80); x.closePath();
+    x.fill(); x.stroke();
+    if (back > .35) {
+      x.strokeStyle = "rgba(34,34,34,.45)"; x.lineWidth = 2.4;
+      x.beginPath(); x.moveTo(-24, -128); x.lineTo(24, -128); x.stroke();
+      x.beginPath(); x.moveTo(0, -170); x.lineTo(0, -100); x.stroke();
+    }
+    if (front > .1) {
+      x.save(); x.globalAlpha = front;
+      x.strokeStyle = "#222"; x.lineWidth = 2.8;
+      x.beginPath(); x.moveTo(-16, -178); x.lineTo(0, -158); x.lineTo(16, -178); x.stroke();
+      x.restore();
+    }
+    // 手臂：背面垂手，正面抱臂，拍照时举起手机
+    x.fillStyle = "#DCD2F5"; ink(2.6);
+    if (phase === "SNAP") {
+      ML.rr(x, -44, -170, 14, 62, 7); x.fill(); x.stroke();
+      ML.rr(x, 32, -178, 15, 52, 7); x.fill(); x.stroke();
+      x.fillStyle = "#F16D5B"; ink(2.6); ML.rr(x, 44, -216, 22, 36, 6); x.fill(); x.stroke();
+      x.fillStyle = "#fff"; x.beginPath(); x.arc(55, -206, 5, 0, 6.3); x.fill();
+    } else if (front > .5) {
+      x.beginPath(); x.moveTo(-40, -168); x.quadraticCurveTo(-6, -140, 34, -160);
+      x.lineWidth = 20; x.strokeStyle = "#222"; x.stroke();
+      x.lineWidth = 15; x.strokeStyle = "#DCD2F5"; x.stroke();
+      x.beginPath(); x.arc(30, -158, 8, 0, 6.3);
+      x.fillStyle = "#F3CBA6"; x.fill(); x.lineWidth = 2.6; x.strokeStyle = "#222"; x.stroke();
+    } else {
+      ML.rr(x, -46, -172, 15, 68, 7); x.fill(); x.stroke();
+      ML.rr(x, 31, -172, 15, 68, 7); x.fill(); x.stroke();
+      x.fillStyle = "#F3CBA6";
+      x.beginPath(); x.arc(-38, -100, 8, 0, 6.3); x.fill(); x.stroke();
+      x.beginPath(); x.arc(38, -100, 8, 0, 6.3); x.fill(); x.stroke();
+    }
+
+    // 头（先平移+微缩做"转"，再从后脑勺渐显正脸）
+    const turn = front;
+    x.save();
+    x.translate(turn * 5, -206 + turn * 3);
+    x.scale(1 - .06 * turn, 1);
+    x.fillStyle = "#F3CBA6"; ink(2.8);
+    x.beginPath(); x.arc(0, 0, 27, 0, 6.3); x.fill(); x.stroke();
+    // 头发
+    x.fillStyle = "#3A3330";
+    x.beginPath(); x.arc(0, -4, 27.5, Math.PI * 1.02, Math.PI * 1.98); x.closePath(); x.fill(); x.stroke();
+    if (turn < .85) {
+      // 后脑勺 + 丸子头（背面特征）
+      x.save(); x.globalAlpha = clamp(1 - turn / .85, 0, 1);
+      x.fillStyle = "#3A3330"; x.beginPath(); x.arc(0, -3, 24, 0, 6.3); x.fill();
+      x.beginPath(); x.arc(0, -30, 12, 0, 6.3); x.fill(); x.stroke();
+      x.strokeStyle = "rgba(255,255,255,.35)"; x.lineWidth = 2;
+      x.beginPath(); x.arc(0, -30, 7, 0, 6.3); x.stroke();
+      x.restore();
+    }
+    if (turn > .25) {
+      // 正脸渐显：脸皮 + 双眼 + 眉毛 + 嘴
+      x.save(); x.globalAlpha = clamp((turn - .25) / .5, 0, 1);
+      x.beginPath(); x.ellipse(0, 6, 21 * clamp((turn - .2) / .6, .3, 1), 18, 0, 0, 6.3);
+      x.fillStyle = "#F3CBA6"; x.fill(); x.strokeStyle = "#222"; x.lineWidth = 2; x.stroke();
+      x.fillStyle = "#222";
+      x.beginPath(); x.arc(-8, 2, 2.8, 0, 6.3); x.fill();
+      x.beginPath(); x.arc(8, 2, 2.8, 0, 6.3); x.fill();
+      x.strokeStyle = "#222"; x.lineWidth = 2.6;
+      const browY = phase === "LOOK" ? -8 : phase === "SNAP" ? -10 : -4;
+      x.beginPath(); x.moveTo(-14, browY + 2); x.lineTo(-3, browY); x.stroke();
+      x.beginPath(); x.moveTo(14, browY + 2); x.lineTo(3, browY); x.stroke();
+      x.lineWidth = 2.2; x.beginPath(); x.moveTo(-6, 14); x.quadraticCurveTo(0, phase === "LOOK" ? 12 : 17, 6, 14); x.stroke();
+      x.restore();
+    }
+    x.restore();
+
+    // 预警气泡 / 盯视标注
+    if (phase === "WARN") {
+      const left = Math.max(0, phaseD - phaseT);
+      x.save(); x.translate(46, -232);
+      x.fillStyle = "#fff"; x.strokeStyle = "#F16D5B"; x.lineWidth = 3;
+      x.beginPath(); x.arc(0, 0, 21, 0, 6.3); x.fill(); x.stroke();
+      x.fillStyle = "#F16D5B"; x.font = "900 22px Arial"; x.textAlign = "center"; x.fillText("!!", 0, 8);
+      x.strokeStyle = "#F5E66B"; x.lineWidth = 4;
+      x.beginPath(); x.arc(0, 0, 26, -Math.PI / 2, -Math.PI / 2 + 6.283 * clamp(left / WARN_D, 0, 1)); x.stroke();
+      x.restore();
+    }
+    x.restore();
+
+    if (phase === "WARN") {
+      const left = clamp((phaseD - phaseT) / phaseD, 0, 1);
+      ringWarn(L.ox, L.oy - 120 * U, left);
+    }
+  }
+  function ink(lw) { x.strokeStyle = "#222"; x.lineWidth = lw; }
+  function ringWarn(cx, cy, ratio) {
+    x.save(); x.globalAlpha = .55 + .35 * Math.sin(tNow * 12);
+    x.strokeStyle = "#F16D5B"; x.lineWidth = 3.5 * U;
+    x.beginPath(); x.arc(cx, cy, 78 * U * (1 - ratio * .35), 0, 6.3); x.stroke();
+    x.restore();
+  }
+
+  /* ---------------- 绘制：MOMO（侧视橘猫，腿部按距离走） ---------------- */
+  function drawCat(c) {
+    const sc = depthSc() * .95 * U;
+    const legPh = walkAcc * 26;                       // 关键：腿相位来自"走过的距离"
+    const tailSw = walkAcc * 9;
+    const breath = movingNow() ? 0 : Math.sin(tNow * 2.4) * .022;
+    x.save(); x.translate(c.x, c.y); x.scale(sc, sc);
+    x.lineJoin = "round"; x.lineCap = "round";
+    x.fillStyle = "rgba(34,34,34,.16)"; x.beginPath(); x.ellipse(2, 2, 32, 8, 0, 0, 6.3); x.fill();
+    x.scale(1 + breath, 1 - breath);
+
+    // 尾巴
+    x.strokeStyle = "#222"; x.lineWidth = 9;
+    x.beginPath(); x.moveTo(-26, -16);
+    x.quadraticCurveTo(-44, -22 + Math.sin(tailSw) * 7, -40, -42 + Math.sin(tailSw) * 7); x.stroke();
+    x.strokeStyle = FUR; x.lineWidth = 5.5; x.stroke();
+
+    // 四条腿：步进式抬起
+    const base = [[-17, -12], [-7, -12], [9, -12], [17, -12]];
+    for (let i = 0; i < 4; i++) {
+      const lift = Math.max(0, Math.sin(legPh + i * 1.57)) * (movingNow() ? 6 : 0);
+      x.fillStyle = FUR; ink(2.4);
+      ML.rr(x, base[i][0] - 3.5, -12 - lift, 7, 14, 3.2); x.fill(); x.stroke();
+    }
+    // 身体
+    x.fillStyle = FUR; ink(2.6);
+    x.beginPath(); x.ellipse(-3, -22, 22, 16, 0, 0, 6.3); x.fill(); x.stroke();
+    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(-4, -15, 12, 8, 0, 0, 6.3); x.fill();
+    x.strokeStyle = "rgba(34,34,34,.22)"; x.lineWidth = 3;
+    x.beginPath(); x.moveTo(-14, -33); x.lineTo(-10, -25); x.moveTo(-4, -36); x.lineTo(-1, -28); x.moveTo(6, -34); x.lineTo(9, -26); x.stroke();
+    // 头（略微抬起，偷偷摸摸）
+    x.fillStyle = FUR; ink(2.6);
+    x.beginPath(); x.arc(17, -35, 13, 0, 6.3); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(9, -44); x.lineTo(8, -56); x.lineTo(18, -47); x.closePath(); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(23, -45); x.lineTo(29, -55); x.lineTo(30, -42); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = "#FBD9CF";
+    x.beginPath(); x.moveTo(11, -46); x.lineTo(11, -52); x.lineTo(16, -47); x.closePath(); x.fill();
+    // 脸
+    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(21, -30, 7.5, 6, 0, 0, 6.3); x.fill();
+    const wide = phase === "LOOK" || phase === "SNAP" || phase === "WARN";
+    x.fillStyle = "#222";
+    x.beginPath(); x.arc(15, -38, wide ? 3.2 : 2.3, 0, 6.3); x.fill();
+    x.beginPath(); x.arc(24, -37, wide ? 2.8 : 2, 0, 6.3); x.fill();
+    x.fillStyle = "#F16D5B";
+    x.beginPath(); x.moveTo(28, -32); x.lineTo(31.5, -29.5); x.lineTo(27, -28.5); x.closePath(); x.fill();
+    x.strokeStyle = "rgba(34,34,34,.5)"; x.lineWidth = 1.3;
+    x.beginPath(); x.moveTo(28, -30); x.lineTo(38, -33); x.moveTo(28, -27); x.lineTo(38, -25); x.stroke();
+    x.restore();
+  }
+
+  /* ---------------- 特效 ---------------- */
+  function spawnParts(wx, wy, c, n) {
+    for (let i = 0; i < n; i++)
+      parts.push({ x: wx + rand(-12, 12), y: wy - 12, vx: rand(-90, 90), vy: rand(-150, -40), life: rand(.35, .7), r: rand(2, 4.4), c, k: "dust" });
+  }
+  function drawParts() {
+    parts.forEach(q => {
+      x.save(); x.globalAlpha = clamp(q.life * 1.7, 0, 1); x.fillStyle = q.c;
+      x.beginPath(); x.arc(q.x, q.y, q.r * U, 0, 6.3); x.fill(); x.restore();
+    });
+  }
+  function drawFloats() {
+    floats.forEach(f => {
+      x.save(); x.globalAlpha = clamp(f.life * 1.5, 0, 1);
+      x.font = "900 " + (15 * U).toFixed(1) + "px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillStyle = f.c || "#222"; x.strokeStyle = "#FAF8F3"; x.lineWidth = 4;
+      x.strokeText(f.t, f.x, f.y); x.fillText(f.t, f.x, f.y); x.restore();
+    });
+  }
+  function addBubble(text, wx, wy) { bubble = { text, x: wx, y: wy, life: 1.4 }; }
+  function drawBubble() {
+    if (!bubble) return;
+    x.save(); x.globalAlpha = clamp(bubble.life * 1.6, 0, 1);
+    x.font = "900 " + (13 * U).toFixed(1) + "px 'PingFang SC',Arial"; x.textAlign = "center";
+    const w = x.measureText(bubble.text).width + 22 * U;
+    x.fillStyle = "#fff"; x.strokeStyle = "#222"; x.lineWidth = 2.4 * U;
+    ML.rr(x, bubble.x - w / 2, bubble.y - 15 * U, w, 28 * U, 12 * U); x.fill(); x.stroke();
+    x.fillStyle = "#222"; x.fillText(bubble.text, bubble.x, bubble.y + 4 * U);
+    x.restore();
+  }
+  function drawVignette() {
+    if (vign <= 0 && redFlash <= 0) return;
+    const a = Math.max(vign * .55, redFlash * .8);
+    const grd = x.createLinearGradient(0, 0, 0, H);
+    grd.addColorStop(0, "rgba(241,109,91," + a + ")");
+    grd.addColorStop(.28, "rgba(241,109,91,0)");
+    grd.addColorStop(.72, "rgba(241,109,91,0)");
+    grd.addColorStop(1, "rgba(241,109,91," + a + ")");
+    x.fillStyle = grd; x.fillRect(0, 0, W, H);
+    const grd2 = x.createLinearGradient(0, 0, W, 0);
+    grd2.addColorStop(0, "rgba(241,109,91," + a + ")");
+    grd2.addColorStop(.22, "rgba(241,109,91,0)");
+    grd2.addColorStop(.78, "rgba(241,109,91,0)");
+    grd2.addColorStop(1, "rgba(241,109,91," + a + ")");
+    x.fillStyle = grd2; x.fillRect(0, 0, W, H);
+  }
+  function drawSweep() {
+    const cxp = sweepT * (W + 260) - 130;
+    const g = x.createLinearGradient(cxp - 120, 0, cxp + 120, 0);
+    g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.5, "rgba(255,255,255,.9)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+  }
+  /* 画布内 HUD：进度条 + 阶段 + 冻结（全部取自实时值） */
+  function drawBar() {
+    const bw = Math.min(W - 28, 460), bx = (W - bw) / 2, by = 12, bh = 16;
+    x.save();
+    x.fillStyle = "rgba(255,255,255,.92)"; x.strokeStyle = "#222"; x.lineWidth = 2;
+    ML.rr(x, bx, by, bw, bh, 8); x.fill(); x.stroke();
+    x.fillStyle = p > .8 ? "#F5E66B" : "#BFE4D0";
+    if (p > .004) { ML.rr(x, bx + 2, by + 2, Math.max(8, (bw - 4) * clamp(p, 0, 1)), bh - 4, 6); x.fill(); x.stroke(); }
+    // 主人位置刻度
+    const ox = bx + bw * .5;
+    x.strokeStyle = "#F16D5B"; x.lineWidth = 3;
+    x.beginPath(); x.moveTo(ox, by - 5); x.lineTo(ox, by + bh + 5); x.stroke();
+    // 碗（终点）
+    x.fillStyle = "#F5E66B"; x.strokeStyle = "#222"; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(bx + bw + 6, by + 4); x.lineTo(bx + bw + 20, by + 4);
+    x.quadraticCurveTo(bx + bw + 13, by + 16, bx + bw + 6, by + 4); x.fill(); x.stroke();
+    // 猫标记
+    const mx = bx + 2 + (bw - 4) * clamp(p, 0, 1);
+    x.fillStyle = "#fff"; x.strokeStyle = "#222"; x.lineWidth = 2;
+    x.beginPath(); x.arc(mx, by + bh / 2, 7, 0, 6.3); x.fill(); x.stroke();
+    x.fillStyle = FUR; x.beginPath(); x.arc(mx, by + bh / 2, 4, 0, 6.3); x.fill();
+    x.fillStyle = "#88847D"; x.font = "800 10px Arial"; x.textAlign = "left";
+    x.fillText("距离零食碗 " + Math.round(clamp(p, 0, 1) * 100) + "%", bx, by + bh + 13);
+    x.textAlign = "right";
+    x.fillStyle = phase === "LOOK" || phase === "SNAP" ? "#F16D5B" : "#222";
+    x.font = "900 11px 'PingFang SC',Arial";
+    x.fillText(movingNow() ? "移动中 · 速度 " + CREEP.toFixed(2) : "已冻结 · 速度 0", bx + bw, by + bh + 13);
+    x.restore();
+  }
+
+  /* ---------------- DOM HUD ---------------- */
+  const PAW = '<svg viewBox="0 0 24 24" fill="#F16D5B" stroke="#222" stroke-width="1.6">' +
+    '<ellipse cx="12" cy="16.4" rx="6.1" ry="4.7"/><circle cx="5.4" cy="10.6" r="2.3"/>' +
+    '<circle cx="9.9" cy="7.4" r="2.3"/><circle cx="14.6" cy="7.6" r="2.3"/><circle cx="18.9" cy="10.9" r="2.3"/></svg>';
+  function drawLives() {
+    let h = "";
+    for (let i = 0; i < LIVES; i++) h += '<i class="' + (i < lives ? "on" : "off") + '">' + PAW + "</i>";
+    $("#paws").innerHTML = h;
+  }
+  function hudState() {
+    const b = $("#hState");
+    if (b.textContent !== PHASE_WORD[phase]) { b.textContent = PHASE_WORD[phase]; b.className = "badge " + PHASE_CLS[phase]; }
+  }
+  function hud() {
+    const v = {
+      hTime: Math.max(0, Math.ceil(timeLeft)), hScore: score,
+      hCombo: "×" + combo, hRound: round
+    };
+    for (const key in v) if (hudCache[key] !== v[key]) { hudCache[key] = v[key]; $("#" + key).textContent = v[key]; }
+    hudState();
+    const fz = $("#hFrozen"), txt = movingNow() ? "移动中 " + CREEP.toFixed(2) : "已冻结 0";
+    if (fz.textContent !== txt) { fz.textContent = txt; fz.className = "badge" + (movingNow() ? " move" : ""); }
+    const pct = Math.round(clamp(p, 0, 1) * 100);
+    if (hudCache.pct !== pct) { hudCache.pct = pct; $("#hProg").style.width = pct + "%"; }
+    if (hudCache.lives !== lives) { hudCache.lives = lives; drawLives(); }
+  }
+  function say(t, cls) { $("#banner").innerHTML = '<span class="msg ' + (cls || "") + '">' + t + "</span>"; bannerT = tNow + 1.9; }
+  function showStamp(key) {
+    if (stampTimer) { clearTimeout(stampTimer); stampTimer = null; }
+    const old = $("#wrap .stamp-pop"); if (old) old.remove();
+    const el = document.createElement("div"); el.className = "stamp-pop";
+    const src = EXPR[key] || (petCfg && petCfg.petExpressions && petCfg.petExpressions[key]);
+    if (src) { const im = new Image(); im.alt = "MOMO"; im.onload = () => el.appendChild(im); im.onerror = () => { el.innerHTML = "<b>喵</b>"; }; im.src = src; }
+    else el.innerHTML = "<b>喵</b>";
+    wrap.appendChild(el);
+    stampTimer = setTimeout(() => { el.remove(); stampTimer = null; }, 820);
+  }
+
+  /* ---------------- 输入 ---------------- */
+  function press() {
+    if (mac.get() !== "PLAYING" || pressing) return;
+    pressing = true; settleT = 0; frozenFor = 0; sound.tap();
+    hud();
+  }
+  function release() {
+    if (!pressing) return;
+    pressing = false; settleT = 0; hud();
+  }
+  wrap.addEventListener("pointerdown", e => {
+    if (e.target.closest(".ov")) {
+      if (e.target.closest("a,button")) return;              // 遮罩里的按钮交给浏览器
+      if (mac.get() === "READY") { e.preventDefault(); start(); return; }
+      if (mac.get() === "PAUSED") { e.preventDefault(); togglePause(false); return; }
+      return;                                                // 结算遮罩不响应按住
+    }
+    e.preventDefault();
+    press();
+  });
+  window.addEventListener("pointerup", release);
+  window.addEventListener("pointercancel", release);
+  window.addEventListener("blur", () => { pressing = false; });
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space" || e.key === " " || e.code === "ArrowUp" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (e.repeat) return;
+      if (mac.get() === "READY") { start(); return; }
+      press();
+    }
+  });
+  document.addEventListener("keyup", e => {
+    if (e.code === "Space" || e.key === " " || e.code === "ArrowUp" || e.key === "ArrowUp") { e.preventDefault(); release(); }
+  });
+  cv.addEventListener("contextmenu", e => e.preventDefault());
+  document.addEventListener("dragstart", e => e.preventDefault());
+
+  /* ---------------- 结算 / 存储 ---------------- */
+  function ratingFor(s) { return s >= 2400 ? "S" : s >= 1300 ? "A" : s >= 500 ? "B" : "C"; }
+  function recSafe(s) { try { return ML.record("sneak", s); } catch (e) { return { best: s, isNew: false, plays: 1 }; } }
+  function bestSafe() { try { return ML.best("sneak"); } catch (e) { return 0; } }
+  function bumpStats() {
+    let st = {};
+    try { st = Object.assign({ interactions: 0, points: 0, gamesPlayed: 0, memesMade: 0, outfitsMade: 0 },
+      JSON.parse(localStorage.getItem("ml-stats") || "{}")); } catch (e) { st = { interactions: 0, points: 0, gamesPlayed: 0, memesMade: 0, outfitsMade: 0 }; }
+    const num = v => (typeof v === "number" && isFinite(v)) ? v : 0;
+    st.interactions = num(st.interactions) + bowls;
+    st.points = num(st.points) + score;
+    st.gamesPlayed = num(st.gamesPlayed) + 1;
+    st.memesMade = num(st.memesMade);
+    st.outfitsMade = num(st.outfitsMade);
+    try { localStorage.setItem("ml-stats", JSON.stringify(st)); } catch (e) {}
+  }
+  let cardUrl = "";
+  function finish() {
+    if (mac.get() === "FINISHED") return;
+    pressing = false; settleT = 9;
+    mac.set("FINISHED");
+    const r = ratingFor(score);
+    const color = r === "S" ? "#F16D5B" : r === "C" ? "#BFE4D0" : "#F5E66B";
+    const title = r === "S" ? "无声肉垫 · 潜行大师" : r === "A" ? "半个木头猫" : r === "B" ? "脚步有点响" : "一抓一个准";
+    const rec = recSafe(score), best = bestSafe();
+    bumpStats();
+    $("#endRating").textContent = r;
+    $("#endRating").style.background = color;
+    $("#endRating").style.color = color === "#F16D5B" ? "#fff" : "#222";
+    $("#endTitle").textContent = title;
+    $("#endNew").innerHTML = rec.isNew && score > 0 ? '<span class="newrec">新纪录</span>' : "";
+    $("#endDesc").textContent = (lives <= 0 ? "三条命都用完了" : "时间到") + " · " +
+      (rec.isNew && score > 0 ? "刷新历史最佳" : "历史最佳 " + best);
+    $("#stScore").textContent = score;
+    $("#stBowls").textContent = bowls;
+    $("#stCombo").textContent = "×" + maxCombo;
+    $("#stBest").textContent = Math.max(best, score);
+    $("#stPerfect").textContent = perfects;
+    $("#stCatch").textContent = catches;
+    $("#endHint").textContent = location.protocol.startsWith("file:")
+      ? "当前以 file:// 打开，分享卡里的宠物照片可能被浏览器拦下；用本地服务器打开就带上。"
+      : "长按上面的图片也能保存。";
+    $("#endOv").classList.remove("hide");
+    score >= 1300 ? sound.win() : sound.lose();
+    const exprKey = r === "C" ? "angry" : r === "B" ? "surprised" : "happy";
+    const expr = (petCfg && petCfg.petExpressions && (petCfg.petExpressions[exprKey] || petCfg.petAvatar)) ||
+      ML.asset("assets/pets/pet001/" + exprKey + ".png");
+    ML.shareCard({
+      game: "偷吃木头人", petName: (petCfg && petCfg.petName) || "MOMO", rating: r, ratingColor: color,
+      score, timeText: "吃到 " + bowls + " 碗 · 被抓 " + catches + " 次 · 完美静止 " + perfects,
+      ending: title, expr, badge: "潜行报告"
+    }).then(url => { cardUrl = url; $("#endImg").src = url; $("#saveBtn").setAttribute("href", url); })
+      .catch(() => { cardUrl = ""; $("#endHint").textContent = "分享卡生成失败（浏览器不允许 file:// 读取图片），可以截图保存。"; });
+    hud();
+  }
+  function saveToFav() {
+    try {
+      const arr = JSON.parse(localStorage.getItem("ml-works") || "[]");
+      const list = Array.isArray(arr) ? arr : [];
+      const r = ratingFor(score);
+      list.unshift({ id: "sneak-" + Date.now(), game: "sneak", title: "偷吃木头人", score, rating: r, time: "2026-11-10", png: cardUrl || "" });
+      localStorage.setItem("ml-works", JSON.stringify(list.slice(0, 60)));
+      $("#favBtn").textContent = "已存进收藏";
+      $("#favBtn").disabled = true;
+      say("已保存到你的收藏", "mint");
+    } catch (e) {
+      $("#favBtn").textContent = "这台设备存不了";
+      say("这台设备的本地存储被浏览器拦了（隐私模式？），没存上。", "red");
+    }
+  }
+
+  /* ---------------- 暂停 / 开始 / 重开 ---------------- */
+  function togglePause(force) {
+    if (mac.get() === "PLAYING" && force !== false) {
+      mac.set("PAUSED"); pressing = false; settleT = 9; $("#pauseOv").classList.remove("hide");
+    } else if (mac.get() === "PAUSED") {
+      mac.set("PLAYING"); $("#pauseOv").classList.add("hide");
+    }
+  }
+  function reset() {
+    score = 0; combo = 0; maxCombo = 0; lives = LIVES; round = 1; bowls = 0; catches = 0; perfects = 0;
+    pressure = 0; timeLeft = ROUND_TIME; elapsed = 0; p = 0; walkAcc = 0;
+    pressing = false; settleT = 9; frozenFor = 9; lookMoved = false; cleanFreeze = false; warnPanicked = false;
+    slide = null; parts = []; floats = []; bubble = null; cardUrl = "";
+    shake = 0; redFlash = 0; whiteFlash = 0; sweepT = 0; vign = 0; faceTurn = 0;
+    $("#banner").innerHTML = ""; bannerT = 0;
+    $("#startOv").classList.add("hide"); $("#pauseOv").classList.add("hide"); $("#endOv").classList.add("hide");
+    $("#endImg").removeAttribute("src"); $("#saveBtn").removeAttribute("href");
+    $("#favBtn").textContent = "保存到收藏"; $("#favBtn").disabled = false;
+    const st = $("#wrap .stamp-pop"); if (st) st.remove();
+    enterPhase("BACK");
+    hudCache.lives = -1; hud();
+  }
+  function start() {
+    if (mac.get() !== "READY") return;
+    reset();
+    mac.set("PLAYING");
+    last = performance.now();
+    say("按住就前进，她回头就松手", "yel");
+  }
+  $("#pauseBtn").onclick = () => togglePause();
+  $("#resumeBtn").onclick = () => togglePause();
+  $("#startBtn").onclick = start;
+  $("#retryBtn").onclick = () => { reset(); mac.set("PLAYING"); last = performance.now(); say("新的一局，稳住", "yel"); };
+  $("#favBtn").onclick = saveToFav;
+  ML.bindPause(mac, togglePause);
+  mac.on(st => { if (st === "FINISHED") pressing = false; });
+
+  /* ---------------- 素材（表情图仅用于贴纸 / 分享卡，画面全部程序化绘制） ---------------- */
+  ML.pet().then(cfg => {
+    petCfg = cfg;
+    if (cfg.furColor) FUR = cfg.furColor;
+    $("#petName").textContent = (cfg.petName || "MOMO") + " 主演";
+    const ex = cfg.petExpressions || {};
+    ["happy", "angry", "surprised"].forEach(key => {
+      const src = ex[key] || cfg.petAvatar;
+      if (src) EXPR[key] = src;
+    });
+  }).catch(() => {});
+
+  window.addEventListener("resize", size);
+  window.addEventListener("orientationchange", size);
+  if (window.ResizeObserver) { try { new ResizeObserver(size).observe(wrap); } catch (e) {} }
+
+  /* ---------------- 启动 ---------------- */
+  enterPhase("BACK");
+  size(); hud(); draw();
+  last = performance.now();
+  requestAnimationFrame(loop);
+
+  window.__sneakDebug = {
+    state: () => ({
+      mac: mac.get(), phase, turnKind, phaseT: Math.round(phaseT * 100) / 100, phaseD: Math.round(phaseD * 100) / 100,
+      p: Math.round(p * 1000) / 1000, moving: movingNow(), frozenFor: Math.round(frozenFor * 100) / 100,
+      score, combo, maxCombo, lives, round, bowls, catches, perfects, timeLeft: Math.round(timeLeft * 10) / 10,
+      speedF: Math.round(speedF() * 100) / 100, W, H, DW: Math.round(DW), DH: Math.round(DH), k: Math.round(k * 100) / 100
+    }),
+    start, reset, finish: () => { if (mac.get() === "PLAYING") finish(); },
+    press, release,
+    setPhase: (name, kind) => { if (["BACK", "WARN", "LOOK", "SNAP"].indexOf(name) >= 0) { if (kind) turnKind = kind; enterPhase(name); } },
+    setProgress: v => { p = clamp(v, 0, 1); hud(); },
+    setTime: v => { timeLeft = v; hud(); },
+    setLives: v => { lives = v; hud(); },
+    setRound: v => { round = Math.max(1, v | 0); hud(); },
+  };
+})();
+</script>
+</body>
+</html>

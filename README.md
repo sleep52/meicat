@@ -6,7 +6,7 @@
 |---|---|---|
 | 别摸鱼了，打工猫！ | 30 秒反应敲地鼠，连击倍率 + 饿了么金色狂热 | `whack.html` |
 | 脆薯饼猫大冒险 | Flappy 手感，装在麦当劳脆薯饼袋里的猫漂洋过海 | `flappy.html` |
-| 变装连连看 | 10 对名场面表情牌记忆翻牌 | `memory.html` |
+| 合成大猫 | 同名表情不断合并，看能叠出多大一只猫 | `merge.html` |
 
 ## 本地运行
 
@@ -30,13 +30,15 @@ python -m http.server 8010
 index.html          游戏选择主页
 whack.html          敲地鼠
 flappy.html         Flappy
-memory.html         记忆翻牌
+merge.html          合成大猫
 css/style.css       共享样式（移动端优先）
 js/audio.js         共享 WebAudio 音效（无音频文件）
 js/whack.js         敲地鼠逻辑
 js/flappy.js        Flappy 逻辑（?test=1 时暴露手动步进钩子）
-js/memory.js        记忆翻牌逻辑
+js/merge.js         合成大猫逻辑
 assets/             压缩后的表情素材（约 680KB）
+mbti.html           猫咪精神状态测试
+momo-lab/           MOMO 事务所：品牌站 + 移动端 App 外壳 + 十款互动游戏（见 momo-lab/README.md）
 ```
 
 ## 说明

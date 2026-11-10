@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F3">
+<title>设置 — MOMO LAB</title>
+<meta name="description" content="MOMO LAB 的设置：音效、动画、当前宠物、本地数据。">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body data-page="settings" data-base="./" data-app="1">
+
+<main class="app">
+  <header class="app-head">
+    <div class="brand">
+      <span class="bm">设置</span>
+      <span class="bt">Your Pet. Your World.</span>
+    </div>
+    <a class="icon-btn" href="index.html" aria-label="回首页" title="回首页"><span data-icon="home" style="display:grid"></span></a>
+  </header>
+
+  <div class="grp"><h3>体验</h3></div>
+  <div class="srow tap" data-sw="swSound"><span><b>音效</b><span>点击、得分、通关都有反馈声</span></span><button class="sw" id="swSound" role="switch" aria-label="音效"><i></i></button></div>
+  <div class="srow tap" data-sw="swAnim"><span><b>动效</b><span>呼吸浮动、视差、表情贴纸弹出</span></span><button class="sw" id="swAnim" role="switch" aria-label="动效"><i></i></button></div>
+
+  <div class="grp"><h3>当前宠物</h3></div>
+  <div class="pet-pick" id="petPick"></div>
+  <div class="srow" style="margin-top:10px"><span><b id="petName">—</b><span id="petDesc">—</span></span><a class="btn small yel" id="petPage" href="pet/pet001/index.html">专属页</a></div>
+
+  <div class="grp"><h3>这台设备的数据</h3></div>
+  <div class="about" style="margin-bottom:10px">
+    <h4>统计</h4>
+    <ul id="statList"></ul>
+  </div>
+  <div class="srow"><span><b>重置今日任务</b><span>明天的进度从 0 开始算</span></span><button class="btn small" id="resetDaily">重置</button></div>
+  <div class="srow"><span><b>清空收藏作品</b><span>只删图片，不删分数</span></span><button class="btn small mint" id="resetWorks">清空</button></div>
+  <div class="srow"><span><b>清空全部数据</b><span>分数、积分、作品、设置一次抹掉</span></span><button class="btn small red" id="resetAll">清空</button></div>
+  <p class="mut" style="font-size:11px;font-weight:700;margin:10px 2px 0">所有数据都存在这台设备的浏览器里（localStorage），不发到任何服务器。换手机或清浏览器数据，进度会重新来。</p>
+
+  <div class="grp"><h3>更多</h3></div>
+  <div class="pills" style="flex-wrap:wrap;overflow:visible">
+    <a href="studio.html">工作室首页</a><a href="custom.html">定制案例</a><a href="service.html#contact">开始一个项目</a>
+    <a href="gift.html">电子礼物</a><a href="play.html">游戏大厅（网页版）</a><a href="tools/glb-check.html">角色契约自检</a>
+  </div>
+
+  <div class="grp"><h3>关于</h3></div>
+  <div class="about">
+    <h4>MOMO LAB</h4>
+    <p>一个静态站点：没有账号、没有后台、没有构建步骤。所有游戏、图片导出、任务与积分都跑在浏览器里。</p>
+    <ul style="margin-top:10px">
+      <li><span>版本</span><b>App 版 · 第一批</b></li>
+      <li><span>游戏</span><b id="abGames">—</b></li>
+      <li><span>代码</span><b><a href="https://github.com/sleep52" target="_blank" rel="noopener" style="text-decoration:underline">GitHub / sleep52</a></b></li>
+    </ul>
+  </div>
+</main>
+
+<script src="js/icons.js"></script>
+<script src="js/registry.js"></script>
+<script src="js/core.js"></script>
+<script>
+(function () {
+  const PETS = [["pet001", "MOMO"], ["pet002", "眉姐姐"]];
+
+  function paintSwitch(el, on) { el.classList.toggle("on", on); el.setAttribute("aria-checked", on ? "true" : "false"); }
+
+  function initToggles() {
+    [["swSound", "sound"], ["swAnim", "anim"]].forEach(([id, key]) => {
+      const row = document.querySelector('[data-sw="' + id + '"]'), sw = ML.$("#" + id);
+      const paint = () => { paintSwitch(sw, ML.settings[key]); row.setAttribute("aria-checked", ML.settings[key] ? "true" : "false"); };
+      row.setAttribute("role", "switch"); row.tabIndex = 0; paint();
+      row.onclick = () => { ML.settings[key] = !ML.settings[key]; ML.saveSettings(); paint(); ML.sound.tap(); };
+      row.onkeydown = e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); row.click(); } };
+    });
+  }
+
+  function initPets() {
+    const cur = ML.petId();
+    ML.$("#petPick").innerHTML = PETS.map(([id, name]) =>
+      `<a href="?pet=${id}" class="${id === cur ? "on" : ""}"><img src="${ML.asset("assets/pets/" + id + "/avatar." + (id === "pet002" ? "jpg" : "png"))}" alt="">${name}</a>`).join("");
+    ML.pet().then(p => {
+      ML.$("#petName").textContent = p.petName + " · " + p.petId;
+      ML.$("#petDesc").textContent = p.petDescription;
+      ML.$("#petPage").href = "pet/" + p.petId + "/index.html";
+    });
+  }
+
+  function renderStats() {
+    const s = ML.stats(), d = ML.daily();
+    const rows = [["互动次数", s.interactions], ["积分", s.points], ["开过的局", s.gamesPlayed], ["做过的表情包", s.memesMade], ["做过的换装", s.outfitsMade], ["收藏作品", ML.works().length], ["今日任务已领", (d.points || 0) + " 分"]];
+    ML.$("#statList").innerHTML = rows.map(([k, v]) => `<li><span>${k}</span><b>${v}</b></li>`).join("");
+    ML.$("#abGames").textContent = ML_GAMES.length + " 款";
+  }
+
+  function wipe(keys, msg, reload) {
+    if (!confirm(msg)) return;
+    keys.forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+    ML.sound.bad();
+    if (reload) location.reload(); else renderStats();
+  }
+
+  ML.$("#resetDaily").onclick = () => wipe(["ml-daily"], "重置今日任务？已领到的积分不回退。");
+  ML.$("#resetWorks").onclick = () => wipe(["ml-works"], "清空这台设备上的全部收藏作品？", true);
+  ML.$("#resetAll").onclick = () => wipe(["ml-works", "ml-stats", "ml-daily", "ml-records", "ml-chaos-ach", "ml-settings", "ml-dressup"], "清空全部数据（分数、作品、设置）？这一步不能撤销。", true);
+
+  initToggles(); initPets(); renderStats();
+})();
+</script>
+</body>
+</html>

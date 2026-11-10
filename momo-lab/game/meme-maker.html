@@ -72,6 +72,7 @@
       <p class="mut" style="font-size:12px" id="resultNote">手机可长按图片保存。</p>
       <div class="row">
         <a class="btn yel small" id="resultDl" download="momo-meme.png">下载 PNG</a>
+        <button class="btn small mint" id="resultFav">保存到收藏</button>
         <button class="btn small" id="closeResult">继续编辑</button>
       </div>
     </div>
@@ -137,6 +138,7 @@
     try { return c.toDataURL("image/png"); }
     catch (e) { return null; }
   }
+  let lastMeme = null;
   function doExport(showOv) {
     const url = exportPNG();
     if (!url) { $("#resultNote").textContent = "当前以 file:// 打开，浏览器禁止导出本地素材图片。请通过本地服务器 / GitHub Pages 打开，或改用「上传照片」。"; $("#resultImg").removeAttribute("src"); $("#resultOv").classList.remove("hide"); return; }
@@ -144,10 +146,24 @@
     $("#resultImg").src = url;
     const name = ($("#mName").value || "momo-meme") + ".png";
     $("#resultDl").href = url; $("#resultDl").download = name; $("#dlBtn").dataset.url = url;
+    lastMeme = url;
+    ML.patchStats({ memesMade: 1, interactions: 1 });
+    $("#resultFav").textContent = "保存到收藏";
     if (showOv) $("#resultOv").classList.remove("hide");
     else { const a = document.createElement("a"); a.href = url; a.download = name; a.click(); }
     sound.good();
   }
+
+  $("#resultFav").onclick = () => {
+    if (!lastMeme) return;
+    const n = ML.addWork({
+      id: "meme-" + Date.now(), game: "meme", gameName: "表情包制造机",
+      title: "表情包 · " + String(state.caption || "").slice(0, 14),
+      score: 0, rating: "已存", time: ML.today(), png: lastMeme,
+    });
+    $("#resultFav").textContent = "已存进收藏 · 共 " + n + " 件";
+    sound.good();
+  };
 
   $("#tplRow").innerHTML = PRESETS.map((t, i) => `<button class="ed-btn ${i === 0 ? "sel" : ""}" data-t="${t}">${t}</button>`).join("");
   $$("#tplRow .ed-btn").forEach(b => b.onclick = () => { state.caption = b.dataset.t; $("#customText").value = ""; $$("#tplRow .ed-btn").forEach(x => x.classList.toggle("sel", x === b)); render(); sound.tap(); });

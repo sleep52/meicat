@@ -4,130 +4,206 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FAF8F3">
-<title>MOMO 事务所 — 为每一份喜欢，做一个小世界</title>
-<meta name="description" content="围绕你家宠物定制的互动游戏与数字体验：紧急撤离、混乱现场、表情包制造机、谁是老板、零食危机。">
+<title>MOMO LAB — Your Pet. Your World.</title>
 <link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<meta name="description" content="MOMO LAB：围绕你家宠物的小世界。撸猫、今日任务、蓄力跳家具、偷吃木头人、换装室、表情包制造机。">
 </head>
-<body data-page="home" data-base="./">
+<body data-page="home" data-base="./" data-app="1">
 
-<section class="wrap hero">
-  <div>
-    <span class="label">创意互动工作室</span>
-    <h1 class="h-display" style="margin-top:14px">做一个<br>专属小世界。</h1>
-    <p class="sub">围绕你喜欢的事物，做只属于它的游戏与数字体验。从一张照片开始，到一条随时能打开的链接结束。</p>
-    <div class="cta">
-      <a class="btn yel big" href="custom.html">看看作品</a>
-      <a class="btn big" href="service.html">定制我的</a>
+<main class="app">
+
+  <header class="app-head">
+    <div class="brand">
+      <span class="bm">MOMO LAB</span>
+      <span class="bt">Your Pet. Your World.</span>
     </div>
-  </div>
-  <div class="hero-art">
-    <div class="hero-frame"><img src="assets/hero/hero-cat.png" alt="事务所常驻猫 MOMO"></div>
-    <span class="hero-tag">宠物驱动的互动体验</span>
-    <span class="hero-note">MOMO · 事务所常驻猫</span>
-  </div>
-</section>
+    <button class="icon-btn snd" id="sndBtn" aria-label="音效开关" title="音效开关"><span data-icon="note" style="display:grid"></span></button>
+  </header>
 
-<div class="intro-band">
-  <div class="wrap">
-    <h2 class="h2">让私人订制，好玩起来。</h2>
-    <p style="max-width:52ch;font-size:14px;font-weight:600">从一张宠物照片开始，把熟悉的模样变成独一无二的数字体验。</p>
-  </div>
-</div>
+  <section class="pet-row">
+    <a class="pet-face" id="petFace" href="game/pet-world.html" aria-label="进入我的世界"><img id="avatar" src="assets/pets/pet001/avatar.png" alt="宠物头像"></a>
+    <div class="bubble" id="bubble">今天也要一起玩哦！<b>♥</b></div>
+  </section>
 
-<section class="sec wrap">
-  <div class="sec-head">
-    <div class="left"><span class="sec-no">01</span><h2 class="h2">精选案例</h2></div>
-    <a class="link-arrow" href="custom.html">全部案例 <span data-icon="arrow" style="width:16px;height:16px;display:inline-block"></span></a>
-  </div>
-  <div class="grid-3">
-    <article class="card case-card">
-      <div class="thumb wm"><img src="assets/custom/case-laptop.png" alt="爱占键盘的猫专属页面"></div>
-      <div class="body">
-        <span class="tag pur">互动网页</span>
-        <h3 class="h3" style="margin-top:10px">键盘的主人</h3>
-        <p class="mut" style="font-size:13px">把爱占键盘的猫，做成一个可以玩的专属页面。</p>
-        <div class="row"><span class="label">案例 001</span><a class="link-arrow" href="pet/pet002/index.html">查看案例</a></div>
-      </div>
-    </article>
-    <article class="card case-card">
-      <div class="thumb wm"><img src="assets/custom/case-sofa.png" alt="躺卧照片做成的纪念网页"></div>
-      <div class="body">
-        <span class="tag mint">生日纪念</span>
-        <h3 class="h3" style="margin-top:10px">沙发常驻民</h3>
-        <p class="mut" style="font-size:13px">一张躺卧照片，变成可以分享的成长纪念网页。</p>
-        <div class="row"><span class="label">案例 002</span><a class="link-arrow" href="gift.html">查看案例</a></div>
-      </div>
-    </article>
-    <article class="card case-card">
-      <div class="thumb wm"><img src="assets/custom/case-suitcase.png" alt="行李箱里的小猫"></div>
-      <div class="body">
-        <span class="tag yel">互动游戏</span>
-        <h3 class="h3" style="margin-top:10px">行李箱旅伴</h3>
-        <p class="mut" style="font-size:13px">行李箱里的小猫，拥有自己的五款专属小游戏。</p>
-        <div class="row"><span class="label">案例 003</span><a class="link-arrow" href="pet/pet001/index.html">查看案例</a></div>
-      </div>
-    </article>
-  </div>
-</section>
+  <section class="stage" id="stage" aria-label="点一下，撸猫">
+    <div class="stage-art" id="stageArt"><img id="hero" src="assets/hero/hero-cat.png" alt="MOMO 主视觉"></div>
+    <div class="stickers" id="stickers"></div>
+    <span class="stage-tap" id="stageTap">点一下它</span>
+    <aside class="pet-card">
+      <h2 class="pc-name" id="pcName">MOMO</h2>
+      <p class="pc-sub" id="pcSub">读取中…</p>
+      <span class="tag yel pc-tag">超可爱</span>
+      <ul class="pc-stats">
+        <li><b id="stInter">0</b><span>互动次数</span></li>
+        <li><b id="stClear">0</b><span>游戏通关</span></li>
+        <li><b id="stPts">0</b><span>积分</span></li>
+      </ul>
+    </aside>
+    <a class="capsule" id="worldBtn" href="game/pet-world.html">进入我的世界 <span data-icon="arrow" style="display:grid"></span></a>
+  </section>
 
-<section class="sec wrap" style="padding-top:0">
-  <div class="sec-head">
-    <div class="left"><span class="sec-no">02</span><h2 class="h2">互动游戏</h2></div>
-    <a class="link-arrow" href="play.html">进入游戏场 <span data-icon="arrow" style="width:16px;height:16px;display:inline-block"></span></a>
-  </div>
-  <div class="grid-3">
-    <article class="card game-prev" style="grid-template-columns:1fr">
-      <div class="thumb wm" style="aspect-ratio:16/9;border-right:none;border-bottom:var(--bd)"><img src="assets/games/escape-cover.png" alt="紧急撤离游戏封面"></div>
-      <div class="body">
-        <span class="num">游戏 01</span>
-        <h3 class="h3">紧急撤离</h3>
-        <p class="mut" style="font-size:13px">主人还有 45 秒到家。收拾现场，或者演技取胜。</p>
-        <a class="btn small yel" href="game/escape.html" style="align-self:flex-start">立即开玩</a>
-      </div>
-    </article>
-    <article class="card game-prev" style="grid-template-columns:1fr">
-      <div class="thumb wm" style="aspect-ratio:16/9;border-right:none;border-bottom:var(--bd)"><img src="assets/games/chaos-cover.png" alt="混乱现场游戏封面"></div>
-      <div class="body">
-        <span class="num">游戏 02</span>
-        <h3 class="h3">混乱现场</h3>
-        <p class="mut" style="font-size:13px">没有规则的自由时间。30 秒，制造尽可能多的混乱。</p>
-        <a class="btn small yel" href="game/chaos.html" style="align-self:flex-start">立即开玩</a>
-      </div>
-    </article>
-    <article class="card game-prev" style="grid-template-columns:1fr">
-      <div class="thumb wm" style="aspect-ratio:16/9;border-right:none;border-bottom:var(--bd)"><img src="assets/games/meme-cover.png" alt="表情包制造机游戏封面"></div>
-      <div class="body">
-        <span class="num">游戏 03</span>
-        <h3 class="h3">表情包制造机</h3>
-        <p class="mut" style="font-size:13px">照片 + 文案 + 贴纸，生成并下载真正的表情包 PNG。</p>
-        <a class="btn small yel" href="game/meme-maker.html" style="align-self:flex-start">立即开玩</a>
-      </div>
-    </article>
-  </div>
-</section>
-
-<section class="sec wrap" style="padding-top:0">
-  <div class="sec-head"><div class="left"><span class="sec-no">03</span><h2 class="h2">合作流程</h2></div></div>
-  <div class="flow">
-    <div class="card step"><div class="n">01</div><h3 class="h3" style="margin:10px 0 6px">发照片</h3><p class="mut" style="font-size:13px">发给我们一张宠物照片和一个小想法。</p></div>
-    <div class="card step"><div class="n">02</div><h3 class="h3" style="margin:10px 0 6px">做出来</h3><p class="mut" style="font-size:13px">我们把它设计成专属形象、游戏或纪念网页。</p></div>
-    <div class="card step"><div class="n">03</div><h3 class="h3" style="margin:10px 0 6px">拿去玩</h3><p class="mut" style="font-size:13px">收到一个只属于你们的链接，随时玩、随时分享。</p></div>
-  </div>
-</section>
-
-<section class="sec wrap" style="padding-top:0">
-  <div class="contact-band">
-    <span class="label" style="color:#B9B5AD">联系我们</span>
-    <h2 class="h2" style="margin-top:10px">有想法？说出来。</h2>
-    <p>我们把它做成可以玩的东西。</p>
-    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
-      <a class="btn yel big" href="service.html#contact">开始一个项目</a>
-      <a class="btn big" style="background:transparent;color:var(--bg);border-color:var(--bg);box-shadow:4px 4px 0 rgba(250,248,243,.3)" href="gift.html">电子礼物</a>
+  <section class="blk">
+    <div class="blk-head">
+      <h3>今日任务</h3>
+      <span class="pill-pts">今日 <b id="dayPts">0</b> 分</span>
     </div>
-  </div>
-</section>
+    <div class="tasks" id="tasks"></div>
+  </section>
+
+  <section class="blk">
+    <div class="blk-head">
+      <span class="label">PLAY SOMETHING FUN.</span>
+      <a class="more" href="games.html">全部游戏</a>
+    </div>
+    <div class="gcards" id="gcards"></div>
+    <div class="grp" style="margin:18px 0 8px"><h3>更多玩法</h3></div>
+    <div class="pills" id="pills"></div>
+  </section>
+
+</main>
 
 <script src="js/icons.js"></script>
+<script src="js/registry.js"></script>
 <script src="js/core.js"></script>
+<script>
+(function () {
+  const CHECK = '<svg viewBox="0 0 48 48" fill="none" stroke="#222" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 26l10 10 18-22"/></svg>';
+  const TASKS = [
+    { id: "play", ico: "play", name: "玩一局游戏", sub: "任意一款，开局就算", key: "gamesPlayed", need: 1, rw: 10 },
+    { id: "pet", ico: "paw", name: "撸猫 5 次", sub: "点上面的主视觉就行", key: "interactions", need: 5, rw: 10 },
+    { id: "make", ico: "star", name: "做一件作品", sub: "换装室或表情包制造机", keys: ["memesMade", "outfitsMade"], need: 1, rw: 20 },
+  ];
+  const TINT = { jump: "card", sneak: "yel", dressup: "pur", meme: "mint" };
+  let P = null;
+
+  const cleared = () => ML_GAMES.filter(g => g.rec && ML.best(g.rec) > 0).length;
+
+  function renderStats() {
+    const s = ML.stats();
+    ML.$("#stInter").textContent = s.interactions;
+    ML.$("#stClear").textContent = cleared();
+    ML.$("#stPts").textContent = s.points;
+  }
+
+  function progressOf(t) {
+    const s = ML.stats(), d = ML.daily();
+    let made = 0;
+    (t.keys || [t.key]).forEach(k => { made += Math.max(0, (s[k] || 0) - (d.base[k] || 0)); });
+    return Math.min(t.need, made);
+  }
+
+  function renderTasks() {
+    const d = ML.daily();
+    ML.$("#dayPts").textContent = d.points || 0;
+    ML.$("#tasks").innerHTML = TASKS.map(t => {
+      const p = progressOf(t), ok = p >= t.need, done = !!d.claimed[t.id];
+      return `<div class="task${done ? " done" : ""}">
+        <span class="box">${done ? CHECK : ML_ICONS[t.ico]}</span>
+        <span class="txt"><b>${t.name}</b><span>${t.sub} · ${p}/${t.need}</span>
+          <span class="bar"><i style="width:${Math.round(p / t.need * 100)}%"></i></span></span>
+        <span class="rw">+${t.rw}</span>
+        ${done ? '<button class="claim" disabled>已领</button>'
+               : `<button class="claim" data-claim="${t.id}"${ok ? "" : " disabled"}>${ok ? "领奖励" : "未完成"}</button>`}
+      </div>`;
+    }).join("");
+    ML.$$("#tasks [data-claim]").forEach(btn => btn.onclick = () => {
+      const t = TASKS.find(x => x.id === btn.dataset.claim);
+      const dd = ML.daily();
+      if (dd.claimed[t.id] || progressOf(t) < t.need) return;
+      dd.claimed[t.id] = true; dd.points = (dd.points || 0) + t.rw;
+      ML.saveDaily(dd); ML.patchStats({ points: t.rw });
+      ML.sound.good(); renderTasks(); renderStats();
+    });
+  }
+
+  const thumb = g => g.art.img ? `<img src="${ML.asset(g.art.img)}" alt="">` : ML_GAME_ART[g.art.svg];
+
+  function renderGames() {
+    const ids = ["jump", "sneak", "dressup", "meme"];
+    ML.$("#gcards").innerHTML = ids.map(id => ML_GAMES.find(g => g.id === id)).filter(Boolean).map(g => {
+      const b = g.rec ? ML.best(g.rec) : 0;
+      return `<a class="gcard" href="${g.href}">
+        <span class="art" style="background:var(--${TINT[g.id] || "card"})">${thumb(g)}</span>
+        <span class="cbody"><b>${g.n}</b><em>${g.sub}</em>
+          <span class="best">${g.rec ? (b ? "最佳 " + b : "还没纪录") : "创作工具"}</span></span></a>`;
+    }).join("");
+    ML.$("#pills").innerHTML = ML_GAMES.filter(g => !ids.includes(g.id))
+      .map(g => `<a href="${g.href}">${g.n}<span>${g.time}</span></a>`).join("") + `<a href="games.html">全部 →</a>`;
+  }
+
+  function popSticker(x, y, silent) {
+    if (!P || !ML.settings.anim) return;
+    const keys = Object.keys(P.petExpressions);
+    if (!keys.length) return;
+    const host = ML.$("#stickers");
+    if (host.children.length > 3) host.firstChild.remove();
+    const el = document.createElement("span");
+    el.className = "stk";
+    el.innerHTML = `<img src="${P.petExpressions[keys[ML.irand(0, keys.length - 1)]]}" alt="">`;
+    el.style.left = Math.round((x - .1) * 100) + "%";
+    el.style.top = Math.round((y - .32) * 100) + "%";
+    host.appendChild(el);
+    setTimeout(() => el.remove(), 950);
+    if (!silent) ML.sound.good();
+  }
+
+  function poke(x, y) {
+    ML.patchStats({ interactions: 1 });
+    popSticker(x, y);
+    renderStats(); renderTasks();
+    ML.$("#stageTap").textContent = ML.pick(["再点一下", "喵？", "呼噜呼噜", "还要", "别闹（才怪）"]);
+  }
+
+  function initStage() {
+    const stage = ML.$("#stage"), art = ML.$("#stageArt");
+    stage.addEventListener("pointerdown", e => {
+      if (e.target.closest("a")) return;
+      const r = stage.getBoundingClientRect();
+      poke((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+    });
+    stage.addEventListener("pointermove", e => {
+      if (!ML.settings.anim) return;
+      const r = stage.getBoundingClientRect();
+      art.style.setProperty("--px", ((e.clientX - r.left) / r.width * 2 - 1).toFixed(3));
+      art.style.setProperty("--py", ((e.clientY - r.top) / r.height * 2 - 1).toFixed(3));
+    });
+    stage.addEventListener("pointerleave", () => { art.style.setProperty("--px", 0); art.style.setProperty("--py", 0); });
+    setInterval(() => { if (!document.hidden) popSticker(ML.rand(.3, .7), ML.rand(.35, .8), true); }, 7000);
+  }
+
+  function initSoundBtn() {
+    const btn = ML.$("#sndBtn");
+    const paint = () => btn.classList.toggle("off", !ML.settings.sound);
+    paint();
+    btn.onclick = () => { ML.settings.sound = !ML.settings.sound; ML.saveSettings(); paint(); ML.sound.tap(); };
+  }
+
+  function initBubble(lines) {
+    let i = 0;
+    setInterval(() => {
+      if (document.hidden || lines.length < 2) return;
+      i = (i + 1) % lines.length;
+      const b = ML.$("#bubble");
+      b.style.opacity = 0;
+      setTimeout(() => { b.innerHTML = lines[i]; b.style.opacity = 1; }, 300);
+    }, 6200);
+  }
+
+  ML.$("#bubble").style.transition = "opacity .3s";
+  ML.pet().then(p => {
+    P = p;
+    ML.$("#avatar").src = p.petAvatar;
+    ML.$("#hero").src = p.petAvatar;
+    ML.$("#pcName").textContent = p.petName;
+    ML.$("#pcSub").textContent = p.petDescription;
+    const href = "game/pet-world.html?pet=" + p.petId;
+    ML.$("#worldBtn").href = href; ML.$("#petFace").href = href;
+    initBubble([`今天也要一起玩哦！<b>♥</b>`, ...(p.customText || [])]);
+  });
+
+  renderStats(); renderTasks(); renderGames(); initStage(); initSoundBtn();
+})();
+</script>
 </body>
 </html>
