@@ -1,23 +1,23 @@
-# MOMO LAB — Creative Digital Studio
+# MOMO 事务所 — 创意互动工作室
 
-A LITTLE WORLD, MADE FOR YOU.
-完整可运行的品牌官网 + 五款真实可玩的宠物互动游戏。纯静态：HTML5 / CSS3 / ES6+ / Canvas / localStorage，无后端、无付费依赖，可直接部署到 GitHub Pages 子目录。
+为它做一个小世界。
+完整可运行的中文品牌官网 + 五款真实可玩的宠物互动游戏。纯静态：HTML5 / CSS3 / ES6+ / Canvas / localStorage，无后端、无付费依赖，可直接部署到 GitHub Pages 子目录。
 
 ## 目录结构
 
 ```
 momo-lab/
-├── index.html          HOME 首页
-├── play.html           PLAY 游戏大厅
-├── custom.html         CUSTOM 定制作品集
-├── service.html        SERVICE 定制服务 + 联系
-├── gift.html           GIFT 数字纪念礼物 + 纪念卡生成器
+├── index.html          首页
+├── play.html           游戏大厅
+├── custom.html         定制案例
+├── service.html        服务内容 + 联系
+├── gift.html           电子礼物 + 纪念卡生成器
 ├── game/
-│   ├── escape.html     GAME01 THE ESCAPE 紧急撤离（45s）
-│   ├── chaos.html      GAME02 CHAOS MODE 混乱现场（30s）
-│   ├── meme-maker.html GAME03 MEME MAKER 表情制造机（PNG 导出）
-│   ├── boss.html       GAME04 WHO'S THE BOSS 家庭地位争夺战
-│   └── snack-panic.html GAME05 SNACK PANIC 零食危机（45s）
+│   ├── escape.html      游戏 01 紧急撤离（45s）
+│   ├── chaos.html       游戏 02 混乱现场（30s）
+│   ├── meme-maker.html  游戏 03 表情包制造机（PNG 导出）
+│   ├── boss.html        游戏 04 谁是老板（4 场景 × 3 选择）
+│   └── snack-panic.html 游戏 05 零食危机（45s）
 ├── pet/
 │   ├── pet001/index.html  客户专属页（MOMO）
 │   └── pet002/index.html  客户专属页（眉姐姐）
@@ -64,11 +64,15 @@ python -m http.server 8010
 
 统一状态机 READY / PLAYING / PAUSED / FINISHED；导航齿轮提供全站音效 / 动画开关（localStorage 持久化）；P / Esc 暂停；切后台自动暂停；成绩与最佳记录存 localStorage；中途离开不写脏数据。
 
-- THE ESCAPE：拖拽 / 连点 / 按住拖 / 修复贴纸四种操作；随机事件 A–E；装睡四选一；S/A/B/C + 隐藏结局；每局随机布局；分享卡。
-- CHAOS MODE：10 物品独立动作与次数；4 组连锁；6 种随机事件；COMBO 倍率；五档评级；4 隐藏成就。
-- MEME MAKER：上传照片或角色素材（自动抠白底）；8+ 预设文案、自定义文字；8 贴纸可拖动/双击删除；文字位置/字体/颜色；Canvas 真实导出 PNG。
-- WHO'S THE BOSS：4 场景 ×3 选择；权限/耐心/自由三数值；5 种结局均可达成；键盘 A/B/C。
-- SNACK PANIC：Canvas 接物；5 奖励 5 危险；生命/COMBO/BONUS；连续失误生气表情；末 10 秒加速；触摸 + 方向键。
+- 紧急撤离：拖拽 / 连点 / 按住拖 / 修复贴纸四种操作；随机事件 A–E；装睡四选一；S/A/B/C + 隐藏结局；每局随机布局；分享卡。
+- 混乱现场：10 物品独立动作与次数；4 组连招；6 种随机事件；连击倍率；五档评级；4 隐藏成就。
+- 表情包制造机：上传照片或角色素材（自动抠白底）；8+ 预设文案、自定义文字；8 贴纸可拖动/双击删除；文字位置/字体/颜色；Canvas 真实导出 PNG。
+- 谁是老板：4 场景 ×3 选择；权限/耐心/自由三数值；5 种结局均可达成；键盘 A/B/C。
+- 零食危机：Canvas 接物；5 奖励 5 危险；生命/连击/加分；连续失误生气表情；末 10 秒加速；触摸 + 方向键。
+
+## 移动端
+
+断点 960 / 720，按 390×844 校准：导航收进抽屉（含「开始一个项目」入口）、单列栅格、`html{overflow-x:clip}` 杜绝横滚、按钮与选项最小 44px 触摸目标、输入框 16px 防止 iOS 聚焦自动缩放、场景与画布高度按屏收窄、`@media(hover:none)` 关掉悬停位移、底部留 `env(safe-area-inset-bottom)` 安全区。游戏在触屏下用 Pointer 事件操作：拖拽、连点、长按拖动均可用，切后台自动暂停。
 
 ## 素材
 

@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MEME MAKER — MOMO LAB</title>
+<meta name="theme-color" content="#FAF8F3">
+<title>表情包制造机 — MOMO 事务所</title>
 <link rel="stylesheet" href="../css/base.css">
 <link rel="stylesheet" href="../css/game.css">
 </head>
@@ -12,14 +13,14 @@
 <div class="g-wrap" style="max-width:760px">
   <div class="g-top">
     <a class="icon-btn" href="../play.html" aria-label="back"><span data-icon="back"></span></a>
-    <div class="title">MEME MAKER<small>GAME 03 · 表情制造机 · <span id="workName">未命名作品</span></small></div>
+    <div class="title">表情包制造机<small>游戏 03 · <span id="workName">未命名作品</span></small></div>
   </div>
 
   <div class="meme-grid">
     <div class="meme-canvas-wrap"><canvas id="cv" width="600" height="600"></canvas></div>
 
     <div class="card ed-sec">
-      <span class="label">01 / 素材 SOURCE</span>
+      <span class="label">01 / 素材</span>
       <div class="ed-row">
         <button class="ed-btn sel" id="srcAsset">角色素材</button>
         <button class="ed-btn" id="srcUpload">上传照片</button>
@@ -30,7 +31,7 @@
     </div>
 
     <div class="card ed-sec">
-      <span class="label">02 / 文字 TEXT</span>
+      <span class="label">02 / 文字</span>
       <div class="ed-row" id="tplRow"></div>
       <input class="ed-input" id="customText" placeholder="自定义文字…" style="margin-top:10px" maxlength="24">
       <div class="ed-row" style="margin-top:10px;align-items:center">
@@ -38,9 +39,9 @@
         <button class="ed-btn sel" id="posBottom">文字在底</button>
         <button class="ed-btn" id="posTop">文字在顶</button>
         <select class="ed-btn" id="fontSel">
-          <option value="sans">黑体 BOLD</option>
-          <option value="serif">宋体 SERIF</option>
-          <option value="mono">等宽 MONO</option>
+          <option value="sans">黑体</option>
+          <option value="serif">宋体</option>
+          <option value="mono">等宽</option>
         </select>
         <span class="swatch sel" data-c="#222222" style="background:#222222"></span>
         <span class="swatch" data-c="#F16D5B" style="background:#F16D5B"></span>
@@ -50,7 +51,7 @@
     </div>
 
     <div class="card ed-sec">
-      <span class="label">03 / 贴纸 STICKERS（点击添加 · 画布上拖动 · 双击删除）</span>
+      <span class="label">03 / 贴纸（点击添加 · 画布上拖动 · 双击删除）</span>
       <div class="ed-row" id="stRow"></div>
       <div class="ed-row" style="margin-top:10px">
         <button class="ed-btn" id="clearSt">清除贴纸</button>
@@ -67,7 +68,7 @@
   <div class="ov hide" id="resultOv" style="position:fixed">
     <div class="panel">
       <h2 class="h2" style="font-size:22px">生成完毕</h2>
-      <img class="result-img" id="resultImg" alt="meme">
+      <img class="result-img" id="resultImg" alt="表情包">
       <p class="mut" style="font-size:12px" id="resultNote">手机可长按图片保存。</p>
       <div class="row">
         <a class="btn yel small" id="resultDl" download="momo-meme.png">下载 PNG</a>
@@ -115,10 +116,10 @@
       x.drawImage(state.img, 300 - w / 2, 250 - h / 2, w, h);
     } else {
       x.fillStyle = "#DCD2F5"; ML.rr(x, 170, 90, 260, 260, 20); x.fill(); x.stroke();
-      x.fillStyle = "#222"; x.font = "900 100px Arial"; x.textAlign = "center"; x.fillText("M", 300, 255);
+      x.fillStyle = "#222"; x.font = '900 100px "PingFang SC","Microsoft YaHei",Arial,sans-serif'; x.textAlign = "center"; x.fillText("喵", 300, 255);
     }
     state.stickers.forEach(s => drawSticker(x, s));
-    const fonts = { sans: '900 46px "Helvetica Neue",Arial,"Microsoft YaHei",sans-serif', serif: '900 46px Georgia,"SimSun",serif', mono: '900 42px "Courier New",monospace' };
+    const fonts = { sans: '900 46px "PingFang SC","Microsoft YaHei",Arial,sans-serif', serif: '900 46px "Songti SC","SimSun",Georgia,serif', mono: '900 42px "Courier New","PingFang SC","Microsoft YaHei",monospace' };
     let size = 46;
     x.font = fonts[state.font];
     while (x.measureText(state.caption).width > 520 && size > 22) { size -= 2; x.font = fonts[state.font].replace(/\d+px/, size + "px"); }
@@ -126,7 +127,7 @@
     const y = state.pos === "bottom" ? 540 : 78;
     if (state.color === "#FFFFFF" || state.color === "#F5E66B") { x.lineWidth = 8; x.strokeStyle = "#222"; x.strokeText(state.caption, 300, y); }
     x.fillStyle = state.color; x.fillText(state.caption, 300, y);
-    x.fillStyle = "#88847D"; x.font = "700 14px Arial"; x.fillText("MOMO LAB · MEME MAKER", 300, 578);
+    x.fillStyle = "#88847D"; x.font = '700 14px "PingFang SC","Microsoft YaHei",Arial,sans-serif'; x.fillText("MOMO 事务所 · 表情包制造机", 300, 578);
   }
   function render() { draw(ctx); }
 
@@ -193,7 +194,7 @@
     petCfg = cfg;
     exprKeys = Object.keys(cfg.petExpressions).filter(k => !["sleep", "mischief"].includes(k));
     if (cfg.customText) cfg.customText.forEach(t => PRESETS.push(t));
-    $("#exprRow").innerHTML = exprKeys.map(k => `<button class="ed-btn exp" title="${k}"><img src="${cfg.petExpressions[k]}" alt="${k}"></button>`).join("");
+    $("#exprRow").innerHTML = exprKeys.map(k => { const label = ({ happy: "开心", angry: "生气", surprised: "惊讶", innocent: "无辜", deadpan: "面无表情" })[k] || k; return `<button class="ed-btn exp" title="${label}"><img src="${cfg.petExpressions[k]}" alt="${label}"></button>`; }).join("");
     $$("#exprRow .ed-btn").forEach((b, i) => b.onclick = () => { exprIdx = i; state.src = "asset"; $("#srcAsset").classList.add("sel"); $("#srcUpload").classList.remove("sel"); syncExpr(); setAssetImage(); });
     syncExpr(); setAssetImage();
   });

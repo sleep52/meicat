@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>THE ESCAPE — MOMO LAB</title>
+<meta name="theme-color" content="#FAF8F3">
+<title>紧急撤离 — MOMO 事务所</title>
 <link rel="stylesheet" href="../css/base.css">
 <link rel="stylesheet" href="../css/game.css">
 </head>
@@ -12,28 +13,28 @@
 <div class="g-wrap">
   <div class="g-top">
     <a class="icon-btn" href="../play.html" aria-label="back"><span data-icon="back"></span></a>
-    <div class="title">THE ESCAPE<small>GAME 01 · 紧急撤离</small></div>
+    <div class="title">紧急撤离<small>游戏 01</small></div>
     <button class="icon-btn" id="pauseBtn" aria-label="pause"><span data-icon="pause"></span></button>
   </div>
   <div class="hud">
-    <div class="chip hot"><div class="k">TIME</div><div class="v" id="hTime">45</div></div>
-    <div class="chip"><div class="k">CLEAN</div><div class="v" id="hClean">0/8</div></div>
-    <div class="chip yel"><div class="k">BONUS</div><div class="v" id="hBonus">0</div></div>
+    <div class="chip hot"><div class="k">时间</div><div class="v" id="hTime">45</div></div>
+    <div class="chip"><div class="k">清洁度</div><div class="v" id="hClean">0/8</div></div>
+    <div class="chip yel"><div class="k">加分</div><div class="v" id="hBonus">0</div></div>
   </div>
   <div class="banner" id="banner"></div>
   <div class="scene" id="scene">
     <div class="baseboard"></div><div class="rug"></div>
     <div class="sofa"></div><div class="table"></div>
-    <div class="zone" id="z-sofa" style="left:9%;top:38%;width:38%;height:20%">沙发 SOFA</div>
-    <div class="zone" id="z-table" style="right:6%;top:40%;width:26%;height:14%">桌子 TABLE</div>
-    <div class="zone" id="z-mat" style="right:7%;bottom:5%;width:26%;height:14%">门口 MAT</div>
-    <div class="zone" id="z-basket" style="left:6%;bottom:5%;width:24%;height:16%">收纳篮 BASKET</div>
+    <div class="zone" id="z-sofa" style="left:9%;top:38%;width:38%;height:20%">沙发</div>
+    <div class="zone" id="z-table" style="right:6%;top:40%;width:26%;height:14%">桌子</div>
+    <div class="zone" id="z-mat" style="right:7%;bottom:5%;width:26%;height:14%">门口地垫</div>
+    <div class="zone" id="z-basket" style="left:6%;bottom:5%;width:24%;height:16%">收纳篮</div>
     <div class="pet-sprite" id="pet" style="left:44%;top:60%"><img alt=""></div>
 
     <div class="ov" id="startOv">
       <div class="panel">
-        <span class="tag red">"I'M COMING HOME."</span>
-        <h2 class="h2">THE ESCAPE</h2>
+        <span class="tag red">"我快回来了。"</span>
+        <h2 class="h2">紧急撤离</h2>
         <ul class="desc">
           <li>45 秒内收拾现场：抱枕/玩具/拖鞋<b>拖</b>到虚线区。</li>
           <li>纸巾<b>连点 3 次</b>；水杯<b>按住 0.5 秒再拖</b>到桌子。</li>
@@ -45,11 +46,11 @@
       </div>
     </div>
     <div class="ov hide" id="pauseOv">
-      <div class="panel"><h2 class="h2">PAUSED</h2><p class="mut" style="font-size:13px">主人也在暂停。</p>
+      <div class="panel"><h2 class="h2">已暂停</h2><p class="mut" style="font-size:13px">主人也在暂停。</p>
         <div class="row"><button class="btn yel" id="resumeBtn">继续</button><a class="btn" href="../play.html">离开</a></div></div>
     </div>
     <div class="ov hide" id="eventOv">
-      <div class="panel"><span class="tag red" id="evTag">EVENT</span><h2 class="h2" id="evTitle" style="font-size:22px"></h2>
+      <div class="panel"><span class="tag red" id="evTag">事件</span><h2 class="h2" id="evTitle" style="font-size:22px"></h2>
         <p class="mut" style="font-size:13px" id="evDesc"></p><div class="row" id="evBtns"></div></div>
     </div>
     <div class="ov hide" id="sleepOv">
@@ -67,7 +68,7 @@
         <span class="rating" id="endRating">S</span>
         <h2 class="h2" id="endTitle" style="font-size:22px"></h2>
         <p class="mut" style="font-size:13px" id="endDesc"></p>
-        <img class="result-img" id="endImg" alt="share card">
+        <img class="result-img" id="endImg" alt="分享卡">
         <div class="row">
           <a class="btn yel small" id="saveBtn" download="momo-escape.png">保存卡片</a>
           <button class="btn small" id="retryBtn">再来一次</button>
@@ -177,7 +178,7 @@
       activeEvent = { kind, until: elapsed + 5, obj: o };
     } else if (kind === "B") {
       say("门口有脚步声！选一个藏身点！", "red"); sound.bad();
-      $("#evTag").textContent = "EVENT B"; $("#evTitle").textContent = "脚步声！";
+      $("#evTag").textContent = "事件 B"; $("#evTitle").textContent = "脚步声！";
       $("#evDesc").textContent = "3 秒内选择藏身地点：";
       const box = $("#evBtns"); box.innerHTML = "";
       ["沙发后", "窗帘后", "纸箱里"].forEach(t => {
@@ -235,7 +236,7 @@
     $("#endOv").classList.remove("hide");
     rating === "C" ? sound.lose() : sound.win();
     const exprUrl = petCfg.petExpressions[expr] || petCfg.petAvatar;
-    ML.shareCard({ game: "THE ESCAPE", petName: petCfg.petName, rating, ratingColor: color, score, timeText: `用时 ${Math.round(elapsed)}s`, ending: title, expr: exprUrl, badge: "ESCAPE REPORT" })
+    ML.shareCard({ game: "紧急撤离", petName: petCfg.petName, rating, ratingColor: color, score, timeText: `用时 ${Math.round(elapsed)} 秒`, ending: title, expr: exprUrl, badge: "撤离报告" })
       .then(url => { $("#endImg").src = url; $("#saveBtn").href = url; });
   }
 

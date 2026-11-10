@@ -121,29 +121,30 @@ window.ML = (() => {
     let petImg = null;
     if (o.expr) { try { petImg = await img(o.expr); } catch (e) {} }
     const draw = withImg => {
+      const F = (w, s) => `${w} ${s}px "PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",Arial,sans-serif`;
       x.fillStyle = "#FAF8F3"; x.fillRect(0, 0, 600, 760);
       x.fillStyle = "#fff"; rr(x, 24, 24, 552, 712, 20); x.fill();
       x.lineWidth = 6; x.strokeStyle = "#222"; rr(x, 24, 24, 552, 712, 20); x.stroke();
-      x.fillStyle = "#222"; x.font = "900 28px Arial"; x.textAlign = "left"; x.fillText("MOMO LAB", 52, 84);
-      x.fillStyle = "#88847D"; x.font = "700 15px Arial"; x.textAlign = "right"; x.fillText((o.game || "").toUpperCase(), 548, 82);
+      x.fillStyle = "#222"; x.font = F("900", 28); x.textAlign = "left"; x.fillText("MOMO 事务所", 52, 84);
+      x.fillStyle = "#88847D"; x.font = F("700", 16); x.textAlign = "right"; x.fillText(o.game || "", 548, 82);
       x.fillStyle = "#F5E66B"; x.fillRect(52, 102, 496, 10); x.strokeStyle = "#222"; x.lineWidth = 2; x.strokeRect(52, 102, 496, 10);
       if (withImg && petImg) {
         const sh = petImg.height * .92;
         x.drawImage(petImg, 0, 0, petImg.width, sh, 170, 130, 260, 260);
       } else {
         x.fillStyle = "#DCD2F5"; rr(x, 190, 140, 220, 220, 20); x.fill(); x.stroke();
-        x.fillStyle = "#222"; x.font = "900 90px Arial"; x.textAlign = "center"; x.fillText("M", 300, 280);
+        x.fillStyle = "#222"; x.font = F("900", 90); x.textAlign = "center"; x.fillText("喵", 300, 278);
       }
       x.save(); x.translate(472, 176); x.rotate(-.12);
       x.fillStyle = o.ratingColor || "#F5E66B"; rr(x, -46, -46, 92, 92, 14); x.fill(); x.lineWidth = 4; x.strokeStyle = "#222"; x.stroke();
-      x.fillStyle = o.ratingColor === "#F16D5B" ? "#fff" : "#222"; x.font = "900 48px Arial"; x.textAlign = "center"; x.fillText(o.rating || "S", 0, 17); x.restore();
-      x.textAlign = "center"; x.fillStyle = "#222"; x.font = "900 36px Arial"; x.fillText(o.petName || "MOMO", 300, 448);
-      x.font = "700 22px Arial"; x.fillText(o.ending || "", 300, 488);
-      x.fillStyle = "#88847D"; x.font = "700 20px Arial";
-      x.fillText(`SCORE ${o.score ?? 0}  ·  ${o.timeText || ""}`, 300, 530);
-      x.fillStyle = "#F5E66B"; rr(x, 150, 560, 300, 44, 22); x.fill(); x.lineWidth = 3; x.strokeStyle = "#222"; x.stroke();
-      x.fillStyle = "#222"; x.font = "900 16px Arial"; x.fillText((o.badge || "INTERACTIVE PLAYGROUND"), 300, 588);
-      x.fillStyle = "#88847D"; x.font = "700 14px Arial"; x.fillText("A LITTLE WORLD, MADE FOR YOU.", 300, 700);
+      x.fillStyle = o.ratingColor === "#F16D5B" ? "#fff" : "#222"; x.font = F("900", 48); x.textAlign = "center"; x.fillText(o.rating || "S", 0, 17); x.restore();
+      x.textAlign = "center"; x.fillStyle = "#222"; x.font = F("900", 36); x.fillText(o.petName || "MOMO", 300, 448);
+      x.font = F("700", 22); x.fillText(o.ending || "", 300, 488);
+      x.fillStyle = "#88847D"; x.font = F("700", 20);
+      x.fillText(`得分 ${o.score ?? 0}  ·  ${o.timeText || ""}`, 300, 530);
+      x.fillStyle = "#F5E66B"; rr(x, 130, 560, 340, 44, 22); x.fill(); x.lineWidth = 3; x.strokeStyle = "#222"; x.stroke();
+      x.fillStyle = "#222"; x.font = F("700", 17); x.fillText(o.badge || "互动游戏场", 300, 588);
+      x.fillStyle = "#88847D"; x.font = F("700", 15); x.fillText("为它做一个小世界", 300, 700);
     };
     draw(true);
     try { return c.toDataURL("image/png"); } catch (e) { draw(false); return c.toDataURL("image/png"); }
@@ -160,19 +161,20 @@ window.ML = (() => {
     const page = document.body.dataset.page || "";
     const nav = document.createElement("header"); nav.className = "ml-nav";
     nav.innerHTML = `<div class="wrap bar">
-      <a class="logo" href="${b}index.html"><span class="mark">${ML_ICONS.asterisk}</span>MOMO LAB</a>
+      <a class="logo" href="${b}index.html"><span class="mark">${ML_ICONS.asterisk}</span>MOMO 事务所</a>
       <nav class="nav-links">
-        <a href="${b}index.html" data-n="home">HOME</a><a href="${b}play.html" data-n="play">PLAY</a>
-        <a href="${b}custom.html" data-n="custom">CUSTOM</a><a href="${b}service.html" data-n="service">SERVICE</a>
+        <a href="${b}index.html" data-n="home">首页</a><a href="${b}play.html" data-n="play">游戏</a>
+        <a href="${b}custom.html" data-n="custom">定制</a><a href="${b}service.html" data-n="service">服务</a>
+        <a class="drawer-cta" href="${b}service.html#contact">开始一个项目</a>
       </nav>
       <div class="nav-right">
-        <button class="icon-btn" id="mlSetBtn" aria-label="settings">${ML_ICONS.gear}</button>
-        <button class="icon-btn nav-toggle" id="mlMenuBtn" aria-label="menu">${ML_ICONS.menu}</button>
-        <a class="btn yel small nav-cta" href="${b}service.html#contact">START A PROJECT</a>
+        <button class="icon-btn" id="mlSetBtn" aria-label="设置">${ML_ICONS.gear}</button>
+        <button class="icon-btn nav-toggle" id="mlMenuBtn" aria-label="菜单">${ML_ICONS.menu}</button>
+        <a class="btn yel small nav-cta" href="${b}service.html#contact">开始项目</a>
       </div></div>
       <div class="nav-pop" id="mlPop">
-        <label><input type="checkbox" id="mlSound"> 音效 SOUND</label>
-        <label><input type="checkbox" id="mlAnim"> 动画 ANIMATION</label>
+        <label><input type="checkbox" id="mlSound"> 音效</label>
+        <label><input type="checkbox" id="mlAnim"> 动画</label>
       </div>`;
     document.body.prepend(nav);
     nav.querySelector(`[data-n="${page}"]`)?.classList.add("active");
@@ -185,17 +187,17 @@ window.ML = (() => {
     an.onchange = () => { settings.anim = an.checked; saveSettings(); };
     const foot = document.createElement("footer"); foot.className = "ml-footer";
     foot.innerHTML = `<div class="wrap"><div class="foot-grid">
-      <div><a class="logo" href="${b}index.html"><span class="mark">${ML_ICONS.asterisk}</span>MOMO LAB</a>
-        <p class="mut" style="margin-top:12px;font-size:13px;max-width:36ch">CREATIVE DIGITAL STUDIO — 为每一份喜欢，创造独特的互动体验。</p></div>
-      <div><h4>SITEMAP</h4><ul>
-        <li><a href="${b}index.html">HOME</a></li><li><a href="${b}play.html">PLAY</a></li>
-        <li><a href="${b}custom.html">CUSTOM</a></li><li><a href="${b}service.html">SERVICE</a></li>
-        <li><a href="${b}gift.html">GIFT</a></li></ul></div>
-      <div><h4>CONTACT</h4><ul>
-        <li><a href="https://github.com/sleep52" target="_blank" rel="noopener">GITHUB / sleep52</a></li>
-        <li><a href="${b}service.html#contact">START A PROJECT</a></li>
-        <li><a href="${b}pet/pet001/index.html">PET PAGE DEMO</a></li></ul></div>
-    </div><div class="foot-base"><span>© 2026 MOMO LAB</span><span>A LITTLE WORLD, MADE FOR YOU.</span></div></div>`;
+      <div><a class="logo" href="${b}index.html"><span class="mark">${ML_ICONS.asterisk}</span>MOMO 事务所</a>
+        <p class="mut" style="margin-top:12px;font-size:13px;max-width:30ch">创意互动工作室 —— 为每一份喜欢，做一个能玩的专属小世界。</p></div>
+      <div><h4>站点地图</h4><ul>
+        <li><a href="${b}index.html">首页</a></li><li><a href="${b}play.html">游戏</a></li>
+        <li><a href="${b}custom.html">定制案例</a></li><li><a href="${b}service.html">服务内容</a></li>
+        <li><a href="${b}gift.html">电子礼物</a></li></ul></div>
+      <div><h4>联系我们</h4><ul>
+        <li><a href="https://github.com/sleep52" target="_blank" rel="noopener">GitHub / sleep52</a></li>
+        <li><a href="${b}service.html#contact">开始一个项目</a></li>
+        <li><a href="${b}pet/pet001/index.html">宠物专属页示例</a></li></ul></div>
+    </div><div class="foot-base"><span>© 2026 MOMO 事务所</span><span>为它做一个小世界</span></div></div>`;
     document.body.append(foot);
   }
   document.addEventListener("DOMContentLoaded", chrome);

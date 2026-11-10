@@ -46,6 +46,7 @@ ul{list-style:none}
 .nav-links{display:flex;gap:26px;margin-left:auto;font-size:12px;font-weight:800;letter-spacing:.16em}
 .nav-links a{padding:4px 2px;border-bottom:2px solid transparent}
 .nav-links a.active{border-bottom-color:var(--ink);background:linear-gradient(transparent 55%,var(--yel) 55%)}
+.nav-links .drawer-cta{display:none}
 .nav-right{display:flex;align-items:center;gap:12px;margin-left:8px}
 .icon-btn{width:38px;height:38px;flex:none;display:grid;place-items:center;border:var(--bd);border-radius:12px;background:var(--card);box-shadow:2px 2px 0 var(--ink)}
 .icon-btn:active{transform:translate(2px,2px);box-shadow:none}
@@ -119,18 +120,62 @@ ul{list-style:none}
 @media(max-width:720px){
   .wrap{padding:0 16px}
   .sec{padding:48px 0}
+  input,select,textarea{font-size:16px}
+  .sec-head .left{gap:12px}
+  .sec-no{width:38px;height:38px;font-size:13px}
   .nav-links{display:none}
   .nav-toggle{display:grid}
-  .ml-nav.open .nav-links{display:flex;position:absolute;top:64px;left:0;right:0;background:var(--bg);border-bottom:var(--bd);flex-direction:column;padding:16px;gap:14px}
+  .ml-nav{padding-top:env(safe-area-inset-top)}
+  .ml-nav .bar{height:58px;gap:12px}
+  .logo{font-size:17px}
+  .icon-btn{width:44px;height:44px}
+  .icon-btn svg{width:20px;height:20px}
+  .nav-pop{right:16px;top:calc(58px + env(safe-area-inset-top));left:auto;min-width:170px}
+  .ml-nav.open .nav-links{display:flex;position:absolute;top:100%;left:0;right:0;background:var(--bg);border-bottom:var(--bd);flex-direction:column;align-items:flex-start;padding:14px 16px 18px;gap:2px;box-shadow:0 14px 22px rgba(34,34,34,.08)}
+  .ml-nav.open .nav-links a{width:100%;padding:12px 0;font-size:15px;letter-spacing:.06em;border-bottom:1px solid rgba(34,34,34,.12)}
+  .ml-nav.open .nav-links a.active{background:none;border-bottom:1px solid rgba(34,34,34,.12)}
+  .nav-links .drawer-cta{display:none}
+  .ml-nav.open .nav-links .drawer-cta{display:inline-flex;margin-top:14px;width:auto}
   .nav-cta{display:none}
-  .hero{grid-template-columns:1fr;padding:40px 0}
-  .grid-3,.grid-2,.flow,.gift-hero{grid-template-columns:1fr}
+  .label{letter-spacing:.1em}
+  .h-display{font-size:clamp(32px,9vw,44px);letter-spacing:0}
+  .h2{letter-spacing:.02em}
+  .btn{letter-spacing:.04em;padding:12px 18px;min-height:44px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .btn.small{padding:11px 16px;min-height:44px}
+  .btn.big{padding:14px 24px}
+  .hero{grid-template-columns:1fr;padding:32px 0 8px;gap:28px}
+  .hero .sub{font-size:15px;margin:16px 0 22px}
+  .grid-3,.grid-2,.flow,.gift-hero{grid-template-columns:1fr;gap:16px}
   .game-prev{grid-template-columns:1fr}
   .game-prev .thumb{border-right:none;border-bottom:var(--bd)}
   .foot-grid{grid-template-columns:1fr;gap:24px;padding:32px 0 24px}
-  .pet-hero{grid-template-columns:1fr}
+  .pet-hero{grid-template-columns:1fr;gap:20px;padding:32px 0 24px}
+  .pet-avatar{width:120px;height:120px}
   .contact-band{padding:40px 22px}
-  .hero-note{left:0}
-  .hero-tag{right:0}
+  .intro-band{padding:22px 0}
+  .intro-band .wrap{gap:12px}
+  .sec-head{margin-bottom:22px}
+  .case-card .body,.game-prev .body{padding:18px}
+  .link-arrow{min-height:44px;display:inline-flex;align-items:center;padding:11px 0;margin:-11px 0}
+  .foot-grid li{margin:0}
+  .foot-grid li a{display:inline-flex;align-items:center;min-height:44px;font-size:14px}
+  .ml-footer{margin-top:40px}
+  .foot-base{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  .hero-note{left:0;bottom:12px}
+  .hero-tag{right:0;top:-8px;letter-spacing:.08em}
+}
+@media(hover:none){
+  .btn:hover,.case-card:hover,.game-card:hover,.choice:hover,.svc-card:hover{transform:none;box-shadow:var(--sh)}
+  .btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+  .choice:active{background:var(--yel);transform:translate(2px,2px)}
+  .nav-links a:hover,.foot-grid li a:hover{background:none}
+}
+@media(max-height:520px){
+  .ml-nav .bar{height:50px;gap:16px}
+  .logo{font-size:16px}
+  .nav-links{gap:16px;font-size:11px}
+  .icon-btn{width:40px;height:40px}
+  .nav-pop{top:calc(54px + env(safe-area-inset-top))}
+  .sec{padding:36px 0}
 }
 .no-anim *, .no-anim *::before, .no-anim *::after{animation:none!important;transition:none!important}

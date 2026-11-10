@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CHAOS MODE — MOMO LAB</title>
+<meta name="theme-color" content="#FAF8F3">
+<title>混乱现场 — MOMO 事务所</title>
 <link rel="stylesheet" href="../css/base.css">
 <link rel="stylesheet" href="../css/game.css">
 </head>
@@ -12,14 +13,14 @@
 <div class="g-wrap">
   <div class="g-top">
     <a class="icon-btn" href="../play.html" aria-label="back"><span data-icon="back"></span></a>
-    <div class="title">CHAOS MODE<small>GAME 02 · 混乱现场</small></div>
+    <div class="title">混乱现场<small>游戏 02</small></div>
     <button class="icon-btn" id="pauseBtn" aria-label="pause"><span data-icon="pause"></span></button>
   </div>
   <div class="hud">
-    <div class="chip hot"><div class="k">TIME</div><div class="v" id="hTime">30</div></div>
-    <div class="chip yel"><div class="k">SCORE</div><div class="v" id="hScore">0</div></div>
-    <div class="chip"><div class="k">COMBO</div><div class="v" id="hCombo">×0</div></div>
-    <div class="chip"><div class="k">CHAOS LEVEL</div><div class="v" id="hLevel" style="font-size:12px;line-height:2.1">非常克制</div></div>
+    <div class="chip hot"><div class="k">时间</div><div class="v" id="hTime">30</div></div>
+    <div class="chip yel"><div class="k">得分</div><div class="v" id="hScore">0</div></div>
+    <div class="chip"><div class="k">连击</div><div class="v" id="hCombo">×0</div></div>
+    <div class="chip"><div class="k">混乱度</div><div class="v" id="hLevel" style="font-size:12px;line-height:2.1">非常克制</div></div>
   </div>
   <div class="banner" id="banner"></div>
   <div class="scene" id="scene">
@@ -30,20 +31,20 @@
 
     <div class="ov" id="startOv">
       <div class="panel">
-        <span class="tag yel">NO RULES. NO LIMITS.</span>
-        <h2 class="h2">CHAOS MODE</h2>
+        <span class="tag yel">没有规则。没有上限。</span>
+        <h2 class="h2">混乱现场</h2>
         <ul class="desc">
           <li>30 秒自由时间：点击 10 种物品制造混乱，次数有限。</li>
-          <li>连续点击形成 COMBO 倍率；特定组合触发连锁加分。</li>
+          <li>连续点击形成连击倍率；特定组合触发连锁加分。</li>
           <li>连锁：纸巾+抱枕 / 零食+纸箱 / 花盆+水杯 / 窗帘+玩具。</li>
           <li>随机事件：电话、门铃、别的宠物、机器人、零食掉落、兴奋状态。</li>
-          <li>冲击 900+ 成为 CHAOS LEGEND。P / Esc 暂停。</li>
+          <li>冲击 900+ 成为混乱传奇。P / Esc 暂停。</li>
         </ul>
         <div class="row"><button class="btn yel big" id="startBtn">开始拆家</button></div>
       </div>
     </div>
     <div class="ov hide" id="pauseOv">
-      <div class="panel"><h2 class="h2">PAUSED</h2><p class="mut" style="font-size:13px">混乱也需要休息。</p>
+      <div class="panel"><h2 class="h2">已暂停</h2><p class="mut" style="font-size:13px">混乱也需要休息。</p>
         <div class="row"><button class="btn yel" id="resumeBtn">继续</button><a class="btn" href="../play.html">离开</a></div></div>
     </div>
     <div class="ov hide" id="endOv">
@@ -53,7 +54,7 @@
         <h2 class="h2" id="endTitle" style="font-size:22px"></h2>
         <p class="mut" style="font-size:13px" id="endDesc"></p>
         <p style="font-size:12px;font-weight:800" id="endAch"></p>
-        <img class="result-img" id="endImg" alt="share card">
+        <img class="result-img" id="endImg" alt="分享卡">
         <div class="row">
           <a class="btn yel small" id="saveBtn" download="momo-chaos.png">保存卡片</a>
           <button class="btn small" id="retryBtn">再来一次</button>
@@ -96,7 +97,7 @@
   ];
   const SLOTS = shuffle([{ x: 40, y: 66 }, { x: 58, y: 72 }, { x: 74, y: 62 }, { x: 20, y: 78 }, { x: 46, y: 86 }, { x: 68, y: 84 }, { x: 86, y: 76 }, { x: 12, y: 62 }]);
 
-  const tier = s => s <= 100 ? ["C", "非常克制", "#BFE4D0"] : s <= 300 ? ["B", "小有混乱", "#F5E66B"] : s <= 600 ? ["A", "现场失控", "#DCD2F5"] : s <= 900 ? ["S", "混乱艺术家", "#F16D5B"] : ["L", "CHAOS LEGEND", "#DCD2F5"];
+  const tier = s => s <= 100 ? ["C", "非常克制", "#BFE4D0"] : s <= 300 ? ["B", "小有混乱", "#F5E66B"] : s <= 600 ? ["A", "现场失控", "#DCD2F5"] : s <= 900 ? ["S", "混乱艺术家", "#F16D5B"] : ["L", "混乱传奇", "#DCD2F5"];
   function say(html, cls = "") { banner.innerHTML = html ? `<span class="msg ${cls}">${html}</span>` : ""; }
   function hud() {
     $("#hTime").textContent = Math.ceil(timeLeft);
@@ -139,7 +140,7 @@
       if (ch && !fired[ch.msg]) {
         fired[ch.msg] = true; score += ch.pts; sound.bonus(); say(ch.msg, "yel");
         if (ch.img) { $("#" + ch.img).style.display = "block"; setTimeout(() => $("#" + ch.img).style.display = "none", 1400); }
-        floatSticker(scene, "CHAIN +" + ch.pts, 140, 120);
+        floatSticker(scene, "连招 +" + ch.pts, 140, 120);
       }
     }
     lastKey = o.key;
@@ -179,7 +180,7 @@
     $("#endOv").classList.remove("hide");
     r === "C" ? sound.lose() : sound.win();
     if (petCfg) $("#endPet").src = petCfg.petExpressions.mischief || petCfg.petAvatar;
-    ML.shareCard({ game: "CHAOS MODE", petName: petCfg?.petName || "MOMO", rating: r, ratingColor: color, score, timeText: "30s 自由时间", ending: t, expr: petCfg?.petExpressions.mischief || petCfg?.petAvatar, badge: "CHAOS REPORT" })
+    ML.shareCard({ game: "混乱现场", petName: petCfg?.petName || "MOMO", rating: r, ratingColor: color, score, timeText: "30 秒自由时间", ending: t, expr: petCfg?.petExpressions.mischief || petCfg?.petAvatar, badge: "混乱报告" })
       .then(url => { $("#endImg").src = url; $("#saveBtn").href = url; });
   }
   function loop(t) {

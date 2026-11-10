@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MOMO — PET PAGE — MOMO LAB</title>
+<meta name="theme-color" content="#FAF8F3">
+<title>MOMO — 宠物专属页 — MOMO 事务所</title>
 <link rel="stylesheet" href="../../css/base.css">
 </head>
 <body data-page="" data-base="../../" data-pet="pet001">
@@ -11,10 +12,10 @@
 <section class="wrap pet-hero">
   <div class="pet-avatar wm"><img id="pAvatar" src="../../assets/pets/pet001/avatar.png" alt=""></div>
   <div>
-    <span class="label">CLIENT PET PAGE · <span id="pId">pet001</span></span>
+    <span class="label">宠物专属页 · <span id="pId">pet001</span></span>
     <h1 class="h-display" style="font-size:clamp(34px,5vw,56px)" id="pName">MOMO</h1>
     <p class="mut" style="margin-top:10px" id="pDesc">职业拆家，业余装睡。</p>
-    <div style="display:flex;gap:8px;margin-top:14px"><span class="tag yel" id="pType">CAT</span><span class="tag mint">专属互动页</span></div>
+    <div style="display:flex;gap:8px;margin-top:14px"><span class="tag yel" id="pType">猫</span><span class="tag mint">专属互动页</span></div>
   </div>
 </section>
 
@@ -31,22 +32,22 @@ ML.pet().then(cfg => {
   document.getElementById("pName").textContent = cfg.petName;
   document.getElementById("pDesc").textContent = cfg.petDescription;
   document.getElementById("pAvatar").src = cfg.petAvatar;
-  document.getElementById("pType").textContent = (cfg.petType || "cat").toUpperCase();
+  document.getElementById("pType").textContent = (cfg.petType || "cat") === "cat" ? "猫" : (cfg.petType || "cat").toUpperCase();
   document.getElementById("pId").textContent = cfg.petId;
   document.getElementById("pId2").textContent = cfg.petId;
-  document.title = cfg.petName + " — PET PAGE — MOMO LAB";
+  document.title = cfg.petName + " — 宠物专属页 — MOMO 事务所";
   const G = [
-    ["escape", "THE ESCAPE", "紧急撤离 · 45s", "game/escape.html"],
-    ["chaos", "CHAOS MODE", "混乱现场 · 30s", "game/chaos.html"],
-    ["memeMaker", "MEME MAKER", "表情制造机", "game/meme-maker.html"],
-    ["boss", "WHO'S THE BOSS", "家庭地位争夺战", "game/boss.html"],
-    ["snackPanic", "SNACK PANIC", "零食危机 · 45s", "game/snack-panic.html"],
+    ["escape", "紧急撤离", "限时 45 秒", "game/escape.html"],
+    ["chaos", "混乱现场", "限时 30 秒", "game/chaos.html"],
+    ["memeMaker", "表情包制造机", "照片 + 文案 + 贴纸", "game/meme-maker.html"],
+    ["boss", "谁是老板", "家庭地位争夺战", "game/boss.html"],
+    ["snackPanic", "零食危机", "限时 45 秒", "game/snack-panic.html"],
   ];
   const box = document.getElementById("pGames");
   G.filter(g => cfg.gameSettings[g[0]]).forEach(g => {
     const a = document.createElement("a");
     a.className = "card svc-card"; a.href = "../../" + g[3] + "?pet=" + cfg.petId;
-    a.innerHTML = `<h3 class="h3">${g[1]}</h3><p class="mut" style="font-size:13px;margin:8px 0 14px">${g[2]}</p><span class="btn small yel">START</span>`;
+    a.innerHTML = `<h3 class="h3">${g[1]}</h3><p class="mut" style="font-size:13px;margin:8px 0 14px">${g[2]}</p><span class="btn small yel">开始游戏</span>`;
     box.appendChild(a);
   });
 });

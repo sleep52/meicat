@@ -85,4 +85,67 @@
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 @keyframes rise{0%{opacity:1;translate:0 0}100%{opacity:0;translate:0 -46px}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@media(max-width:720px){.scene{height:420px}.cv-wrap{height:440px}}
+@media(max-width:720px){
+  .g-wrap{padding:10px 10px calc(28px + env(safe-area-inset-bottom))}
+  .g-top{gap:8px;margin-bottom:10px}
+  .g-top .title{font-size:15px;letter-spacing:.02em}
+  .g-top .title small{font-size:11px;letter-spacing:.06em;margin-top:2px}
+  .hud{gap:6px;margin-bottom:10px}
+  .chip{min-width:0;flex:1 1 40%;padding:5px 6px;border-radius:10px}
+  .chip .k{font-size:10px;letter-spacing:.04em}
+  .chip .v{font-size:18px}
+  .banner{min-height:32px;font-size:12px;margin-bottom:8px}
+  .banner .msg{padding:4px 12px;max-width:100%;white-space:normal;text-align:center;line-height:1.45}
+  .scene{height:420px;height:min(420px,58svh);border-radius:14px}
+  .obj{width:56px;height:56px}
+  .obj .word{font-size:9px;padding:1px 6px;top:-16px}
+  .obj .pips{top:-10px}
+  .zone{font-size:9px;letter-spacing:.04em}
+  .pet-sprite{width:80px;height:80px}
+  .sticker-float{font-size:13px;padding:2px 8px}
+  .ov{padding:12px}
+  .panel{padding:20px 16px;border-radius:18px}
+  .panel .h2{font-size:22px;letter-spacing:.02em}
+  .panel .desc{font-size:12px;line-height:1.6}
+  .panel .row{gap:8px}
+  .rating{width:64px;height:64px;font-size:28px}
+  .result-img{max-width:240px}
+  .g-actions{gap:8px}
+  .g-actions .btn{flex:1 1 auto}
+  .cv-wrap{height:440px;height:min(440px,62svh)}
+  .meme-grid{gap:12px}
+  .ed-sec{padding:14px}
+  .ed-row{gap:6px}
+  .ed-btn{padding:9px 12px;font-size:13px;min-height:44px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .ed-btn.st{width:46px;height:46px}
+  .ed-btn.exp{width:58px;height:58px}
+  .swatch{width:44px;height:44px}
+  .boss-scene .body{padding:16px}
+  .boss-stats{gap:6px}
+  .boss-stats .chip{flex:none}
+  .boss-stats .chip .v{font-size:15px}
+  .choice{padding:13px 14px;min-height:52px;font-size:15px;letter-spacing:.01em;box-shadow:3px 3px 0 rgba(34,34,34,.18)}
+  .choice .key{width:24px;height:24px;font-size:12px;margin-right:8px}
+}
+/* 横屏手机：屏幕矮，压缩外壳，把高度让给现场 */
+@media(max-height:520px){
+  .g-wrap{padding:4px 12px calc(12px + env(safe-area-inset-bottom));max-width:760px}
+  .g-top{margin-bottom:4px}
+  .g-top .title{font-size:14px}
+  .g-top .title small{display:none}
+  .hud{gap:5px;margin-bottom:4px}
+  .chip{padding:2px 6px;flex-basis:0;min-width:0}
+  .chip .k{font-size:9px}
+  .chip .v{font-size:14px}
+  .banner{min-height:24px;font-size:11px;margin-bottom:4px}
+  .scene{height:min(340px,calc(100svh - 168px))}
+  .cv-wrap{height:min(360px,calc(100svh - 168px))}
+  .obj{width:46px;height:46px}
+  .pet-sprite{width:64px;height:64px}
+  .panel{padding:12px 14px;border-radius:16px}
+  .panel .h2{font-size:17px;margin:4px 0}
+  .panel .desc{font-size:11px;margin:6px 0 10px;line-height:1.5}
+  .panel .desc li{margin:2px 0}
+  .panel .row{margin-top:10px;gap:6px}
+  .ov{padding:8px}
+}
