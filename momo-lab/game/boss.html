@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WHO'S THE BOSS — MOMO LAB</title>
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/game.css">
+</head>
+<body data-page="play" data-base="../">
+
+<div class="g-wrap">
+  <div class="g-top">
+    <a class="icon-btn" href="../play.html" aria-label="back"><span data-icon="back"></span></a>
+    <div class="title">WHO'S THE BOSS<small>GAME 04 · 家庭地位争夺战</small></div>
+  </div>
+  <div class="boss-stats">
+    <div class="chip"><div class="k">家庭权限</div><div class="v" id="sPower">40</div><div class="progress"><i id="bPower" style="background:var(--red)"></i></div></div>
+    <div class="chip"><div class="k">主人耐心</div><div class="v" id="sPatience">60</div><div class="progress"><i id="bPatience" style="background:var(--yel)"></i></div></div>
+    <div class="chip"><div class="k">自由指数</div><div class="v" id="sFreedom">40</div><div class="progress"><i id="bFreedom" style="background:var(--mint)"></i></div></div>
+  </div>
+  <div class="banner" id="banner"></div>
+
+  <div class="boss-scene" id="sceneCard">
+    <div class="thumb wm"><img id="sceneImg" src="../assets/games/snack-cover.png" alt=""></div>
+    <div class="body">
+      <span class="label" id="sceneNo">SCENE 01 / 04</span>
+      <h2 class="h3" id="sceneTitle" style="margin:8px 0">主人正在吃饭。</h2>
+      <p class="mut" style="font-size:13px" id="sceneDesc">碗里的味道飘过来了。这是一个确立地位的好机会。</p>
+      <div id="choices"></div>
+      <p style="font-size:13px;font-weight:700;min-height:22px;margin-top:6px" id="reaction"></p>
+      <div class="row" style="display:flex;justify-content:flex-end"><button class="btn yel small" id="nextBtn" disabled>下一幕</button></div>
+    </div>
+  </div>
+
+  <div class="ov" id="startOv" style="position:fixed">
+    <div class="panel">
+      <span class="tag pur">POWER STRUGGLE</span>
+      <h2 class="h2">WHO'S THE BOSS</h2>
+      <ul class="desc">
+        <li>扮演宠物，在 4 个场景里做出选择。</li>
+        <li>每次选择改变：家庭权限 / 主人耐心 / 自由指数。</li>
+        <li>数值组合决定 5 种完全不同的结局。</li>
+        <li>键盘 A / B / C 或 1 / 2 / 3 快速选择。</li>
+      </ul>
+      <div class="row"><button class="btn yel big" id="startBtn">开始争夺</button></div>
+    </div>
+  </div>
+  <div class="ov hide" id="endOv" style="position:fixed">
+    <div class="panel">
+      <span class="rating" id="endRating">S</span>
+      <h2 class="h2" id="endTitle" style="font-size:22px"></h2>
+      <p class="mut" style="font-size:13px" id="endDesc"></p>
+      <img class="result-img" id="endImg" alt="share card">
+      <div class="row">
+        <a class="btn yel small" id="saveBtn" download="momo-boss.png">保存卡片</a>
+        <button class="btn small" id="retryBtn">再争一次</button>
+        <a class="btn small" href="../play.html">大厅</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/icons.js"></script>
+<script src="../js/core.js"></script>
+<script>
+(() => {
+  const { $, $$, sound } = ML;
+  const SCENES = [
+    { img: "../assets/games/snack-cover.png", title: "主人正在吃饭。", desc: "碗里的味道飘过来了。这是一个确立地位的好机会。",
+      opts: [
+        { t: "盯着主人。", d: [5, -5, 0], r: "主人在你的注视下加快了吃饭速度，地位 +5。" },
+        { t: "假装没兴趣。", d: [0, 5, 5], r: "主人放松了警惕，零食防线出现松动。" },
+        { t: "直接坐上桌子。", d: [15, -15, 5], r: "你在餐桌上确立了权威，主人让出了半碗饭。" } ] },
+    { img: "../assets/custom/case-suitcase.png", title: "主人准备出门。", desc: "门口放着鞋和行李箱。拦住，还是加入？",
+      opts: [
+        { t: "躺在门口。", d: [5, -5, 5], r: "主人跨过了你，但心里记下了这笔。" },
+        { t: "叼走鞋子。", d: [10, -10, 10], r: "没有鞋的主人出不了门。你赢了时间。" },
+        { t: "坐在行李箱里。", d: [10, -5, 15], r: "现在这是你的行李箱了。主人负责拎包。" } ] },
+    { img: "../assets/custom/case-laptop.png", title: "主人在工作。", desc: "键盘在响，镜头开着。工作的意义是什么？",
+      opts: [
+        { t: "坐在键盘上。", d: [10, -10, 5], r: "会议里出现了一串乱码和你的尾巴。" },
+        { t: "在镜头前出现。", d: [5, 0, 10], r: "同事都在问猫的名字。主人成了你的经纪人。" },
+        { t: "直接睡在电脑上。", d: [15, -15, 10], r: "电脑现在是你的恒温床垫。工作暂停。" } ] },
+    { img: "../assets/effects/gift-sleep.png", title: "主人准备睡觉。", desc: "床是最大的领地。今晚的分配方案是？",
+      opts: [
+        { t: "占据枕头。", d: [10, -5, 10], r: "枕头归你，主人归床沿。" },
+        { t: "把主人挤到边缘。", d: [15, -10, 10], r: "主人半夜醒来，发现自己只盖到一只角。" },
+        { t: "假装自己不困。", d: [0, 5, 15], r: "你睁着眼守夜。主人感动地给你加了零食。" } ] },
+  ];
+  const ENDINGS = [
+    { test: s => s.p >= 80, r: "S", c: "#F16D5B", t: "人类的老板", d: "主人的作息、饮食和睡眠，全部由你批准。家庭地位：顶层。" },
+    { test: s => s.p >= 65 && s.f >= 70, r: "A", c: "#F5E66B", t: "家庭实际管理者", d: "从零食到沙发领地，一切归你管。主人只是执行者。" },
+    { test: s => s.p >= 55 && s.pa >= 55, r: "B", c: "#BFE4D0", t: "高级零食监督员", d: "你不争权，只确保每一袋零食的流向都经过你。" },
+    { test: s => s.p <= 50 && s.f >= 60 && s.pa >= 55, r: "H", c: "#DCD2F5", t: "看起来没有权力但实际掌控一切", d: "表面乖巧，实则全屋按你的节奏运转。这才是最高境界。" },
+    { test: () => true, r: "A", c: "#F5E66B", t: "沙发永久所有者", d: "你获得了沙发的永久居住权，主人只是访客。" },
+  ];
+  let idx = 0, stats = { p: 40, pa: 60, f: 40 }, petCfg = null, chosen = false;
+
+  function hud() {
+    $("#sPower").textContent = stats.p; $("#sPatience").textContent = stats.pa; $("#sFreedom").textContent = stats.f;
+    $("#bPower").style.width = stats.p + "%"; $("#bPatience").style.width = stats.pa + "%"; $("#bFreedom").style.width = stats.f + "%";
+  }
+  function showScene() {
+    chosen = false;
+    const s = SCENES[idx];
+    $("#sceneNo").textContent = `SCENE 0${idx + 1} / 04`;
+    $("#sceneImg").src = s.img; $("#sceneTitle").textContent = s.title; $("#sceneDesc").textContent = s.desc;
+    $("#reaction").textContent = ""; $("#nextBtn").disabled = true;
+    $("#nextBtn").textContent = idx === 3 ? "查看结局" : "下一幕";
+    const box = $("#choices"); box.innerHTML = "";
+    s.opts.forEach((o, i) => {
+      const b = document.createElement("button"); b.className = "choice";
+      b.innerHTML = `<span class="key">${"ABC"[i]}</span>${o.t}`;
+      b.onclick = () => choose(i);
+      box.appendChild(b);
+    });
+  }
+  function choose(i) {
+    if (chosen) return; chosen = true;
+    const o = SCENES[idx].opts[i];
+    stats.p = ML.clamp(stats.p + o.d[0], 0, 100);
+    stats.pa = ML.clamp(stats.pa + o.d[1], 0, 100);
+    stats.f = ML.clamp(stats.f + o.d[2], 0, 100);
+    $("#reaction").textContent = o.r;
+    $$("#choices .choice").forEach((b, j) => { b.style.opacity = j === i ? 1 : .4; b.style.pointerEvents = "none"; if (j === i) b.style.background = "var(--yel)"; });
+    $("#nextBtn").disabled = false;
+    sound.tap(); hud();
+  }
+  function finish() {
+    const e = ENDINGS.find(x => x.test(stats));
+    $("#endRating").textContent = e.r; $("#endRating").style.background = e.c;
+    $("#endRating").style.color = e.c === "#F16D5B" ? "#fff" : "#222";
+    $("#endTitle").textContent = e.t;
+    $("#endDesc").textContent = `${e.d}（权限 ${stats.p} / 耐心 ${stats.pa} / 自由 ${stats.f}）`;
+    $("#endOv").classList.remove("hide");
+    sound.win();
+    ML.record("boss", stats.p + stats.f);
+    ML.shareCard({ game: "WHO'S THE BOSS", petName: petCfg?.petName || "MOMO", rating: e.r, ratingColor: e.c, score: stats.p + stats.f, timeText: `权限${stats.p} 耐心${stats.pa} 自由${stats.f}`, ending: e.t, expr: petCfg?.petExpressions.deadpan || petCfg?.petAvatar, badge: "FAMILY STATUS" })
+      .then(url => { $("#endImg").src = url; $("#saveBtn").href = url; });
+  }
+  $("#nextBtn").onclick = () => { idx++; idx >= 4 ? finish() : showScene(); };
+  $("#startBtn").onclick = () => { $("#startOv").classList.add("hide"); showScene(); };
+  $("#retryBtn").onclick = () => location.reload();
+  document.addEventListener("keydown", e => {
+    const map = { a: 0, b: 1, c: 2, "1": 0, "2": 1, "3": 2 };
+    const i = map[e.key.toLowerCase()];
+    if (i !== undefined && $("#startOv").classList.contains("hide") && $("#endOv").classList.contains("hide") && !chosen) choose(i);
+  });
+  ML.pet().then(c => { petCfg = c; });
+  hud();
+})();
+</script>
+</body>
+</html>

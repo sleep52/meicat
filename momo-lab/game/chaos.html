@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CHAOS MODE — MOMO LAB</title>
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/game.css">
+</head>
+<body data-page="play" data-base="../">
+
+<div class="g-wrap">
+  <div class="g-top">
+    <a class="icon-btn" href="../play.html" aria-label="back"><span data-icon="back"></span></a>
+    <div class="title">CHAOS MODE<small>GAME 02 · 混乱现场</small></div>
+    <button class="icon-btn" id="pauseBtn" aria-label="pause"><span data-icon="pause"></span></button>
+  </div>
+  <div class="hud">
+    <div class="chip hot"><div class="k">TIME</div><div class="v" id="hTime">30</div></div>
+    <div class="chip yel"><div class="k">SCORE</div><div class="v" id="hScore">0</div></div>
+    <div class="chip"><div class="k">COMBO</div><div class="v" id="hCombo">×0</div></div>
+    <div class="chip"><div class="k">CHAOS LEVEL</div><div class="v" id="hLevel" style="font-size:12px;line-height:2.1">非常克制</div></div>
+  </div>
+  <div class="banner" id="banner"></div>
+  <div class="scene" id="scene">
+    <div class="baseboard"></div><div class="rug"></div>
+    <img id="boxCat" src="../assets/games/box-cat.png" alt="" style="display:none;position:absolute;left:30%;top:34%;width:40%;z-index:25;border-radius:14px;border:var(--bd)">
+    <img id="potCat" src="../assets/games/pot-cat.png" alt="" style="display:none;position:absolute;right:8%;top:30%;width:34%;z-index:25;border-radius:14px;border:var(--bd)">
+    <div class="pet-sprite" id="pet" style="left:44%;top:64%"><img alt=""></div>
+
+    <div class="ov" id="startOv">
+      <div class="panel">
+        <span class="tag yel">NO RULES. NO LIMITS.</span>
+        <h2 class="h2">CHAOS MODE</h2>
+        <ul class="desc">
+          <li>30 秒自由时间：点击 10 种物品制造混乱，次数有限。</li>
+          <li>连续点击形成 COMBO 倍率；特定组合触发连锁加分。</li>
+          <li>连锁：纸巾+抱枕 / 零食+纸箱 / 花盆+水杯 / 窗帘+玩具。</li>
+          <li>随机事件：电话、门铃、别的宠物、机器人、零食掉落、兴奋状态。</li>
+          <li>冲击 900+ 成为 CHAOS LEGEND。P / Esc 暂停。</li>
+        </ul>
+        <div class="row"><button class="btn yel big" id="startBtn">开始拆家</button></div>
+      </div>
+    </div>
+    <div class="ov hide" id="pauseOv">
+      <div class="panel"><h2 class="h2">PAUSED</h2><p class="mut" style="font-size:13px">混乱也需要休息。</p>
+        <div class="row"><button class="btn yel" id="resumeBtn">继续</button><a class="btn" href="../play.html">离开</a></div></div>
+    </div>
+    <div class="ov hide" id="endOv">
+      <div class="panel">
+        <img id="endPet" src="../assets/pets/pet001/mischief.png" alt="" style="width:110px;margin:0 auto;animation:pop .5s">
+        <span class="rating" id="endRating" style="margin-top:8px">S</span>
+        <h2 class="h2" id="endTitle" style="font-size:22px"></h2>
+        <p class="mut" style="font-size:13px" id="endDesc"></p>
+        <p style="font-size:12px;font-weight:800" id="endAch"></p>
+        <img class="result-img" id="endImg" alt="share card">
+        <div class="row">
+          <a class="btn yel small" id="saveBtn" download="momo-chaos.png">保存卡片</a>
+          <button class="btn small" id="retryBtn">再来一次</button>
+          <a class="btn small" href="../play.html">大厅</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="g-actions"><span class="label">点击物品制造混乱 / 触摸 & 鼠标 / P 暂停</span></div>
+</div>
+
+<script src="../js/icons.js"></script>
+<script src="../js/core.js"></script>
+<script>
+(() => {
+  const { $, clamp, rand, pick, shuffle, sound, floatSticker } = ML;
+  const scene = $("#scene"), banner = $("#banner");
+  const mac = ML.machine();
+  let timeLeft = 30, elapsed = 0, score = 0, combo = 0, lastClick = -9, lastKey = null;
+  let frenzyUntil = -1, activeEvent = null, eventTimes = [], last = 0, petCfg = null;
+  const counts = {}, fired = {};
+
+  const DEFS = [
+    { key: "sofa", icon: "sofa", uses: 3, pts: 15, word: "抓!", size: 110, pos: { x: 24, y: 44 } },
+    { key: "curtain", icon: "curtain", uses: 2, pts: 10, word: "探头!", size: 90, pos: { x: 84, y: 22 } },
+    { key: "cushion", icon: "cushion", uses: 2, pts: 10, word: "推下去!" },
+    { key: "tissue", icon: "tissue", uses: 6, pts: 5, word: "撕!" },
+    { key: "toy", icon: "toy", uses: 3, pts: 10, word: "甩!" },
+    { key: "snack", icon: "treat", uses: 2, pts: 10, word: "吃掉!" },
+    { key: "cup", icon: "cup", uses: 1, pts: 25, word: "打翻!" },
+    { key: "pot", icon: "pot", uses: 1, pts: 30, word: "推倒!" },
+    { key: "slipper", icon: "slipper", uses: 2, pts: 10, word: "叼走!" },
+    { key: "box", icon: "box", uses: 1, pts: 40, word: "跳进去!" },
+  ];
+  const CHAINS = [
+    { a: "tissue", b: "cushion", pts: 50, msg: "连锁：客厅进入混乱状态！+50" },
+    { a: "snack", b: "box", pts: 60, msg: "连锁：躲进纸箱！隐藏加分 +60", img: "boxCat" },
+    { a: "pot", b: "cup", pts: 80, msg: "连锁：清洁灾难！+80", img: "potCat" },
+    { a: "curtain", b: "toy", pts: 50, msg: "连锁：玩具挂上窗帘！+50" },
+  ];
+  const SLOTS = shuffle([{ x: 40, y: 66 }, { x: 58, y: 72 }, { x: 74, y: 62 }, { x: 20, y: 78 }, { x: 46, y: 86 }, { x: 68, y: 84 }, { x: 86, y: 76 }, { x: 12, y: 62 }]);
+
+  const tier = s => s <= 100 ? ["C", "非常克制", "#BFE4D0"] : s <= 300 ? ["B", "小有混乱", "#F5E66B"] : s <= 600 ? ["A", "现场失控", "#DCD2F5"] : s <= 900 ? ["S", "混乱艺术家", "#F16D5B"] : ["L", "CHAOS LEGEND", "#DCD2F5"];
+  function say(html, cls = "") { banner.innerHTML = html ? `<span class="msg ${cls}">${html}</span>` : ""; }
+  function hud() {
+    $("#hTime").textContent = Math.ceil(timeLeft);
+    $("#hScore").textContent = score;
+    $("#hCombo").textContent = "×" + combo;
+    $("#hLevel").textContent = tier(score)[1];
+  }
+  function spawn(d, pos) {
+    const el = document.createElement("div");
+    el.className = "obj"; el.innerHTML = ML_ICONS[d.icon]; el.dataset.icon = d.key;
+    const s = d.size || 60;
+    el.style.width = el.style.height = s + "px";
+    el.style.left = `calc(${pos.x}% - ${s / 2}px)`; el.style.top = `calc(${pos.y}% - ${s / 2}px)`;
+    scene.appendChild(el);
+    const o = Object.assign({ el, left: d.uses }, d);
+    counts[o.key] = counts[o.key] || 0;
+    el.addEventListener("pointerdown", e => { e.preventDefault(); hit(o); });
+    return o;
+  }
+  function hit(o) {
+    if (mac.get() !== "PLAYING" || o.left <= 0) return;
+    o.left--; counts[o.key]++;
+    combo = elapsed - lastClick < 1.5 ? combo + 1 : 1; lastClick = elapsed;
+    const mult = (1 + Math.min(combo, 10) * .1) * (elapsed < frenzyUntil ? 2 : 1);
+    const gain = Math.round(o.pts * mult);
+    score += gain; sound.combo(combo);
+    floatSticker(scene, "+" + gain, o.el.offsetLeft, o.el.offsetTop - 10);
+    const w = document.createElement("span"); w.className = "word"; w.textContent = o.word;
+    o.el.appendChild(w); setTimeout(() => w.remove(), 600);
+    o.el.classList.add("hit"); setTimeout(() => o.el.classList.remove("hit"), 300);
+    const n = counts[o.key];
+    if (o.key === "cup" || o.key === "pot") o.el.style.transform = `rotate(${70 * n}deg)`;
+    else if (o.key === "cushion") o.el.style.transform = `translateY(${n * 14}px) rotate(${n * 20}deg)`;
+    else if (o.key === "tissue") o.el.style.transform = `scale(${1 + n * .08}) rotate(${n * 8}deg)`;
+    else o.el.style.transform = `rotate(${(n % 2 ? -1 : 1) * 12}deg)`;
+    if (o.key === "box") { $("#boxCat").style.display = "block"; setTimeout(() => $("#boxCat").style.display = "none", 1200); }
+    if (o.left <= 0) { o.el.style.opacity = .35; o.el.style.pointerEvents = "none"; }
+    if (lastKey && lastKey !== o.key) {
+      const ch = CHAINS.find(c => (c.a === o.key && c.b === lastKey) || (c.b === o.key && c.a === lastKey));
+      if (ch && !fired[ch.msg]) {
+        fired[ch.msg] = true; score += ch.pts; sound.bonus(); say(ch.msg, "yel");
+        if (ch.img) { $("#" + ch.img).style.display = "block"; setTimeout(() => $("#" + ch.img).style.display = "none", 1400); }
+        floatSticker(scene, "CHAIN +" + ch.pts, 140, 120);
+      }
+    }
+    lastKey = o.key;
+    hud();
+  }
+  function triggerEvent() {
+    const kind = pick(["phone", "bell", "pet", "robot", "drop", "frenzy"].filter(k => !triggerEvent.used?.includes(k)));
+    (triggerEvent.used = triggerEvent.used || []).push(kind);
+    const withBtn = (msg, label, ok, fail, cls) => {
+      say(`${msg} <button class="btn small ${cls || "yel"}" id="evBtn" style="margin-left:8px">${label}</button>`, "red");
+      $("#evBtn").onclick = () => { score = Math.max(0, score + ok); sound.good(); say(ok > 0 ? `反应成功 +${ok}` : "呼…没事了", "mint"); activeEvent = null; hud(); };
+      activeEvent = { until: elapsed + 3, fail };
+    };
+    if (kind === "phone") withBtn("主人来电话！", "接电话装乖", 20, -10);
+    else if (kind === "bell") withBtn("门铃突然响起！", "立刻装死", 20, -10);
+    else if (kind === "pet") withBtn("别的宠物进入场景！", "追!", 25, 0, "pur");
+    else if (kind === "robot") withBtn("扫地机器人经过！", "骑上去!", 30, -5, "mint");
+    else if (kind === "drop") { say("零食突然掉落！快点吃掉！", "yel"); sound.bonus(); spawn({ key: "drop", icon: "treat", uses: 1, pts: 25, word: "捡吃!" }, { x: rand(25, 75), y: rand(62, 84) }); }
+    else { frenzyUntil = elapsed + 3; say("宠物进入兴奋状态！3 秒双倍分数！", "red"); sound.bonus(); }
+  }
+  function finish() {
+    mac.set("FINISHED");
+    const [r, t, color] = tier(score);
+    const ach = [];
+    if (counts.tissue >= 6) ach.push("纸巾终结者");
+    if (counts.sofa >= 3) ach.push("沙发改造师");
+    if (counts.snack >= 2 && counts.box >= 1) ach.push("零食战略家");
+    if (score > 600) ach.push("家庭混乱艺术家");
+    const old = JSON.parse(localStorage.getItem("ml-chaos-ach") || "[]");
+    localStorage.setItem("ml-chaos-ach", JSON.stringify([...new Set([...old, ...ach])]));
+    const rec = ML.record("chaos", score);
+    $("#endRating").textContent = r; $("#endRating").style.background = color;
+    $("#endRating").style.color = color === "#F16D5B" ? "#fff" : "#222";
+    $("#endTitle").textContent = t;
+    $("#endDesc").textContent = `混乱指数 ${score} · 历史最佳 ${rec.best} · 评级 ${r}`;
+    $("#endAch").textContent = ach.length ? "隐藏成就解锁：" + ach.join(" / ") : "本次未解锁隐藏成就。";
+    $("#endOv").classList.remove("hide");
+    r === "C" ? sound.lose() : sound.win();
+    if (petCfg) $("#endPet").src = petCfg.petExpressions.mischief || petCfg.petAvatar;
+    ML.shareCard({ game: "CHAOS MODE", petName: petCfg?.petName || "MOMO", rating: r, ratingColor: color, score, timeText: "30s 自由时间", ending: t, expr: petCfg?.petExpressions.mischief || petCfg?.petAvatar, badge: "CHAOS REPORT" })
+      .then(url => { $("#endImg").src = url; $("#saveBtn").href = url; });
+  }
+  function loop(t) {
+    requestAnimationFrame(loop);
+    const dt = Math.max(0, Math.min((t - last) / 1000, .05)); last = t;
+    if (mac.get() !== "PLAYING") return;
+    timeLeft -= dt; elapsed += dt;
+    if (eventTimes.length && elapsed >= eventTimes[0]) { eventTimes.shift(); triggerEvent(); }
+    if (activeEvent && elapsed >= activeEvent.until) { score = Math.max(0, score + activeEvent.fail); say("反应太慢！" + activeEvent.fail, "red"); sound.bad(); activeEvent = null; }
+    if (elapsed - lastClick > 1.5 && combo) { combo = 0; }
+    if (timeLeft <= 0) { timeLeft = 0; hud(); finish(); return; }
+    hud();
+  }
+  function togglePause(force) {
+    if (mac.get() === "PLAYING" && force !== false) { mac.set("PAUSED"); $("#pauseOv").classList.remove("hide"); }
+    else if (mac.get() === "PAUSED") { mac.set("PLAYING"); $("#pauseOv").classList.add("hide"); }
+  }
+  $("#pauseBtn").onclick = () => togglePause();
+  $("#resumeBtn").onclick = () => togglePause();
+  ML.bindPause(mac, togglePause);
+  $("#retryBtn").onclick = () => location.reload();
+  ML.pet().then(cfg => {
+    petCfg = cfg;
+    const img = $("#pet img"), src = cfg.petExpressions.mischief || cfg.petAvatar;
+    if (ML.petId() === "pet001") ML.img(src).then(i => { img.src = ML.cut(i).toDataURL(); }).catch(() => { img.src = src; });
+    else img.src = src;
+  });
+  $("#startBtn").onclick = () => {
+    $("#startOv").classList.add("hide");
+    let si = 0;
+    DEFS.forEach(d => spawn(d, d.pos || SLOTS[si++]));
+    eventTimes = [6.5, 13, 19.5, 26];
+    hud(); mac.set("PLAYING"); last = performance.now();
+    requestAnimationFrame(loop);
+    say("自由时间开始。没有规则。", "yel");
+  };
+  hud();
+})();
+</script>
+</body>
+</html>

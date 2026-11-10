@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MEME MAKER — MOMO LAB</title>
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/game.css">
+</head>
+<body data-page="play" data-base="../">
+
+<div class="g-wrap" style="max-width:760px">
+  <div class="g-top">
+    <a class="icon-btn" href="../play.html" aria-label="back"><span data-icon="back"></span></a>
+    <div class="title">MEME MAKER<small>GAME 03 · 表情制造机 · <span id="workName">未命名作品</span></small></div>
+  </div>
+
+  <div class="meme-grid">
+    <div class="meme-canvas-wrap"><canvas id="cv" width="600" height="600"></canvas></div>
+
+    <div class="card ed-sec">
+      <span class="label">01 / 素材 SOURCE</span>
+      <div class="ed-row">
+        <button class="ed-btn sel" id="srcAsset">角色素材</button>
+        <button class="ed-btn" id="srcUpload">上传照片</button>
+        <input type="file" id="file" accept="image/*" hidden>
+        <button class="ed-btn" id="exprBtn">换表情</button>
+      </div>
+      <div class="ed-row" id="exprRow" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card ed-sec">
+      <span class="label">02 / 文字 TEXT</span>
+      <div class="ed-row" id="tplRow"></div>
+      <input class="ed-input" id="customText" placeholder="自定义文字…" style="margin-top:10px" maxlength="24">
+      <div class="ed-row" style="margin-top:10px;align-items:center">
+        <button class="ed-btn" id="randBtn">随机一句</button>
+        <button class="ed-btn sel" id="posBottom">文字在底</button>
+        <button class="ed-btn" id="posTop">文字在顶</button>
+        <select class="ed-btn" id="fontSel">
+          <option value="sans">黑体 BOLD</option>
+          <option value="serif">宋体 SERIF</option>
+          <option value="mono">等宽 MONO</option>
+        </select>
+        <span class="swatch sel" data-c="#222222" style="background:#222222"></span>
+        <span class="swatch" data-c="#F16D5B" style="background:#F16D5B"></span>
+        <span class="swatch" data-c="#FFFFFF" style="background:#FFFFFF"></span>
+        <span class="swatch" data-c="#F5E66B" style="background:#F5E66B"></span>
+      </div>
+    </div>
+
+    <div class="card ed-sec">
+      <span class="label">03 / 贴纸 STICKERS（点击添加 · 画布上拖动 · 双击删除）</span>
+      <div class="ed-row" id="stRow"></div>
+      <div class="ed-row" style="margin-top:10px">
+        <button class="ed-btn" id="clearSt">清除贴纸</button>
+        <input class="ed-input" id="mName" value="momo-meme" style="max-width:180px" aria-label="作品名称">
+      </div>
+    </div>
+
+    <div class="g-actions">
+      <button class="btn yel big" id="genBtn">生成图片</button>
+      <button class="btn big" id="dlBtn">下载 PNG</button>
+    </div>
+  </div>
+
+  <div class="ov hide" id="resultOv" style="position:fixed">
+    <div class="panel">
+      <h2 class="h2" style="font-size:22px">生成完毕</h2>
+      <img class="result-img" id="resultImg" alt="meme">
+      <p class="mut" style="font-size:12px" id="resultNote">手机可长按图片保存。</p>
+      <div class="row">
+        <a class="btn yel small" id="resultDl" download="momo-meme.png">下载 PNG</a>
+        <button class="btn small" id="closeResult">继续编辑</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/icons.js"></script>
+<script src="../js/core.js"></script>
+<script>
+(() => {
+  const { $, $$, pick, sound } = ML;
+  const cv = $("#cv"), ctx = cv.getContext("2d");
+  const PRESETS = ["我真的会谢。", "你最好有事。", "饭呢？我的饭呢？", "别烦朕，退下。", "我只是路过。", "这合理吗？", "请开始你的表演。", "人类，你解释一下。"];
+  const STICKERS = ["star", "question", "bang", "flame", "heart", "crown", "shades", "bubble"];
+  const stImgs = {};
+  let petCfg = null, exprKeys = [], exprIdx = 0;
+  const state = { src: "asset", img: null, caption: PRESETS[0], pos: "bottom", font: "sans", color: "#222222", stickers: [] };
+
+  STICKERS.forEach(k => { stImgs[k] = mlIconImage(k, 96); });
+
+  function setAssetImage() {
+    const key = exprKeys[exprIdx] || "happy";
+    const src = petCfg.petExpressions[key] || petCfg.petAvatar;
+    ML.img(src).then(i => {
+      state.img = (ML.petId() === "pet001" && state.src === "asset") ? ML.cut(i) : i;
+      render();
+    }).catch(() => { state.img = null; render(); });
+  }
+  function drawSticker(x, s) {
+    const im = stImgs[s.type];
+    if (im && im.complete) x.drawImage(im, s.x - 40, s.y - 40, 80, 80);
+  }
+  function draw(x) {
+    x.clearRect(0, 0, 600, 600);
+    x.fillStyle = "#FAF8F3"; x.fillRect(0, 0, 600, 600);
+    x.fillStyle = "#fff"; ML.rr(x, 16, 16, 568, 568, 18); x.fill();
+    x.lineWidth = 5; x.strokeStyle = "#222"; ML.rr(x, 16, 16, 568, 568, 18); x.stroke();
+    if (state.img) {
+      const iw = state.img.width, ih = state.img.height;
+      const sc = Math.min(520 / iw, 430 / ih);
+      const w = iw * sc, h = ih * sc;
+      x.drawImage(state.img, 300 - w / 2, 250 - h / 2, w, h);
+    } else {
+      x.fillStyle = "#DCD2F5"; ML.rr(x, 170, 90, 260, 260, 20); x.fill(); x.stroke();
+      x.fillStyle = "#222"; x.font = "900 100px Arial"; x.textAlign = "center"; x.fillText("M", 300, 255);
+    }
+    state.stickers.forEach(s => drawSticker(x, s));
+    const fonts = { sans: '900 46px "Helvetica Neue",Arial,"Microsoft YaHei",sans-serif', serif: '900 46px Georgia,"SimSun",serif', mono: '900 42px "Courier New",monospace' };
+    let size = 46;
+    x.font = fonts[state.font];
+    while (x.measureText(state.caption).width > 520 && size > 22) { size -= 2; x.font = fonts[state.font].replace(/\d+px/, size + "px"); }
+    x.textAlign = "center";
+    const y = state.pos === "bottom" ? 540 : 78;
+    if (state.color === "#FFFFFF" || state.color === "#F5E66B") { x.lineWidth = 8; x.strokeStyle = "#222"; x.strokeText(state.caption, 300, y); }
+    x.fillStyle = state.color; x.fillText(state.caption, 300, y);
+    x.fillStyle = "#88847D"; x.font = "700 14px Arial"; x.fillText("MOMO LAB · MEME MAKER", 300, 578);
+  }
+  function render() { draw(ctx); }
+
+  function exportPNG() {
+    const c = document.createElement("canvas"); c.width = c.height = 600;
+    draw(c.getContext("2d"));
+    try { return c.toDataURL("image/png"); }
+    catch (e) { return null; }
+  }
+  function doExport(showOv) {
+    const url = exportPNG();
+    if (!url) { $("#resultNote").textContent = "当前以 file:// 打开，浏览器禁止导出本地素材图片。请通过本地服务器 / GitHub Pages 打开，或改用「上传照片」。"; $("#resultImg").removeAttribute("src"); $("#resultOv").classList.remove("hide"); return; }
+    $("#resultNote").textContent = "手机可长按图片保存。";
+    $("#resultImg").src = url;
+    const name = ($("#mName").value || "momo-meme") + ".png";
+    $("#resultDl").href = url; $("#resultDl").download = name; $("#dlBtn").dataset.url = url;
+    if (showOv) $("#resultOv").classList.remove("hide");
+    else { const a = document.createElement("a"); a.href = url; a.download = name; a.click(); }
+    sound.good();
+  }
+
+  $("#tplRow").innerHTML = PRESETS.map((t, i) => `<button class="ed-btn ${i === 0 ? "sel" : ""}" data-t="${t}">${t}</button>`).join("");
+  $$("#tplRow .ed-btn").forEach(b => b.onclick = () => { state.caption = b.dataset.t; $("#customText").value = ""; $$("#tplRow .ed-btn").forEach(x => x.classList.toggle("sel", x === b)); render(); sound.tap(); });
+  $("#customText").addEventListener("input", e => { if (e.target.value.trim()) { state.caption = e.target.value.trim(); $$("#tplRow .ed-btn").forEach(x => x.classList.remove("sel")); render(); } });
+  $("#randBtn").onclick = () => { let t = pick(PRESETS); while (t === state.caption) t = pick(PRESETS); state.caption = t; $("#customText").value = ""; render(); sound.tap(); };
+  $("#posBottom").onclick = () => { state.pos = "bottom"; $("#posBottom").classList.add("sel"); $("#posTop").classList.remove("sel"); render(); };
+  $("#posTop").onclick = () => { state.pos = "top"; $("#posTop").classList.add("sel"); $("#posBottom").classList.remove("sel"); render(); };
+  $("#fontSel").onchange = e => { state.font = e.target.value; render(); };
+  $$(".swatch").forEach(s => s.onclick = () => { state.color = s.dataset.c; $$(".swatch").forEach(x => x.classList.toggle("sel", x === s)); render(); });
+
+  $("#stRow").innerHTML = STICKERS.map(k => `<button class="ed-btn st" data-k="${k}" aria-label="${k}">${ML_ICONS[k]}</button>`).join("");
+  $$("#stRow .ed-btn").forEach(b => b.onclick = () => { state.stickers.push({ type: b.dataset.k, x: ML.rand(90, 510), y: ML.rand(90, 470) }); render(); sound.tap(); });
+  $("#clearSt").onclick = () => { state.stickers = []; render(); };
+
+  let dragSt = null;
+  const toXY = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * 600 / r.width, y: (e.clientY - r.top) * 600 / r.height }; };
+  cv.addEventListener("pointerdown", e => {
+    const p = toXY(e);
+    for (let i = state.stickers.length - 1; i >= 0; i--) { const s = state.stickers[i]; if (Math.abs(p.x - s.x) < 44 && Math.abs(p.y - s.y) < 44) { dragSt = s; try { cv.setPointerCapture(e.pointerId); } catch (err) {} break; } }
+  });
+  cv.addEventListener("pointermove", e => { if (dragSt) { const p = toXY(e); dragSt.x = ML.clamp(p.x, 40, 560); dragSt.y = ML.clamp(p.y, 40, 560); render(); } });
+  cv.addEventListener("pointerup", () => { dragSt = null; });
+  cv.addEventListener("dblclick", e => {
+    const p = toXY(e);
+    for (let i = state.stickers.length - 1; i >= 0; i--) { const s = state.stickers[i]; if (Math.abs(p.x - s.x) < 44 && Math.abs(p.y - s.y) < 44) { state.stickers.splice(i, 1); render(); break; } }
+  });
+
+  $("#srcAsset").onclick = () => { state.src = "asset"; $("#srcAsset").classList.add("sel"); $("#srcUpload").classList.remove("sel"); setAssetImage(); };
+  $("#srcUpload").onclick = () => $("#file").click();
+  $("#file").onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => ML.img(r.result).then(i => { state.src = "upload"; state.img = i; $("#srcUpload").classList.add("sel"); $("#srcAsset").classList.remove("sel"); render(); });
+    r.readAsDataURL(f);
+  };
+  $("#exprBtn").onclick = () => { exprIdx = (exprIdx + 1) % exprKeys.length; syncExpr(); setAssetImage(); sound.tap(); };
+  function syncExpr() { $$("#exprRow .ed-btn").forEach((b, i) => b.classList.toggle("sel", i === exprIdx)); }
+  $("#genBtn").onclick = () => doExport(true);
+  $("#dlBtn").onclick = () => doExport(false);
+  $("#closeResult").onclick = () => $("#resultOv").classList.add("hide");
+  $("#mName").addEventListener("input", e => { $("#workName").textContent = e.target.value || "未命名作品"; });
+
+  ML.pet().then(cfg => {
+    petCfg = cfg;
+    exprKeys = Object.keys(cfg.petExpressions).filter(k => !["sleep", "mischief"].includes(k));
+    if (cfg.customText) cfg.customText.forEach(t => PRESETS.push(t));
+    $("#exprRow").innerHTML = exprKeys.map(k => `<button class="ed-btn exp" title="${k}"><img src="${cfg.petExpressions[k]}" alt="${k}"></button>`).join("");
+    $$("#exprRow .ed-btn").forEach((b, i) => b.onclick = () => { exprIdx = i; state.src = "asset"; $("#srcAsset").classList.add("sel"); $("#srcUpload").classList.remove("sel"); syncExpr(); setAssetImage(); });
+    syncExpr(); setAssetImage();
+  });
+  render();
+})();
+</script>
+</body>
+</html>
