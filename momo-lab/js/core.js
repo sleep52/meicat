@@ -39,6 +39,21 @@ window.ML = (() => {
     tick: () => tone(880, .04, "sine", .03),
   };
 
+  // 角色层钩子：3D 宠物订阅这 8 个音效点，游戏页因此不需要改动。
+  const soundHooks = [];
+  Object.keys(sound).forEach(k => {
+    const raw = sound[k];
+    sound[k] = (...a) => {
+      const out = raw(...a);
+      soundHooks.forEach(f => { try { f(k, a[0]); } catch (e) {} });
+      return out;
+    };
+  });
+  function onSound(fn) {
+    soundHooks.push(fn);
+    return () => { const i = soundHooks.indexOf(fn); if (i >= 0) soundHooks.splice(i, 1); };
+  }
+
   const records = JSON.parse(localStorage.getItem("ml-records") || "{}");
   function record(game, score) {
     const r = records[game] || { best: 0, plays: 0 };
@@ -86,6 +101,8 @@ window.ML = (() => {
       petAvatar: "assets/pets/pet001/avatar.png",
       petExpressions: { happy: "assets/pets/pet001/happy.png", angry: "assets/pets/pet001/angry.png", surprised: "assets/pets/pet001/surprised.png", innocent: "assets/pets/pet001/innocent.png", sleep: "assets/pets/pet001/sleep.png", deadpan: "assets/pets/pet001/deadpan.png", mischief: "assets/pets/pet001/mischief.png" },
       petBackground: "assets/backgrounds/snack-room.png",
+      furColor: "#E8A857",
+      shapeParams: { headWidth: 1.05, bodyFat: 1.12, earSpread: 1 },
       petDescription: "职业拆家，业余装睡。家庭一级拆迁户。",
       gameSettings: { escape: true, chaos: true, memeMaker: true, boss: true, snackPanic: true },
       customText: ["MOMO：我真的会谢。", "本喵的饭呢？"]
@@ -95,6 +112,8 @@ window.ML = (() => {
       petAvatar: "assets/pets/pet002/avatar.jpg",
       petExpressions: { happy: "assets/pets/pet002/happy.jpg", angry: "assets/pets/pet002/angry.jpg", surprised: "assets/pets/pet002/surprised.jpg", innocent: "assets/pets/pet002/innocent.jpg" },
       petBackground: "assets/backgrounds/snack-room.png",
+      furColor: "#D8B26A",
+      shapeParams: { headWidth: 1.14, bodyFat: 1.25, earSpread: .9 },
       petDescription: "金渐层·表情管理大师·零食黑洞。",
       gameSettings: { escape: true, chaos: true, memeMaker: true, boss: true, snackPanic: true },
       customText: ["眉姐姐：你最好有事。", "人类，你解释一下。"]
@@ -110,6 +129,7 @@ window.ML = (() => {
     const out = Object.assign({}, j);
     out.petAvatar = asset(j.petAvatar);
     out.petBackground = asset(j.petBackground);
+    if (j.modelUrl) out.modelUrl = asset(j.modelUrl);
     out.petExpressions = {}; for (const k in j.petExpressions) out.petExpressions[k] = asset(j.petExpressions[k]);
     return out;
   }
@@ -202,5 +222,5 @@ window.ML = (() => {
   }
   document.addEventListener("DOMContentLoaded", chrome);
 
-  return { $, $$, clamp, rand, irand, pick, shuffle, base, asset, settings, sound, record, best, machine, bindPause, img, cut, pet, petId, shareCard, floatSticker, rr };
+  return { $, $$, clamp, rand, irand, pick, shuffle, base, asset, settings, sound, onSound, record, best, machine, bindPause, img, cut, pet, petId, shareCard, floatSticker, rr };
 })();

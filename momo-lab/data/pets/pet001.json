@@ -13,6 +13,8 @@
     "mischief": "assets/pets/pet001/mischief.png"
   },
   "petBackground": "assets/backgrounds/snack-room.png",
+  "furColor": "#E8A857",
+  "shapeParams": { "headWidth": 1.05, "bodyFat": 1.12, "earSpread": 1 },
   "petDescription": "职业拆家，业余装睡。家庭一级拆迁户。",
   "gameSettings": { "escape": true, "chaos": true, "memeMaker": true, "boss": true, "snackPanic": true },
   "customText": ["MOMO：我真的会谢。", "本喵的饭呢？"]

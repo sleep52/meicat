@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GLB 契约自检 — MOMO 事务所</title>
+<link rel="stylesheet" href="../css/base.css">
+<script type="importmap">
+{ "imports": {
+    "three": "../js/vendor/three.module.min.js",
+    "three/addons/": "../js/vendor/addons/"
+} }
+</script>
+<style>
+  .drop{border:2px dashed var(--ink);border-radius:var(--r);padding:34px 20px;text-align:center;background:var(--card);cursor:pointer}
+  .drop.on{background:var(--yel)}
+  table.chk{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px}
+  table.chk th,table.chk td{border:1.5px solid var(--ink);padding:9px 11px;text-align:left;vertical-align:top}
+  table.chk th{background:var(--pur);font-weight:800;width:26%}
+  .ok{color:#1c7a4d;font-weight:800} .no{color:#c0392b;font-weight:800}
+  .mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;word-break:break-all}
+  #preview{width:100%;height:320px;display:block;background:var(--pur);border-radius:12px}
+</style>
+</head>
+<body data-page="" data-base="../">
+
+<section class="wrap page-head">
+  <span class="label">MOMO 事务所 / 生产工具</span>
+  <h1 class="h-display" style="font-size:clamp(30px,4.4vw,52px)">GLB 契约自检</h1>
+  <p class="mut" style="margin-top:14px;max-width:60ch">把交付的 <b>.glb</b> 拖进来，浏览器本地解析，不上传。检查它是否满足
+    <a class="link-arrow" href="../docs/pet-character-spec.md">《3D 宠物角色规格》</a>里的骨骼命名、动作片段、形态键和手机性能预算。</p>
+</section>
+
+<section class="wrap" style="padding-bottom:28px">
+  <div class="drop" id="drop">
+    <b>拖入 .glb 文件</b>
+    <p class="mut" style="font-size:13px;margin-top:6px">或点这里选择文件。也可以先跑一次内置通路自检 ↓</p>
+    <input type="file" id="file" accept=".glb,.gltf" hidden>
+  </div>
+  <div class="row" style="gap:10px;margin-top:12px;flex-wrap:wrap">
+    <button class="btn small yel" id="selftest">用占位角色跑一次 GLB 通路自检</button>
+    <span class="mut" style="font-size:12px" id="selfNote">导出 → 重新加载 → 渲染，验证的是管线而不是文件</span>
+  </div>
+  <div id="out"></div>
+</section>
+
+<section class="wrap" id="pvWrap" style="padding-bottom:40px;display:none">
+  <div class="sec-head"><div class="left"><span class="sec-no">▶</span><h2 class="h2" style="font-size:22px">加载结果预览</h2></div></div>
+  <canvas id="preview"></canvas>
+  <p class="mut" style="font-size:12px;margin-top:8px" id="pvNote"></p>
+</section>
+
+<script src="../js/icons.js"></script>
+<script src="../js/core.js"></script>
+<script>
+setTimeout(() => {
+  if (window.__glbCheckBooted) return;
+  const o = document.getElementById("out");
+  if (o) o.innerHTML = '<div class="card" style="padding:16px;margin-top:16px"><b>本页需要 ES 模块</b><p class="mut" style="font-size:13px;margin-top:8px">file:// 打开会被浏览器拦掉，请用本地服务器或线上地址访问。</p></div>';
+}, 2400);
+</script>
+<script type="module">
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { audit, Pet3D, placeholderGLB, BONES, CLIPS, MORPHS } from "../js/pet3d.js";
+
+const out = document.getElementById("out");
+const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+const yes = b => b ? '<span class="ok">通过</span>' : '<span class="no">不通过</span>';
+const kb = n => Math.round(n / 1024) + " KB";
+
+function parseBuffer(buf) {
+  return new Promise((res, rej) => new GLTFLoader().parse(buf, "", res, rej));
+}
+
+function render(r, label) {
+  const list = (a) => a.length ? '<div class="mono">' + a.map(esc).join("、") + "</div>" : '<span class="mut">无</span>';
+  const rows = [
+    ["来源", esc(label) + (r.bytes ? " · " + kb(r.bytes) : "")],
+    ["骨骼命名", yes(!r.missingBones.length) + " 命中 " + r.boneHits + "/28" + (r.boneCount > 28 ? "（模型另有 " + (r.boneCount - 28) + " 个自定义节点）" : "") + (r.missingBones.length ? "<br>缺失：" + list(r.missingBones) : "")],
+    ["动作片段", yes(!r.missingClips.length) + " 命中 " + r.clipHits + "/12" + (r.clipHits ? "<br>" + list(r.clips) : "<br><span class=\"mut\">无片段：加载后由程序化动作驱动骨骼</span>")],
+    ["形态键", yes(!r.missingMorphs.length && r.morphCount <= 6) + " 数量 " + r.morphCount + (r.morphCount > 6 ? "（超预算，手机会丢键）" : "") + "<br>" + list(r.morphs)],
+    ["三角面", yes(!r.overBudget.tris) + " " + r.tris.toLocaleString() + " / 预算 20,000"],
+    ["贴图", yes(!r.overBudget.bigTex) + (r.tex.length ? r.tex.map(t => t.slot + " " + t.w + "×" + t.h).join(" · ") : "未内嵌贴图")],
+    ["体积", yes(!r.overBudget.bigFile) + (r.bytes ? kb(r.bytes) + " / 预算 1.5 MB" : "（URL 加载，体积未知）")],
+  ];
+  out.innerHTML = '<table class="chk"><tbody>' + rows.map(x => "<tr><th>" + x[0] + "</th><td>" + x[1] + "</td></tr>").join("") + "</tbody></table>";
+}
+
+async function showPreview(cfg) {
+  if (window.__pet) window.__pet.dispose();
+  const pet = new Pet3D({ canvas: document.getElementById("preview"), cfg });
+  await pet.mount();
+  window.__pet = pet;
+  document.getElementById("pvWrap").style.display = "block";
+  const s = pet.stats();
+  document.getElementById("pvNote").textContent = "渲染来源：" + s.source + " · " + s.tris.toLocaleString() + " 面 · " + s.calls + " 次绘制 · 像素比 " + s.dpr;
+  if (s.warnings && s.warnings.length) document.getElementById("pvNote").textContent += "；" + s.warnings.join("；");
+  if (s.missing.length) document.getElementById("pvNote").textContent += "；待补：" + s.missing.slice(0, 6).join("；");
+  return pet;
+}
+
+const drop = document.getElementById("drop"), file = document.getElementById("file");
+drop.onclick = () => file.click();
+["dragover", "dragenter"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("on"); }));
+["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("on"); }));
+drop.addEventListener("drop", e => { if (e.dataTransfer.files[0]) handle(e.dataTransfer.files[0]); });
+file.onchange = () => { if (file.files[0]) handle(file.files[0]); };
+
+async function handle(f) {
+  out.innerHTML = '<p class="mut" style="margin-top:14px">解析中…</p>';
+  try {
+    const buf = await f.arrayBuffer();
+    render(audit(await parseBuffer(buf), buf.byteLength), f.name);
+    await showPreview({ modelData: buf, furColor: "#E8A857" });
+  } catch (e) {
+    out.innerHTML = '<div class="card" style="padding:16px;margin-top:14px"><b class="no">解析失败</b><p class="mut" style="font-size:13px;margin-top:8px">' + esc(e.message || e) + "</p></div>";
+  }
+}
+
+document.getElementById("selftest").onclick = async () => {
+  document.getElementById("selfNote").textContent = "导出中…";
+  const buf = await placeholderGLB({});
+  render(audit(await parseBuffer(buf), buf.byteLength), "内置占位角色导出的 GLB（通路自检）");
+  await showPreview({ modelData: buf });
+  document.getElementById("selfNote").textContent = "已验证：导出 → 重新加载 → 渲染，管线本身可用";
+};
+window.__glbCheckBooted = true;
+</script>
+</body>
+</html>

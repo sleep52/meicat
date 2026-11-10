@@ -10,6 +10,8 @@
     "innocent": "assets/pets/pet002/innocent.jpg"
   },
   "petBackground": "assets/backgrounds/snack-room.png",
+  "furColor": "#D8B26A",
+  "shapeParams": { "headWidth": 1.14, "bodyFat": 1.25, "earSpread": .9 },
   "petDescription": "金渐层·表情管理大师·零食黑洞。",
   "gameSettings": { "escape": true, "chaos": true, "memeMaker": true, "boss": true, "snackPanic": true },
   "customText": ["眉姐姐：你最好有事。", "人类，你解释一下。"]
