@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#FFF8ED">
+<title>表情包制造机 · momo lab</title>
+<link rel="stylesheet" href="css/momo.css">
+</head>
+<body>
+<div class="shell game">
+  <div class="topbar">
+    <a class="icon-btn" href="momo.html" data-icon="back" aria-label="返回"></a>
+    <div class="title">表情包制造机</div>
+    <span style="width:40px;"></span>
+  </div>
+
+  <div class="card meme-preview">
+    <div class="burst" style="top:-14px;right:-10px;"><span>今日限定</span></div>
+    <img id="memeImg" data-cut src="assets/momo-cat-deadpan.png" alt="糯米无语脸">
+    <div class="meme-caption" id="caption">我真的会谢</div>
+  </div>
+
+  <h2 class="section-title">你今天想表达什么？</h2>
+  <div class="tpl-grid" id="tplGrid">
+    <button class="btn tpl-btn selected" data-i="0">我真的会谢</button>
+    <button class="btn tpl-btn" data-i="1">你最好有事</button>
+    <button class="btn tpl-btn" data-i="2">饭呢？我的饭呢？</button>
+    <button class="btn tpl-btn" data-i="3">别烦朕，退下</button>
+  </div>
+
+  <div class="action-row">
+    <button class="btn yellow" id="shuffleBtn">换一句</button>
+    <button class="btn red" id="genBtn">生成表情包</button>
+  </div>
+  <p class="page-note">生成后可以保存到手机</p>
+
+  <div class="modal hidden" id="resultModal">
+    <div class="card modal-card">
+      <h2>表情包出炉！</h2>
+      <img class="result-img" id="resultImg" alt="生成的表情包">
+      <a class="btn red big" id="downloadBtn" download="momo-lab-meme.png" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px;">保存 PNG</a>
+      <p class="page-note" style="margin-bottom:12px;">手机上也可以长按图片保存</p>
+      <button class="btn big" data-close>关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/momo-icons.js"></script>
+<script src="js/momo.js"></script>
+<script>
+(() => {
+  const CAPS = ["我真的会谢", "你最好有事", "饭呢？我的饭呢？", "别烦朕，退下"];
+  let cur = 0;
+  const caption = document.getElementById("caption");
+  const btns = [...document.querySelectorAll(".tpl-btn")];
+  const cutPromise = momoLoadCut("assets/momo-cat-deadpan.png");
+
+  function select(i) {
+    cur = i;
+    caption.textContent = CAPS[i];
+    btns.forEach((b, j) => b.classList.toggle("selected", j === i));
+    momoVibe(15);
+  }
+  btns.forEach((b) => b.addEventListener("click", () => select(+b.dataset.i)));
+  document.getElementById("shuffleBtn").addEventListener("click", () => {
+    let i = Math.floor(Math.random() * CAPS.length);
+    if (i === cur) i = (i + 1) % CAPS.length;
+    select(i);
+  });
+
+  function star(ctx, cx, cy, spikes, R, r) {
+    ctx.beginPath();
+    for (let i = 0; i < spikes * 2; i++) {
+      const rad = i % 2 === 0 ? R : r;
+      const a = Math.PI * i / spikes - Math.PI / 2;
+      const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+
+  document.getElementById("genBtn").addEventListener("click", async () => {
+    const pet = await cutPromise;
+    const W = 600, H = 760;
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#FFF8ED";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(24, 24, W - 48, H - 48);
+    ctx.strokeStyle = "#252525";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(24, 24, W - 48, H - 48);
+    ctx.drawImage(pet, 140, 70, 320, 320);
+    const text = CAPS[cur];
+    let fs = 54;
+    ctx.font = `900 ${fs}px "Microsoft YaHei", sans-serif`;
+    while (ctx.measureText(text).width > W - 100 && fs > 26) {
+      fs -= 2;
+      ctx.font = `900 ${fs}px "Microsoft YaHei", sans-serif`;
+    }
+    ctx.fillStyle = "#252525";
+    ctx.textAlign = "center";
+    ctx.fillText(text, W / 2, 500);
+    star(ctx, 480, 120, 12, 64, 42);
+    ctx.fillStyle = "#FFE66D";
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.fillStyle = "#252525";
+    ctx.font = '900 22px "Microsoft YaHei", sans-serif';
+    ctx.fillText("今日", 480, 114);
+    ctx.fillText("限定", 480, 140);
+    ctx.font = '700 20px "Microsoft YaHei", sans-serif';
+    ctx.fillText("momo lab · 小祖宗事务所", W / 2, 708);
+    const url = c.toDataURL("image/png");
+    document.getElementById("resultImg").src = url;
+    document.getElementById("downloadBtn").href = url;
+    document.getElementById("resultModal").classList.remove("hidden");
+    momoVibe(30);
+  });
+
+  const modal = document.getElementById("resultModal");
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.add("hidden"); });
+  modal.querySelector("[data-close]").addEventListener("click", () => modal.classList.add("hidden"));
+})();
+</script>
+</body>
+</html>

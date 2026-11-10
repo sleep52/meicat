@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#FFF8ED">
+<title>主人来了！ · momo lab</title>
+<link rel="stylesheet" href="css/momo.css">
+</head>
+<body>
+<div class="shell game">
+  <div class="topbar">
+    <a class="icon-btn" href="momo.html" data-icon="back" aria-label="返回"></a>
+    <div class="title">主人来了！</div>
+    <button class="icon-btn" id="pauseBtn" data-icon="pause" aria-label="暂停"></button>
+  </div>
+
+  <div class="card owner-status">
+    <div class="count-big" id="countDown">03</div>
+    <div class="status-text">主人即将抵达！</div>
+    <div class="progress"><i id="timeBar"></i></div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="floor"></div>
+    <div class="burst"><span>糟了！！</span></div>
+    <img class="char-img" id="petImg" data-cut src="assets/momo-cat-mischief.png" alt="糯米">
+    <button class="hotspot" id="hs-tissue" style="left:16px;top:26px;" aria-label="纸巾"><span data-icon="tissue"></span><span class="hs-name">纸巾</span></button>
+    <button class="hotspot" id="hs-slipper" style="right:16px;top:64px;" aria-label="拖鞋"><span data-icon="slipper"></span><span class="hs-name">拖鞋</span></button>
+    <button class="hotspot" id="hs-cushion" style="left:34px;bottom:44px;" aria-label="抱枕"><span data-icon="cushion"></span><span class="hs-name">抱枕</span></button>
+  </div>
+
+  <div class="ctrl-row">
+    <button class="btn mint" id="clean-tissue">收好纸巾</button>
+    <button class="btn yellow" id="clean-slipper">藏起拖鞋</button>
+    <button class="btn purple" id="clean-cushion">修复抱枕</button>
+  </div>
+  <button class="btn red big" id="sleepBtn">紧急装睡！</button>
+
+  <div class="overlay" id="overlay">
+    <h2 id="ovTitle">主人还有3秒到家！</h2>
+    <p id="ovText">先收拾纸巾、拖鞋、抱枕（点按钮或场景里的物品都行），收拾完立刻按「紧急装睡！」</p>
+    <button class="btn red" id="ovBtn">开始行动</button>
+  </div>
+</div>
+
+<script src="js/momo-icons.js"></script>
+<script src="js/momo.js"></script>
+<script>
+(() => {
+  const scene = document.getElementById("scene");
+  const countEl = document.getElementById("countDown");
+  const bar = document.getElementById("timeBar");
+  const sleepBtn = document.getElementById("sleepBtn");
+  const petImg = document.getElementById("petImg");
+  const overlay = document.getElementById("overlay");
+  const ovTitle = document.getElementById("ovTitle");
+  const ovText = document.getElementById("ovText");
+  const ovBtn = document.getElementById("ovBtn");
+
+  const keys = ["tissue", "slipper", "cushion"];
+  const mess = { tissue: true, slipper: true, cushion: true };
+  let t = 3, started = false, running = false, paused = false, ended = false, last = 0;
+
+  const showOv = (title, text, label, cb) => {
+    ovTitle.textContent = title;
+    ovText.textContent = text;
+    ovBtn.textContent = label;
+    ovBtn.onclick = cb;
+    overlay.classList.remove("hidden");
+  };
+  const hideOv = () => overlay.classList.add("hidden");
+  const reload = () => location.reload();
+  const allClean = () => keys.every((k) => !mess[k]);
+
+  function render() {
+    countEl.textContent = String(Math.max(0, Math.ceil(t))).padStart(2, "0");
+    bar.style.width = (Math.max(0, t) / 3 * 100) + "%";
+  }
+
+  function clean(key) {
+    if (!running || paused || ended || !mess[key]) return;
+    mess[key] = false;
+    started = true;
+    momoVibe();
+    const hs = document.getElementById("hs-" + key);
+    hs.classList.add("cleaned");
+    const btn = document.getElementById("clean-" + key);
+    btn.disabled = true;
+    btn.textContent = "✓ " + btn.textContent;
+    momoSticker(scene, "收好！", hs.offsetLeft + 14, hs.offsetTop - 12, "word");
+    if (allClean()) {
+      sleepBtn.classList.add("ready");
+      momoSticker(scene, "快装睡！", scene.clientWidth / 2 - 30, 40, "word");
+    }
+  }
+  keys.forEach((k) => {
+    document.getElementById("hs-" + k).addEventListener("click", () => clean(k));
+    document.getElementById("clean-" + k).addEventListener("click", () => clean(k));
+  });
+
+  function finish(win, text) {
+    ended = true;
+    running = false;
+    if (win) {
+      const score = 300 + Math.round(t * 100);
+      const best = momoStats.report(score);
+      if (t >= 1.5) momoStats.addTitle("影级装睡");
+      momoLoadCut("assets/momo-cat-sleep.png").then((c) => { petImg.src = c.toDataURL(); });
+      showOv("装睡成功！", text + ` 得分 ${score}，历史最高 ${best}。`, "再玩一次", reload);
+    } else {
+      showOv("被抓获！", text, "再玩一次", reload);
+    }
+  }
+
+  sleepBtn.addEventListener("click", () => {
+    if (!running || paused || ended) return;
+    momoVibe(40);
+    if (allClean()) finish(true, "主人信了！现场干净得像没养过猫。");
+    else finish(false, "还有东西没收拾就装睡，被主人当场拎起来了！");
+  });
+
+  document.getElementById("pauseBtn").addEventListener("click", () => {
+    if (!running || paused || ended) return;
+    paused = true;
+    showOv("暂停中", "主人也在门口暂停了。喝口水再回来。", "继续", () => { paused = false; hideOv(); });
+  });
+
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (!running || paused || ended) { last = ts; return; }
+    const dt = Math.min(0.05, (ts - last) / 1000);
+    last = ts;
+    if (started) {
+      t -= dt;
+      if (t <= 0) { t = 0; render(); finish(false, "手速太慢，主人进门了！下次先收拾再装睡。"); return; }
+    }
+    render();
+  }
+
+  showOv("主人还有3秒到家！", "先收拾纸巾、拖鞋、抱枕（点按钮或场景里的物品都行），收拾完立刻按「紧急装睡！」", "开始行动", () => { running = true; hideOv(); });
+  render();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

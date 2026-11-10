@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#FFF8ED">
+<title>拆家模拟器 · momo lab</title>
+<link rel="stylesheet" href="css/momo.css">
+</head>
+<body>
+<div class="shell game">
+  <div class="topbar">
+    <a class="icon-btn" href="momo.html" data-icon="back" aria-label="返回"></a>
+    <div class="title">拆家模拟器</div>
+    <button class="icon-btn" id="pauseBtn" data-icon="pause" aria-label="暂停"></button>
+  </div>
+
+  <div class="card status-card">
+    <span>破坏指数 <b id="score">0000</b></span>
+    <span>倒计时 <b class="rednum" id="time">20秒</b></span>
+  </div>
+
+  <div class="scene tall" id="scene">
+    <div class="floor"></div>
+    <img class="char-img low" data-cut src="assets/momo-cat-mischief.png" alt="糯米">
+    <button class="hotspot wide" data-item="sofa" style="left:calc(50% - 48px);top:18px;" aria-label="沙发"><span data-icon="sofa"></span><span class="hs-name">沙发</span></button>
+    <button class="hotspot" data-item="tissue" style="left:14px;top:110px;" aria-label="纸巾"><span data-icon="tissue"></span><span class="hs-name">纸巾</span></button>
+    <button class="hotspot" data-item="slipper" style="right:14px;top:120px;" aria-label="拖鞋"><span data-icon="slipper"></span><span class="hs-name">拖鞋</span></button>
+    <button class="hotspot" data-item="pot" style="right:22px;top:16px;" aria-label="花盆"><span data-icon="pot"></span><span class="hs-name">花盆</span></button>
+    <button class="hotspot" data-item="cushion" style="left:26px;bottom:36px;" aria-label="抱枕"><span data-icon="cushion"></span><span class="hs-name">抱枕</span></button>
+  </div>
+
+  <p class="hint">点击物品，制造混乱！</p>
+  <button class="btn red big" id="startBtn">开始拆迁</button>
+
+  <div class="overlay hidden" id="overlay">
+    <h2 id="ovTitle"></h2>
+    <p id="ovText"></p>
+    <button class="btn red" id="ovBtn"></button>
+  </div>
+</div>
+
+<script src="js/momo-icons.js"></script>
+<script src="js/momo.js"></script>
+<script>
+(() => {
+  const scene = document.getElementById("scene");
+  const scoreEl = document.getElementById("score");
+  const timeEl = document.getElementById("time");
+  const startBtn = document.getElementById("startBtn");
+  const overlay = document.getElementById("overlay");
+  const ovTitle = document.getElementById("ovTitle");
+  const ovText = document.getElementById("ovText");
+  const ovBtn = document.getElementById("ovBtn");
+
+  let score = 0, t = 20, running = false, paused = false, ended = false, last = 0;
+  const words = ["砰！", "哗啦！", "喵哈哈！", "啪！", "轰！"];
+  const pts = [10, 20, 30, 50];
+
+  const showOv = (title, text, label, cb) => {
+    ovTitle.textContent = title;
+    ovText.textContent = text;
+    ovBtn.textContent = label;
+    ovBtn.onclick = cb;
+    overlay.classList.remove("hidden");
+  };
+
+  startBtn.addEventListener("click", () => {
+    if (running || ended) return;
+    running = true;
+    startBtn.disabled = true;
+    startBtn.textContent = "拆迁中…";
+    momoVibe();
+  });
+
+  document.querySelectorAll(".hotspot").forEach((hs) => {
+    hs.addEventListener("click", (e) => {
+      if (!running || paused || ended) return;
+      const p = pts[Math.floor(Math.random() * pts.length)];
+      score += p;
+      scoreEl.textContent = String(score).padStart(4, "0");
+      momoVibe();
+      const rect = scene.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      momoSticker(scene, "+" + p, x - 12, y - 28, "plus");
+      momoSticker(scene, words[Math.floor(Math.random() * words.length)], x + 10, y - 46, "word");
+      momoSticker(scene, "⭐", x - 34, y - 10);
+      hs.classList.add("hit");
+      setTimeout(() => hs.classList.remove("hit"), 300);
+      const b = document.createElement("span");
+      b.className = "mini-burst";
+      b.textContent = "拆！";
+      hs.appendChild(b);
+      setTimeout(() => b.remove(), 400);
+    });
+  });
+
+  document.getElementById("pauseBtn").addEventListener("click", () => {
+    if (!running || paused || ended) return;
+    paused = true;
+    showOv("暂停中", "拆迁队休息片刻。", "继续", () => { paused = false; overlay.classList.add("hidden"); });
+  });
+
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (!running || paused || ended) { last = ts; return; }
+    const dt = Math.min(0.05, (ts - last) / 1000);
+    last = ts;
+    t -= dt;
+    if (t <= 0) {
+      t = 0;
+      ended = true;
+      running = false;
+      timeEl.textContent = "0秒";
+      startBtn.textContent = "拆迁完毕";
+      const best = momoStats.report(score);
+      if (score >= 600) momoStats.addTitle("拆迁办主任");
+      showOv("拆迁完毕！", `破坏指数 ${score}，历史最高 ${best}。主人回来记得装睡。`, "再拆一次", () => location.reload());
+      return;
+    }
+    timeEl.textContent = Math.ceil(t) + "秒";
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

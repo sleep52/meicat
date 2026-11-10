@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#FFF8ED">
+<title>小祖宗事务所 · momo lab</title>
+<link rel="stylesheet" href="css/momo.css">
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <span class="logo-paw" data-icon="paw-white"></span>
+    <div class="brand">小祖宗事务所</div>
+    <button class="icon-btn" id="settingsBtn" data-icon="gear" aria-label="设置"></button>
+  </div>
+
+  <div class="card id-card">
+    <div class="burst" style="top:-16px;right:-8px;"><span>危险分子</span></div>
+    <img class="id-photo" data-cut src="assets/momo-cat-mischief.png" alt="糯米">
+    <div class="id-info">
+      <div class="id-label">今日主角</div>
+      <div class="id-name">糯米</div>
+      <div class="id-title">家庭一级拆迁户</div>
+      <div class="id-level">LV.08</div>
+    </div>
+  </div>
+
+  <div class="announcement">
+    紧急通知！主人今天提前下班！
+    <small>预计 3 秒后抵达案发现场。</small>
+  </div>
+
+  <h2 class="section-title">今天准备闯什么祸？</h2>
+  <div class="game-grid">
+    <a class="game-card red" href="momo-owner.html">
+      <span class="gicon" data-icon="paw"></span>
+      <h3>主人来了！</h3>
+      <p>3秒内紧急装睡</p>
+    </a>
+    <a class="game-card yellow" href="momo-destroy.html">
+      <span class="gicon" data-icon="sofa"></span>
+      <h3>拆家模拟器</h3>
+      <p>今日损失谁买单？</p>
+    </a>
+    <a class="game-card mint" href="momo-snack.html">
+      <span class="gicon" data-icon="fish"></span>
+      <h3>零食大逃亡</h3>
+      <p>接住所有好吃的</p>
+    </a>
+    <a class="game-card purple" href="momo-meme.html">
+      <span class="gicon" data-icon="smile"></span>
+      <h3>表情包制造机</h3>
+      <p>今天又是什么脸？</p>
+    </a>
+  </div>
+
+  <div class="card statbar">
+    <div class="stat"><b id="bestScore">1280</b><span>最高分</span></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><b id="titleCount">3</b><span>已解锁称号</span></div>
+  </div>
+  <div class="home-note">momo lab · 今天又是哪只小祖宗？</div>
+</div>
+
+<nav class="bottom-nav">
+  <a class="active" href="momo.html"><span data-icon="home"></span>首页</a>
+  <button id="achieveBtn"><span data-icon="trophy"></span>成就</button>
+  <a href="momo-meme.html"><span data-icon="smile"></span>表情包</a>
+</nav>
+
+<div class="modal hidden" id="achieveModal">
+  <div class="card modal-card">
+    <h2>离谱称号墙</h2>
+    <div id="titleList"></div>
+    <button class="btn big" data-close>关闭</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="settingsModal">
+  <div class="card modal-card">
+    <h2>设置</h2>
+    <div class="set-row"><span>点击震动反馈</span><input type="checkbox" id="vibeToggle"></div>
+    <div class="set-row"><span>清空本机战绩</span><button class="btn" id="resetBtn">清空</button></div>
+    <p class="page-note" style="margin:12px 0;">momo lab · 战绩只保存在本机浏览器</p>
+    <button class="btn big" data-close>关闭</button>
+  </div>
+</div>
+
+<script src="js/momo-icons.js"></script>
+<script src="js/momo.js"></script>
+<script>
+(() => {
+  const s = momoStats.get();
+  document.getElementById("bestScore").textContent = s.best;
+  document.getElementById("titleCount").textContent = s.titles.length;
+
+  const list = document.getElementById("titleList");
+  list.innerHTML = MOMO_TITLES.map((t) => {
+    const on = s.titles.includes(t.name);
+    return `<div class="title-row${on ? "" : " locked"}"><span>${t.name}</span><small>${on ? "已解锁" : t.how}</small></div>`;
+  }).join("");
+
+  const open = (id) => document.getElementById(id).classList.remove("hidden");
+  const close = (m) => m.classList.add("hidden");
+  document.getElementById("achieveBtn").addEventListener("click", () => open("achieveModal"));
+  document.getElementById("settingsBtn").addEventListener("click", () => open("settingsModal"));
+  document.querySelectorAll(".modal").forEach((m) => {
+    m.addEventListener("click", (e) => { if (e.target === m) close(m); });
+    m.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => close(m)));
+  });
+
+  const vibe = document.getElementById("vibeToggle");
+  vibe.checked = s.vibe;
+  vibe.addEventListener("change", () => {
+    const st = momoStats.get();
+    st.vibe = vibe.checked;
+    momoStats.save(st);
+  });
+
+  const reset = document.getElementById("resetBtn");
+  let armed = false;
+  reset.addEventListener("click", () => {
+    if (!armed) {
+      armed = true;
+      reset.textContent = "再点一次确认";
+      setTimeout(() => { armed = false; reset.textContent = "清空"; }, 3000);
+      return;
+    }
+    localStorage.removeItem("momo-lab-stats");
+    location.reload();
+  });
+})();
+</script>
+</body>
+</html>
