@@ -89,7 +89,7 @@
         <span class="tag red">1、2、3 木头人</span>
         <h2 class="h2">偷吃木头人</h2>
         <ul class="desc">
-          <li>按住屏幕（或空格 / ↑）MOMO 就往零食碗挪；<b>松手立刻定住</b>。</li>
+          <li>按住屏幕（或空格 / ↑）MOMO 就朝零食挪；<b>松手立刻定住</b>。</li>
           <li>铲屎官背对着你时随便动；她开始回头（<b>!!</b> 预警）就得马上停。</li>
           <li>她转过来盯着你时，<b>只要还在动就被抓</b>：-1 生命、连击清零、猫退回一小段。</li>
           <li>松手有 0.12 秒的定身缓冲，贴着回头点松手也算停住。</li>
@@ -120,7 +120,7 @@
         <p class="mut" style="font-size:13px" id="endDesc"></p>
         <div class="s-stats">
           <div><b id="stScore">0</b><span>本局得分</span></div>
-          <div><b id="stBowls">0</b><span>吃到碗数</span></div>
+          <div><b id="stBowls">0</b><span>叼走零食数</span></div>
           <div><b id="stCombo">×0</b><span>最高连击</span></div>
           <div><b id="stBest">0</b><span>历史最佳</span></div>
           <div><b id="stPerfect">0</b><span>完美静止</span></div>
@@ -146,7 +146,7 @@
   <div class="s-track">
     <span class="s-note">MOMO</span>
     <div class="progress"><i id="hProg"></i></div>
-    <span class="s-note">零食碗</span>
+    <span class="s-note">零食</span>
   </div>
 
   <div class="g-actions"><span class="label">按住 = 前进 · 松手 = 定住 · 空格 / ↑ · P 暂停</span></div>
@@ -154,8 +154,9 @@
 
 <script src="../js/icons.js"></script>
 <script src="../js/core.js"></script>
+<script src="../js/cat-rig.js"></script>
 <script>
-(() => {
+(async () => {
   const { $, clamp, rand, sound } = ML;
   const cv = $("#cv"), wrap = $("#wrap"), x = cv.getContext("2d");
   const mac = ML.machine();
@@ -163,7 +164,7 @@
   /* ---------------- 数值（未做实机手感校准，见交付说明） ---------------- */
   const ROUND_TIME = 60;       // 一局秒数
   const LIVES = 3;
-  const CREEP = 0.215;         // 潜行速度：进度单位/秒（1 = 到碗边）≈ 4.6 秒纯走
+  const CREEP = 0.215;         // 潜行速度：进度单位/秒（1 = 到零食跟前）≈ 4.6 秒纯走
   const SETTLE = 0.12;         // 松手后的定身缓冲
   const LOOK_GRACE = 0.08;     // 盯视期首帧宽限
   const PERFECT_NEED = 0.25;   // 提前多久定住才算「完美静止」
@@ -194,7 +195,14 @@
   let pressure = 0, timeLeft = ROUND_TIME, elapsed = 0, tNow = 0, last = 0;
   let shake = 0, redFlash = 0, whiteFlash = 0, sweepT = 0, vign = 0;
   let parts = [], floats = [], bubble = null, bannerT = 0, stampTimer = null;
-  let petCfg = null, EXPR = {}, FUR = "#E8A857";
+  let petCfg = null, EXPR = {};
+  /* 真猫布偶 + 真物照片：IMG 在启动时一次性灌满，rigOk 决定这帧画不画猫 */
+  const IMG = {};
+  let rigOk = false, catBox = null, catP = null;
+  let walkK = 0, flinch = 0, snatch = 0;
+  const SNACKS = ["snack-platter", "snack-fish", "snack-strips", "snack-cookie", "snack-ball", "snack-kibble"];
+  let snackKey = SNACKS[0];
+  const CAT_DOT = "#A8815A";                      // 进度条上的猫点：真狸花的毛色
   const hudCache = {};
 
   /* ---------------- 尺寸 / 取景 ---------------- */
@@ -211,7 +219,7 @@
     k = clamp(H / 560, .42, 1.3);
     DW = W / k; DH = H / k; U = DH / 560;
     L.ax = DW * .10; L.ay = DH * .88;          // 猫起点
-    L.bx = DW * .74; L.by = DH * .355;         // 零食碗
+    L.bx = DW * .74; L.by = DH * .355;         // 零食目标点
     L.gt = DH * .26;                            // 墙地交界
     const t = .5, lx = lerp(L.ax, L.bx, t), ly = lerp(L.ay, L.by, t);
     L.ox = lx - 10 * U; L.oy = ly - 22 * U;     // 主人站位（略靠路径左上）
@@ -220,6 +228,23 @@
   function setScreen() { x.setTransform(dpr, 0, 0, dpr, dpr * shXv, dpr * shYv); }
   const catXY = () => ({ x: lerp(L.ax, L.bx, p), y: lerp(L.ay, L.by, p) });
   const depthSc = () => lerp(1, .6, p);
+
+  /* ---------------- 真物照片 ---------------- */
+  function loadProps() {
+    return Promise.all(SNACKS.concat(["prop-broom", "prop-vacuum"]).map(k =>
+      ML.img(ML.asset("assets/props/" + k + ".png")).then(im => { IMG[k] = im; })));
+  }
+  // 等比塞进 maxW×maxH 的盒子，中心对齐 (cx, cy)；照片缺图就什么都不画
+  function photo(key, cx, cy, maxW, maxH, rot) {
+    const im = IMG[key];
+    if (!im) return false;
+    const r = Math.min(maxW / im.width, maxH / im.height);
+    const w = im.width * r, h = im.height * r;
+    x.save(); x.translate(cx, cy); if (rot) x.rotate(rot);
+    x.drawImage(im, -w / 2, -h / 2, w, h);
+    x.restore();
+    return true;
+  }
 
   /* ---------------- 阶段机 ---------------- */
   const speedF = () => clamp(1 - (round - 1) * .05 - pressure * .12, .45, 1);
@@ -294,8 +319,9 @@
     lives--; catches++; combo = 0; pressure++;
     slide = { from: p, to: Math.max(0, p - EAT_PUSH), t: 0 };
     shake = .5; redFlash = .55; sound.bad();
+    flinch = 1;                                    // 被看到：一记挤压 + 炸毛
     say("动了！被看到了 -1 生命", "red");
-    spawnParts(catXY().x, catXY().y, "#F16D5B", 12);
+    spawnParts(catXY().x, catXY().y - 20 * U, "#F16D5B", 12);
     showStamp("surprised");
     addBubble("我看见了哦", L.ox, L.oy - 150 * U);
     enterPhase("BACK");
@@ -309,12 +335,14 @@
     sound.bonus();
     round++;
     p = 0; walkAcc = 0; slide = null;
+    snatch = 1;                                    // 叼食：低头 + 张嘴
     spawnParts(L.bx, L.by - 8 * U, "#F5E66B", 18);
     spawnParts(L.bx, L.by - 8 * U, "#F16D5B", 8);
     showStamp("happy");
     const r = wrap.getBoundingClientRect();
     ML.floatSticker(wrap, "+" + gain, r.width * .58, r.height * .32);
-    say("干掉了 " + bowls + " 碗！第 " + round + " 回合格外快", "yel");
+    snackKey = ML.pick(SNACKS);                    // 下一盘换了别的真零食
+    say("叼走了 " + bowls + " 份零食！第 " + round + " 回合格外快", "yel");
     enterPhase("BACK");
   }
 
@@ -336,7 +364,7 @@
     } else if (movingNow()) {
       p += CREEP * dt; walkAcc += CREEP * dt;
     }
-    if (p >= 1 && !slide) { p = 1; eat(); }   // 先结算「吃到碗」，再走阶段机
+    if (p >= 1 && !slide) { p = 1; eat(); }   // 先结算「叼到零食」，再走阶段机
     stepPhase(dt);
     if (mac.get() !== "PLAYING") return;       // caught() 可能已经把这局结算掉了
 
@@ -359,6 +387,10 @@
     if (sweepT > 0 && sweepT < 1) sweepT = Math.min(1, sweepT + dt * 2.6);
     vign = phase === "WARN" ? clamp(.3 + .5 * Math.abs(Math.sin(tNow * 11)), 0, 1)
       : phase === "SNAP" ? .8 : 0;
+    // 姿态强度：移动用平滑值（定住时归零，连呼吸都停），单次动作按秒衰减
+    walkK += ((movingNow() ? 1 : 0) - walkK) * (1 - Math.exp(-11 * dt));
+    flinch = Math.max(0, flinch - dt * 2.6);
+    snatch = Math.max(0, snatch - dt * 2.2);
     if (bannerT > 0 && tNow > bannerT) { $("#banner").innerHTML = ""; bannerT = 0; }
   }
   function loop(ts) {
@@ -382,7 +414,7 @@
 
     setWorld();
     drawRoom();
-    drawBowl();
+    drawSnack();
     // 纵深排序：脚位更靠上（更远）的先画
     const c = catXY();
     if (c.y >= L.oy) { drawOwner(); drawCat(c); } else { drawCat(c); drawOwner(); }
@@ -414,11 +446,20 @@
     x.beginPath(); x.moveTo(fx, fy + 56 * U); x.lineTo(fx + 92 * U, fy + 56 * U); x.stroke();
     x.strokeStyle = "rgba(34,34,34,.6)"; x.lineWidth = 3 * U;
     x.beginPath(); x.moveTo(fx + 76 * U, fy + 30 * U); x.lineTo(fx + 76 * U, fy + 46 * U); x.stroke();
-    // 操作台 + 零食罐
+    // 操作台，台面上一罐真零食
     const cx0 = DW * .62;
     x.fillStyle = "#E9D8B8"; x.strokeStyle = "#222"; x.lineWidth = 2.4 * U;
     ML.rr(x, cx0, L.gt - 52 * U, DW * .34, 52 * U, 6 * U); x.fill(); x.stroke();
-    x.fillStyle = "#DCD2F5"; ML.rr(x, cx0 + 22 * U, L.gt - 88 * U, 34 * U, 36 * U, 8 * U); x.fill(); x.stroke();
+    photo("snack-ball", cx0 + 39 * U, L.gt - 72 * U, 40 * U, 40 * U);
+    // 墙角靠着一把真扫把
+    x.save(); x.translate(DW * .93, L.gt + 34 * U); x.rotate(.15);
+    photo("prop-broom", 0, -80 * U, 74 * U, 210 * U);
+    x.restore();
+    // 前景一台扫地机器人（背对猫，看不见它偷吃）
+    x.save(); x.translate(DW * .20, DH * .965);
+    x.fillStyle = "rgba(34,34,34,.14)"; x.beginPath(); x.ellipse(0, 12 * U, 34 * U, 8 * U, 0, 0, 6.3); x.fill();
+    photo("prop-vacuum", 0, 0, 76 * U, 68 * U);
+    x.restore();
     // 地板透视砖
     x.strokeStyle = "rgba(34,34,34,.16)"; x.lineWidth = 1.6 * U;
     const vpx = (L.ax + L.bx) / 2, span = Math.ceil(DW / (120 * U)) + 2;
@@ -430,24 +471,25 @@
       const t = r / 5, yy = lerp(L.gt + 6 * U, DH + 30 * U, t * t);
       x.beginPath(); x.moveTo(-40, yy); x.lineTo(DW + 40, yy); x.stroke();
     }
-    // 潜行路径（虚线，从猫到碗）
+    // 潜行路径（虚线，从猫到零食）
     x.save();
     x.strokeStyle = "rgba(34,34,34,.22)"; x.lineWidth = 2 * U; x.setLineDash([8 * U, 10 * U]);
     x.beginPath(); x.moveTo(L.ax, L.ay + 12 * U); x.lineTo(L.bx, L.by + 12 * U); x.stroke();
     x.restore();
   }
-  function drawBowl() {
-    const sc = .62 * U, bx = L.bx, by = L.by;
-    x.save(); x.translate(bx, by); x.scale(sc / U, sc / U);
-    x.fillStyle = "rgba(34,34,34,.14)"; x.beginPath(); x.ellipse(0, 8, 34, 8, 0, 0, 6.3); x.fill();
-    x.fillStyle = "#F5E66B"; x.strokeStyle = "#222"; x.lineWidth = 3;
-    for (let i = -2; i <= 2; i++) { x.beginPath(); x.arc(i * 9, -6, 4.4, 0, 6.3); x.fill(); x.stroke(); }
-    x.beginPath(); x.moveTo(-32, 0); x.quadraticCurveTo(0, 26, 32, 0); x.closePath(); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(-32, 0); x.quadraticCurveTo(0, -12, 32, 0); x.stroke();
+  function drawSnack() {
+    const w = 50 * U, h = 44 * U;
+    x.save();
+    x.fillStyle = "rgba(34,34,34,.16)";
+    x.beginPath(); x.ellipse(L.bx, L.by + h * .42, w * .46, h * .13, 0, 0, 6.3); x.fill();
     x.restore();
-    // 碗标
+    // 每轮换一份真零食照片，缺图时退回一个小圆盘保证目标点仍可辨
+    if (!photo(snackKey, L.bx, L.by, w, h)) {
+      x.fillStyle = "#F5E66B"; x.strokeStyle = "#222"; x.lineWidth = 2.4 * U;
+      x.beginPath(); x.ellipse(L.bx, L.by, 20 * U, 13 * U, 0, 0, 6.3); x.fill(); x.stroke();
+    }
     x.save(); x.fillStyle = "#88847D"; x.font = "800 " + (10 * U).toFixed(1) + "px Arial"; x.textAlign = "center";
-    x.fillText("零食碗", bx, by + 24 * U); x.restore();
+    x.fillText("零食", L.bx, L.by + h * .72); x.restore();
   }
 
   /* ---------------- 绘制：铲屎官 ---------------- */
@@ -571,54 +613,35 @@
     x.restore();
   }
 
-  /* ---------------- 绘制：MOMO（侧视橘猫，腿部按距离走） ---------------- */
+  /* ---------------- 绘制：MOMO（真猫布偶，按纵深缩放） ---------------- */
+  // 舞台 480×560 里猫身约占 512 高；49.7 倍 sc 的盒宽正好等于旧手绘猫的 58 单位身高
+  const CAT_GW = 49.7;
   function drawCat(c) {
-    const sc = depthSc() * .95 * U;
-    const legPh = walkAcc * 26;                       // 关键：腿相位来自"走过的距离"
-    const tailSw = walkAcc * 9;
-    const breath = movingNow() ? 0 : Math.sin(tNow * 2.4) * .022;
-    x.save(); x.translate(c.x, c.y); x.scale(sc, sc);
-    x.lineJoin = "round"; x.lineCap = "round";
-    x.fillStyle = "rgba(34,34,34,.16)"; x.beginPath(); x.ellipse(2, 2, 32, 8, 0, 0, 6.3); x.fill();
-    x.scale(1 + breath, 1 - breath);
-
-    // 尾巴
-    x.strokeStyle = "#222"; x.lineWidth = 9;
-    x.beginPath(); x.moveTo(-26, -16);
-    x.quadraticCurveTo(-44, -22 + Math.sin(tailSw) * 7, -40, -42 + Math.sin(tailSw) * 7); x.stroke();
-    x.strokeStyle = FUR; x.lineWidth = 5.5; x.stroke();
-
-    // 四条腿：步进式抬起
-    const base = [[-17, -12], [-7, -12], [9, -12], [17, -12]];
-    for (let i = 0; i < 4; i++) {
-      const lift = Math.max(0, Math.sin(legPh + i * 1.57)) * (movingNow() ? 6 : 0);
-      x.fillStyle = FUR; ink(2.4);
-      ML.rr(x, base[i][0] - 3.5, -12 - lift, 7, 14, 3.2); x.fill(); x.stroke();
-    }
-    // 身体
-    x.fillStyle = FUR; ink(2.6);
-    x.beginPath(); x.ellipse(-3, -22, 22, 16, 0, 0, 6.3); x.fill(); x.stroke();
-    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(-4, -15, 12, 8, 0, 0, 6.3); x.fill();
-    x.strokeStyle = "rgba(34,34,34,.22)"; x.lineWidth = 3;
-    x.beginPath(); x.moveTo(-14, -33); x.lineTo(-10, -25); x.moveTo(-4, -36); x.lineTo(-1, -28); x.moveTo(6, -34); x.lineTo(9, -26); x.stroke();
-    // 头（略微抬起，偷偷摸摸）
-    x.fillStyle = FUR; ink(2.6);
-    x.beginPath(); x.arc(17, -35, 13, 0, 6.3); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(9, -44); x.lineTo(8, -56); x.lineTo(18, -47); x.closePath(); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(23, -45); x.lineTo(29, -55); x.lineTo(30, -42); x.closePath(); x.fill(); x.stroke();
-    x.fillStyle = "#FBD9CF";
-    x.beginPath(); x.moveTo(11, -46); x.lineTo(11, -52); x.lineTo(16, -47); x.closePath(); x.fill();
-    // 脸
-    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(21, -30, 7.5, 6, 0, 0, 6.3); x.fill();
-    const wide = phase === "LOOK" || phase === "SNAP" || phase === "WARN";
-    x.fillStyle = "#222";
-    x.beginPath(); x.arc(15, -38, wide ? 3.2 : 2.3, 0, 6.3); x.fill();
-    x.beginPath(); x.arc(24, -37, wide ? 2.8 : 2, 0, 6.3); x.fill();
-    x.fillStyle = "#F16D5B";
-    x.beginPath(); x.moveTo(28, -32); x.lineTo(31.5, -29.5); x.lineTo(27, -28.5); x.closePath(); x.fill();
-    x.strokeStyle = "rgba(34,34,34,.5)"; x.lineWidth = 1.3;
-    x.beginPath(); x.moveTo(28, -30); x.lineTo(38, -33); x.moveTo(28, -27); x.lineTo(38, -25); x.stroke();
-    x.restore();
+    if (!rigOk) return;
+    const sc = depthSc() * .95 * U, gw = CAT_GW * sc, s = gw / CatRig.STAGE_W;
+    catBox = CatRig.box(c.x - gw / 2, c.y + 2 * sc - CatRig.P_BODY.anchor[1] * s, gw);
+    catP = catPose();
+    catBox.draw(x, catP);
+  }
+  /* 偷吃节拍映射到姿态：定住时连呼吸都停，走路时身体轻晃、头先探出去 */
+  function catPose() {
+    const legPh = walkAcc * 26;                       // 关键：相位来自"走过的距离"
+    const idle = !movingNow() && !staring();          // 安全期才敢喘气，被盯时全身静止
+    const blinkPh = tNow % 3.6;
+    return CatRig.pose({
+      breathe: walkK * Math.sin(legPh * .5) * .5 + (idle ? Math.sin(tNow * 2.2) * .3 : 0),
+      bodyRot: Math.sin(legPh) * .05 * walkK,
+      bodySquash: flinch * .8 + snatch * .22,
+      headX: (14 + Math.sin(legPh * .5) * 6) * walkK,
+      headY: -3 * walkK + snatch * 30 - flinch * 6,
+      headRot: Math.sin(legPh * .5) * .05 * walkK - snatch * .1,
+      blink: staring() ? 0 : clamp(1 - Math.abs(blinkPh - .14) / .14, 0, 1),
+      mouth: clamp(snatch * 1.15 + flinch * .35, 0, 1),
+      tailRot: -.1 + flinch * .1,
+      tailWag: (Math.sin(tNow * 2.6) * .16 + Math.sin(legPh * .5) * .06) * walkK,
+      tailPuff: clamp(flinch * .9 + (staring() ? .22 : 0), 0, 1),
+      shadow: clamp(1 - flinch * .14, .8, 1.05)
+    });
   }
 
   /* ---------------- 特效 ---------------- */
@@ -686,17 +709,18 @@
     const ox = bx + bw * .5;
     x.strokeStyle = "#F16D5B"; x.lineWidth = 3;
     x.beginPath(); x.moveTo(ox, by - 5); x.lineTo(ox, by + bh + 5); x.stroke();
-    // 碗（终点）
-    x.fillStyle = "#F5E66B"; x.strokeStyle = "#222"; x.lineWidth = 2;
-    x.beginPath(); x.moveTo(bx + bw + 6, by + 4); x.lineTo(bx + bw + 20, by + 4);
-    x.quadraticCurveTo(bx + bw + 13, by + 16, bx + bw + 6, by + 4); x.fill(); x.stroke();
+    // 终点：这一轮要叼走的真零食
+    if (!photo(snackKey, bx + bw + 15, by + 9, 22, 18)) {
+      x.fillStyle = "#F5E66B"; x.strokeStyle = "#222"; x.lineWidth = 2;
+      x.beginPath(); x.arc(bx + bw + 15, by + 9, 6, 0, 6.3); x.fill(); x.stroke();
+    }
     // 猫标记
     const mx = bx + 2 + (bw - 4) * clamp(p, 0, 1);
     x.fillStyle = "#fff"; x.strokeStyle = "#222"; x.lineWidth = 2;
     x.beginPath(); x.arc(mx, by + bh / 2, 7, 0, 6.3); x.fill(); x.stroke();
-    x.fillStyle = FUR; x.beginPath(); x.arc(mx, by + bh / 2, 4, 0, 6.3); x.fill();
+    x.fillStyle = CAT_DOT; x.beginPath(); x.arc(mx, by + bh / 2, 4, 0, 6.3); x.fill();
     x.fillStyle = "#88847D"; x.font = "800 10px Arial"; x.textAlign = "left";
-    x.fillText("距离零食碗 " + Math.round(clamp(p, 0, 1) * 100) + "%", bx, by + bh + 13);
+    x.fillText("距离零食 " + Math.round(clamp(p, 0, 1) * 100) + "%", bx, by + bh + 13);
     x.textAlign = "right";
     x.fillStyle = phase === "LOOK" || phase === "SNAP" ? "#F16D5B" : "#222";
     x.font = "900 11px 'PingFang SC',Arial";
@@ -828,7 +852,7 @@
       ML.asset("assets/pets/pet001/" + exprKey + ".png");
     ML.shareCard({
       game: "偷吃木头人", petName: (petCfg && petCfg.petName) || "MOMO", rating: r, ratingColor: color,
-      score, timeText: "吃到 " + bowls + " 碗 · 被抓 " + catches + " 次 · 完美静止 " + perfects,
+      score, timeText: "叼走 " + bowls + " 份零食 · 被抓 " + catches + " 次 · 完美静止 " + perfects,
       ending: title, expr, badge: "潜行报告"
     }).then(url => { cardUrl = url; $("#endImg").src = url; $("#saveBtn").setAttribute("href", url); })
       .catch(() => { cardUrl = ""; $("#endHint").textContent = "分享卡生成失败（浏览器不允许 file:// 读取图片），可以截图保存。"; });
@@ -864,6 +888,7 @@
     pressing = false; settleT = 9; frozenFor = 9; lookMoved = false; cleanFreeze = false; warnPanicked = false;
     slide = null; parts = []; floats = []; bubble = null; cardUrl = "";
     shake = 0; redFlash = 0; whiteFlash = 0; sweepT = 0; vign = 0; faceTurn = 0;
+    walkK = 0; flinch = 0; snatch = 0; snackKey = ML.pick(SNACKS);
     $("#banner").innerHTML = ""; bannerT = 0;
     $("#startOv").classList.add("hide"); $("#pauseOv").classList.add("hide"); $("#endOv").classList.add("hide");
     $("#endImg").removeAttribute("src"); $("#saveBtn").removeAttribute("href");
@@ -887,10 +912,9 @@
   ML.bindPause(mac, togglePause);
   mac.on(st => { if (st === "FINISHED") pressing = false; });
 
-  /* ---------------- 素材（表情图仅用于贴纸 / 分享卡，画面全部程序化绘制） ---------------- */
+  /* ---------------- 素材（表情图只用于贴纸 / 分享卡；猫是真猫布偶，零食与家具是真图） ---------------- */
   ML.pet().then(cfg => {
     petCfg = cfg;
-    if (cfg.furColor) FUR = cfg.furColor;
     $("#petName").textContent = (cfg.petName || "MOMO") + " 主演";
     const ex = cfg.petExpressions || {};
     ["happy", "angry", "surprised"].forEach(key => {
@@ -905,7 +929,11 @@
 
   /* ---------------- 启动 ---------------- */
   enterPhase("BACK");
-  size(); hud(); draw();
+  size(); hud();
+  // 6 层猫部件 + 零食 / 家具照片全部到位后才画第一帧；缺图就退回只画房间
+  await CatRig.load().then(() => { rigOk = true; }).catch(() => {});
+  await loadProps().catch(() => {});
+  draw();
   last = performance.now();
   requestAnimationFrame(loop);
 
@@ -914,15 +942,25 @@
       mac: mac.get(), phase, turnKind, phaseT: Math.round(phaseT * 100) / 100, phaseD: Math.round(phaseD * 100) / 100,
       p: Math.round(p * 1000) / 1000, moving: movingNow(), frozenFor: Math.round(frozenFor * 100) / 100,
       score, combo, maxCombo, lives, round, bowls, catches, perfects, timeLeft: Math.round(timeLeft * 10) / 10,
-      speedF: Math.round(speedF() * 100) / 100, W, H, DW: Math.round(DW), DH: Math.round(DH), k: Math.round(k * 100) / 100
+      speedF: Math.round(speedF() * 100) / 100, W, H, DW: Math.round(DW), DH: Math.round(DH), k: Math.round(k * 100) / 100,
+      snack: snackKey, rig: rigOk, masks: !!(CatRig.masks && CatRig.masks.head),
+      cat: catXY(), catBox: catBox ? { gx: catBox.gx, gy: catBox.gy, gw: catBox.gw, s: catBox.s } : null
     }),
     start, reset, finish: () => { if (mac.get() === "PLAYING") finish(); },
+    step: dt => { if (mac.get() === "PLAYING") update(dt); }, render: () => draw(),
     press, release,
     setPhase: (name, kind) => { if (["BACK", "WARN", "LOOK", "SNAP"].indexOf(name) >= 0) { if (kind) turnKind = kind; enterPhase(name); } },
     setProgress: v => { p = clamp(v, 0, 1); hud(); },
     setTime: v => { timeLeft = v; hud(); },
     setLives: v => { lives = v; hud(); },
     setRound: v => { round = Math.max(1, v | 0); hud(); },
+    setSnack: k => { if (SNACKS.indexOf(k) >= 0) snackKey = k; return snackKey; },
+    snacks: SNACKS.slice(),
+    // 实时姿态 / 舞台盒 / 真剪影命中（说的是画布逻辑坐标）
+    pose: () => catP || catPose(),
+    box: () => catBox,
+    hit: (gx, gy) => { if (!catBox) return null; catP = catPose(); return catBox.hit(catP, gx, gy); },
+    partPoint: which => catBox ? catBox.at(catP || catPose(), which) : null,
   };
 })();
 </script>

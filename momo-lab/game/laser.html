@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FAF8F3">
 <title>追红点 — MOMO 事务所</title>
-<meta name="description" content="激光笔红点：它会逃，你按住它。60 秒里追上多少段，就算多少分。全程 Canvas 程序化绘制。">
+<meta name="description" content="激光笔红点：它会逃，你按住它。60 秒里追上多少段，就算多少分。猫是我家猫的真照片六层布偶，零食盘/袜子/零食袋也是真拍的；红点本身是光，仍然画。">
 <link rel="stylesheet" href="../css/base.css">
 <link rel="stylesheet" href="../css/game.css">
 <style>
@@ -93,6 +93,7 @@
           <li>连击越高它越敏捷，轨迹越来越怪：<b>直线 → 折线 → 抖动 → 瞬移</b>，迟疑圈也会越来越小。</li>
           <li>60 秒倒计时，结算看<b>得分 / 最长连击 / 总追上时长</b>，按得分评 S / A / B / C，最高分存本机。</li>
           <li>关掉顶部「动画」开关后红点不躲、不跳（无障碍模式），照常计时与结算。</li>
+          <li>猫是我家猫的<b>真照片六层布偶</b>：头跟着红点转、按住时伏低、追上就扑过去；地板上的零食盘、袜子、零食袋也是真拍的抠图。<b>红点是光，只能画</b>。</li>
         </ul>
         <div class="row"><button class="btn yel big" id="startBtn">开始追红点</button></div>
         <div class="ls-legend">
@@ -156,6 +157,7 @@
 
 <script src="../js/icons.js"></script>
 <script src="../js/core.js"></script>
+<script src="../js/cat-rig.js"></script>
 <script>
 (() => {
   const { $, clamp, rand, sound, rr, settings } = ML;
@@ -168,6 +170,7 @@
 
   /* ---------------- 规则数值 ---------------- */
   const DW = 480, DH = 600;                 // 设计坐标系，与 canvas 的 aspect-ratio 一致
+  const CATBOX = CatRig.box(-14, 300, 252); // 真猫布偶坐位：舞台 480×560 → 逻辑坐标左下角
   const ROUND_TIME = 60;
   const SEG_NEED = 0.5;                     // 累计按住 0.5 秒 = 追上 1 段 = +1 分
   const CATCH_R = 26;                       // 判定半径（设计单位，随画布等比缩放）
@@ -194,7 +197,9 @@
   const ptr = { x: DW / 2, y: DH * .7, active: false, type: "" };
   const dot = { x: DW / 2, y: DH * .68, vx: 0, vy: 0, head: -0.7, turnT: .6, tpT: 1, seed: rand(0, 6.28), slow: 0 };
   const hudCache = {};
-  let petName = "MOMO", FUR = "#E8A857", cardUrl = "";
+  let petName = "MOMO", cardUrl = "";
+  let rigReady = false;
+  const PROPS = {};                          // 真拍抠图：零食盘 / 袜子 / 零食袋
 
   try { bestCache = ML.best("laser") || 0; } catch (e) { bestCache = 0; }
 
@@ -222,7 +227,7 @@
     if (stage.clientWidth !== W) size();
     const dt = clamp((ts - last) / 1000, 0, .05); last = ts; tNow += dt;
     if (mac.get() === "PLAYING") solve(dt);
-    else { contact = false; hud(); }
+    else { contact = false; poseStep(dt); hud(); }
     if (bannerT && tNow > bannerT) { bannerEl.innerHTML = ""; bannerT = 0; }
     render();
   }
@@ -257,12 +262,92 @@
     }
 
     if (anim) stepFx(dt);
+    poseStep(dt);
     if (contact && !wasContact) sound.tap();
 
     const secBefore = Math.ceil(timeLeft + dt), secNow = Math.ceil(timeLeft);
     if (anim && timeLeft <= 10 && secNow !== secBefore && secNow >= 0) { sound.tick(); if (secNow > 0) say("最后 " + secNow + " 秒", "red"); }
     if (timeLeft <= 0) { timeLeft = 0; hud(); finish(); return; }
     hud();
+  }
+
+  /* ---------------- 真猫姿态：盯 → 伏 → 扑 ----------------
+     全部走 CatRig 的姿态字段，猫是照片布偶，不是画的；红点是光，仍然画。 */
+  const LUNGE = .46;
+  const cp = {
+    hx: 0, hy: 0, hr: 0, hs: 1, brot: 0, sq: 0, sqT: 0,
+    wag: 0, wagP: 0, puff: 0, blink: 0, blinkT: 0, nextBlink: 2.4, mouth: 0,
+    hopX: 0, hopY: 0, hopTX: 0, hopTY: 0, lux: 0, luy: 0, lunge: 0, air: 0, shakeT: 0
+  };
+  function resetPose() {
+    cp.hx = cp.hy = cp.hr = cp.brot = cp.sq = cp.sqT = 0; cp.hs = 1;
+    cp.wag = cp.puff = cp.blink = cp.blinkT = cp.mouth = 0;
+    cp.hopX = cp.hopY = cp.hopTX = cp.hopTY = cp.lux = cp.luy = cp.lunge = cp.air = cp.shakeT = 0;
+    cp.nextBlink = tNow + rand(2.4, 6);
+  }
+  function P() {
+    return CatRig.pose({
+      x: cp.hopX, y: cp.hopY,
+      breathe: settings.anim ? Math.sin(tNow * 1.7) : 0,
+      bodyRot: cp.brot, bodySquash: cp.sq,
+      headX: cp.hx, headY: cp.hy, headRot: cp.hr, headSquash: cp.hs,
+      blink: cp.blink, mouth: cp.mouth,
+      tailRot: -.06, tailWag: cp.wag, tailPuff: cp.puff,
+      shadow: clamp(1 - cp.air * .38 + cp.sq * .1, .55, 1.15)
+    });
+  }
+  // 扑击：整只猫沿「头 → 红点」的方向弹出去再弹回，位移用舞台像素，所以除以盒子缩放
+  function pounce(tx, ty) {
+    const hc = CATBOX.at(P(), "head");
+    const dx = tx - hc[0], dy = ty - hc[1], d = Math.hypot(dx, dy) || 1;
+    const m = Math.min(66, 18 + d * .18) / CATBOX.s;
+    cp.lux = dx / d * m; cp.luy = clamp(dy / d * m * .7 - 12, -48, 24);
+    cp.lunge = LUNGE; cp.mouth = 1; cp.blinkT = Math.max(cp.blinkT, .12);
+  }
+  function poseStep(dt) {
+    const anim = settings.anim;
+    const k = 1 - Math.exp(-9 * dt), ks = 1 - Math.exp(-12 * dt);
+    // 头颈追踪红点：偏移上限按布偶自身的比例给，远处才扭满
+    const hc = CATBOX.at(P(), "head");
+    const dx = dot.x - hc[0], dy = dot.y - hc[1];
+    const want = clamp(Math.hypot(dx, dy) / 230, 0, 1);
+    const tx = clamp(dx / 200, -1, 1), ty = clamp(dy / 200, -1, 1);
+    cp.hx += (tx * 30 * want - cp.hx) * k;
+    cp.hy += (ty * 20 * want - 4 - cp.hy) * k;
+    cp.hr += (tx * .26 - cp.hr) * k;
+    cp.brot += (tx * .08 + (contact ? .05 : 0) - cp.brot) * k;
+    if (cp.shakeT > 0) { cp.shakeT -= dt; cp.hr += Math.sin(tNow * 26) * .11 * cp.shakeT; }
+
+    if (cp.lunge > 0) {
+      cp.lunge = Math.max(0, cp.lunge - dt);
+      const p = 1 - cp.lunge / LUNGE, f = Math.sin(p * Math.PI);
+      cp.air = f;
+      cp.hopTX = cp.lux * f; cp.hopTY = cp.luy * f;
+      // 蓄力压低 → 弹射拉长 → 落地拍扁
+      cp.sqT = p < .25 ? .6 : p < .55 ? -.45 : .8 * (1 - (p - .55) / .45);
+      cp.hs = p < .55 ? 1.06 : .95;
+    } else {
+      cp.air = 0; cp.hopTX = 0; cp.hopTY = 0;
+      cp.sqT = clamp(catR * .5 + (dot.slow ? .28 : 0), 0, .55);   // 按住时伏低身子
+      cp.hs = 1;
+    }
+    cp.sq += (cp.sqT - cp.sq) * ks;
+    cp.hopX += (cp.hopTX - cp.hopX) * ks;
+    cp.hopY += (cp.hopTY - cp.hopY) * ks;
+
+    if (!anim) { cp.wag = cp.puff = cp.mouth = 0; cp.blink = contact ? .45 : 0; return; }
+    cp.wagP += dt * (1.6 + agility() * .5 + (dot.slow ? 5 : 0) + (contact ? 3 : 0));
+    cp.wag = Math.sin(cp.wagP) * (.14 + agility() * .012 + (dot.slow ? .12 : 0));
+    cp.puff += ((combo >= 4 ? .3 : 0) + (cp.shakeT > 0 ? .5 : 0) - cp.puff) * (1 - Math.exp(-4 * dt));
+    cp.mouth = Math.max(0, cp.mouth - dt * 2.6);
+    if (cp.blinkT > 0) {
+      cp.blinkT -= dt;
+      cp.blink = clamp(1 - Math.abs(cp.blinkT / .16 - .5) * 2, 0, 1);
+    } else {
+      cp.blink = 0;
+      if (tNow > cp.nextBlink) { cp.nextBlink = tNow + rand(2.4, 6); cp.blinkT = .16; }
+    }
+    if (contact) cp.blink = Math.max(cp.blink, .42);
   }
 
   function moveDot(dt) {
@@ -377,6 +462,7 @@
     }
     if (combo === 2 || combo === 4 || combo === 6) say("它开始" + PAT_NAME[patternNow()] + "了！手别停", "yel");
     else if (combo % 4 === 0) say("连击 ×" + combo + " · 敏捷 " + Math.round(speedNow()), "mint");
+    if (settings.anim) pounce(dot.x, dot.y);   // 追上就先扑向老位置，再跳走
     if (settings.anim) teleport(true);      // 无障碍模式下红点保持静止
     hud();
   }
@@ -386,6 +472,7 @@
     combo = 0; comboT = 0; comboMax = 0; segT = 0;
     misses++;
     sound.bad(); redFlash = .5; shake = .5;
+    cp.shakeT = .5; cp.lunge = 0; cp.mouth = 0;   // 跟丢了：甩头 + 炸一下毛
     if (settings.anim) {
       spawnParts(dot.x, dot.y, "#8A8378", 9);
       floats.push({ t: "跟丢了", x: dot.x, y: dot.y - 32, life: 1, c: "#F16D5B" });
@@ -416,7 +503,7 @@
     catR += ((contact ? 1 : 0) - catR) * (1 - Math.exp(-9 * dt));
   }
 
-  /* ---------------- 绘制（全部程序化，不加载任何图片） ---------------- */
+  /* ---------------- 绘制：场景底色仍是画的，凡是能对上实物的都用真图 ---------------- */
   function render() {
     const anim = settings.anim;
     shX = anim && shake > 0 ? rand(-3, 3) * shake : 0;
@@ -439,20 +526,6 @@
     const g = x.createLinearGradient(0, 0, 0, 150);
     g.addColorStop(0, "#F8F4EC"); g.addColorStop(1, "#F1E9DA");
     x.fillStyle = g; x.fillRect(-12, -12, DW + 24, 164);
-    // 墙上的画框
-    x.fillStyle = "#EAF1F5"; x.strokeStyle = "#222"; x.lineWidth = 3;
-    rr(x, 296, 44, 108, 66, 6); x.fill(); x.stroke();
-    x.fillStyle = "#DCD2F5"; rr(x, 308, 58, 84, 38, 4); x.fill();
-    x.fillStyle = "#BFE4D0"; x.beginPath(); x.arc(330, 82, 9, 0, 6.3); x.fill();
-    x.strokeStyle = "rgba(34,34,34,.45)"; x.lineWidth = 2;
-    x.beginPath(); x.moveTo(352, 92); x.lineTo(384, 66); x.stroke();
-    // 猫抓板
-    x.save(); x.translate(206, 58);
-    x.fillStyle = "#E9D8B8"; x.strokeStyle = "#222"; x.lineWidth = 2.6;
-    rr(x, 0, 0, 54, 56, 6); x.fill(); x.stroke();
-    x.strokeStyle = "rgba(34,34,34,.3)"; x.lineWidth = 2;
-    for (let i = 1; i < 6; i++) { x.beginPath(); x.moveTo(i * 9, 7); x.lineTo(i * 9, 49); x.stroke(); }
-    x.restore();
     // 踢脚线
     x.fillStyle = "#E2D4BA"; x.fillRect(-12, 138, DW + 24, 16);
     x.strokeStyle = "rgba(34,34,34,.5)"; x.lineWidth = 2;
@@ -486,73 +559,23 @@
     }
   }
   function drawProps() {
-    // 食盆
-    x.save(); x.translate(424, 208);
-    x.fillStyle = "rgba(34,34,34,.13)"; x.beginPath(); x.ellipse(0, 14, 30, 8, 0, 0, 6.3); x.fill();
-    x.fillStyle = "#F5E66B"; x.strokeStyle = "#222"; x.lineWidth = 2.6;
-    x.beginPath(); x.moveTo(-26, -2); x.quadraticCurveTo(0, 22, 26, -2); x.closePath(); x.fill(); x.stroke();
-    x.beginPath(); x.ellipse(0, -2, 26, 8, 0, 0, 6.3); x.fill(); x.stroke();
-    x.restore();
-    // 拖鞋
-    x.save(); x.translate(438, 508); x.rotate(-.22);
-    x.fillStyle = "#F16D5B"; x.strokeStyle = "#222"; x.lineWidth = 2.6;
-    rr(x, -22, -36, 44, 72, 20); x.fill(); x.stroke();
-    x.fillStyle = "#FFF6E6"; rr(x, -19, -32, 38, 18, 9); x.fill(); x.stroke();
+    // 原来手画的食盆/拖鞋，换成真拍的零食盘、零食袋、袜子（按图片自身比例画）
+    prop(PROPS.platter, 420, 212, 96, 0);
+    prop(PROPS.pillow, 288, 352, 124, -.05);
+    prop(PROPS.socks, 438, 520, 66, -.22);
+  }
+  function prop(im, cx, cy, w, rot) {
+    if (!im) return;
+    const h = w * im.height / im.width;
+    x.save(); x.translate(cx, cy); x.rotate(rot || 0);
+    x.fillStyle = "rgba(34,34,34,.12)";
+    x.beginPath(); x.ellipse(0, h * .46, w * .42, h * .08, 0, 0, 6.3); x.fill();
+    x.drawImage(im, -w / 2, -h / 2, w, h);
     x.restore();
   }
   function drawCat() {
-    const anim = settings.anim;
-    const CX = 92, CY = 508, HY = CY - 92;
-    const lookX = clamp((dot.x - CX) / 260, -1, 1);
-    const lookY = clamp((dot.y - HY) / 260, -1, 1);
-    const tw = anim ? Math.sin(tNow * (2 + agility() * .45)) * 16 : 0;
-    const paw = catR;
-    x.save(); x.translate(CX, CY);
-    x.lineJoin = "round"; x.lineCap = "round";
-    x.fillStyle = "rgba(34,34,34,.14)"; x.beginPath(); x.ellipse(0, 6, 52, 11, 0, 0, 6.3); x.fill();
-    // 尾巴（连击越高甩得越快）
-    x.strokeStyle = "#222"; x.lineWidth = 12;
-    x.beginPath(); x.moveTo(32, -6); x.quadraticCurveTo(66, -16 + tw, 58, -50 + tw); x.stroke();
-    x.strokeStyle = FUR; x.lineWidth = 8; x.stroke();
-    // 身体
-    x.fillStyle = FUR; x.strokeStyle = "#222"; x.lineWidth = 3;
-    x.beginPath(); x.moveTo(-34, 0); x.quadraticCurveTo(-32, -74, 0, -80); x.quadraticCurveTo(32, -74, 34, 0); x.closePath(); x.fill(); x.stroke();
-    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(0, -26, 16, 24, 0, 0, 6.3); x.fill();
-    // 左前爪
-    x.fillStyle = FUR; x.strokeStyle = "#222"; x.lineWidth = 2.8;
-    rr(x, -32, -16, 22, 32, 10); x.fill(); x.stroke();
-    // 右前爪：跟住红点时拍出去
-    x.save(); x.translate(8, -20); x.rotate(-.45 * paw); x.translate(paw * 30, -paw * 26);
-    rr(x, 0, 0, 22, 32, 10); x.fill(); x.stroke();
-    x.fillStyle = "#FBD9CF"; x.beginPath(); x.arc(11, 27, 5, 0, 6.3); x.fill(); x.stroke();
-    x.restore();
-    // 头：朝红点偏，瞳孔跟着红点
-    x.save(); x.translate(clamp((dot.x - CX) / 30, -7, 7), -92 + clamp((dot.y - HY) / 40, -5, 7)); x.rotate(lookX * .1);
-    x.fillStyle = FUR; x.strokeStyle = "#222"; x.lineWidth = 3;
-    x.beginPath(); x.arc(0, 0, 32, 0, 6.3); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(-26, -14); x.lineTo(-32, -40); x.lineTo(-8, -28); x.closePath(); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(26, -14); x.lineTo(32, -40); x.lineTo(8, -28); x.closePath(); x.fill(); x.stroke();
-    x.fillStyle = "#FBD9CF";
-    x.beginPath(); x.moveTo(-24, -18); x.lineTo(-28, -34); x.lineTo(-13, -24); x.closePath(); x.fill();
-    x.beginPath(); x.moveTo(24, -18); x.lineTo(28, -34); x.lineTo(13, -24); x.closePath(); x.fill();
-    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(0, 8, 19, 14, 0, 0, 6.3); x.fill();
-    const px = lookX * 4, py = lookY * 3, ew = contact ? 5.2 : 4, eh = contact ? 7 : 5;
-    x.fillStyle = "#222";
-    x.beginPath(); x.ellipse(-11 + px, -4 + py, ew, eh, 0, 0, 6.3); x.fill();
-    x.beginPath(); x.ellipse(11 + px, -4 + py, ew, eh, 0, 0, 6.3); x.fill();
-    x.fillStyle = "#fff";
-    x.beginPath(); x.arc(-13 + px, -6 + py, 1.6, 0, 6.3); x.fill();
-    x.beginPath(); x.arc(9 + px, -6 + py, 1.6, 0, 6.3); x.fill();
-    x.fillStyle = "#F16D5B"; x.beginPath(); x.moveTo(0, 6); x.lineTo(4.5, 10.5); x.lineTo(-4.5, 10.5); x.closePath(); x.fill();
-    x.strokeStyle = "rgba(34,34,34,.7)"; x.lineWidth = 2;
-    x.beginPath(); x.moveTo(0, 11); x.quadraticCurveTo(contact ? 6 : 3, contact ? 19 : 14, 8, 13); x.stroke();
-    x.strokeStyle = "rgba(34,34,34,.4)"; x.lineWidth = 1.6;
-    x.beginPath();
-    x.moveTo(-15, 9); x.lineTo(-31, 5); x.moveTo(-15, 13); x.lineTo(-31, 16);
-    x.moveTo(15, 9); x.lineTo(31, 5); x.moveTo(15, 13); x.lineTo(31, 16);
-    x.stroke();
-    x.restore();
-    x.restore();
+    // 真猫的六层照片布偶：眼神、头颈、扑击全由 P() 的姿态字段驱动
+    if (rigReady) CATBOX.draw(x, P());
   }
   function drawTrail() {
     for (let i = 0; i < trail.length; i++) {
@@ -581,6 +604,7 @@
     x.restore();
   }
   function drawDot() {
+    // 红点是激光笔的光斑，不是实物：没有对应真图，按约定继续用画的辉光
     const pulse = settings.anim ? 1 + Math.sin(tNow * 13) * .07 : 1;
     const R = 30 * pulse;
     const g = x.createRadialGradient(dot.x, dot.y, 1, dot.x, dot.y, R);
@@ -786,6 +810,7 @@
     parts.length = 0; floats.length = 0; trail.length = 0;
     dot.x = DW / 2; dot.y = DH * .68; dot.vx = 0; dot.vy = 0;
     dot.head = rand(0, 6.283); dot.turnT = rand(.3, .8); dot.tpT = rand(.8, 1.4); dot.slow = 0;
+    resetPose();
     bannerEl.innerHTML = ""; bannerT = 0;
     $("#startOv").classList.add("hide"); $("#pauseOv").classList.add("hide"); $("#endOv").classList.add("hide");
     $("#endImg").removeAttribute("src"); $("#saveBtn").removeAttribute("href");
@@ -816,10 +841,9 @@
     if (st !== "PLAYING") { pressing = false; contact = false; hud(); }
   });
 
-  /* ---------------- 宠物配置（只取名字与毛色，画面仍全程序化） ---------------- */
+  /* ---------------- 宠物配置：只取名字，画面用的是真图布偶 ---------------- */
   ML.pet().then(cfg => {
     if (cfg && cfg.petName) petName = cfg.petName;
-    if (cfg && cfg.furColor) FUR = cfg.furColor;
     $("#lsName").textContent = petName + " 主演";
   }).catch(() => {});
 
@@ -827,10 +851,26 @@
   window.addEventListener("orientationchange", size);
   if (window.ResizeObserver) { try { new ResizeObserver(size).observe(stage); } catch (e) {} }
 
-  /* ---------------- 启动 ---------------- */
+  /* ---------------- 启动：先把真猫和真图道具就位，再开第一帧 ---------------- */
+  function loadProps() {
+    return Promise.all([
+      ["platter", "assets/props/snack-platter.png"],
+      ["pillow", "assets/props/prop-pillow.png"],
+      ["socks", "assets/props/prop-socks.png"]
+    ].map(([k, p]) => ML.img(ML.asset(p)).then(im => { PROPS[k] = im; }).catch(() => {})));
+  }
   size(); hud();
-  last = performance.now();
-  requestAnimationFrame(loop);
+  CatRig.load().then(loadProps).then(() => {
+    rigReady = true;
+    size(); hud();
+    last = performance.now();
+    requestAnimationFrame(loop);
+  }).catch(err => {
+    say("真猫的 6 层部件图没读到：" + (err && err.message || err) + "。请确认 assets/pets/realcat/ 下的图都在，并用本地服务器打开本页。", "red");
+    $("#lsName").textContent = "布偶图缺失";
+    last = performance.now();
+    requestAnimationFrame(loop);
+  });
 
   /* ---------------- 调试钩子 ---------------- */
   window.__laserDebug = {
@@ -844,8 +884,16 @@
       dot: { x: r1(dot.x), y: r1(dot.y) },
       ptr: { x: r1(ptr.x), y: r1(ptr.y), active: ptr.active },
       zone: { catchR: CATCH_R, hesR: r1(hesR()), fleeR: r1(fleeR()) },
+      rig: { ready: rigReady, lunge: r2(cp.lunge), air: r2(cp.air), headX: r1(cp.hx), headY: r1(cp.hy),
+        headRot: r2(cp.hr), bodySquash: r2(cp.sq), tailWag: r2(cp.wag), tailPuff: r2(cp.puff),
+        blink: r2(cp.blink), mouth: r2(cp.mouth), hopX: r1(cp.hopX), hopY: r1(cp.hopY) },
       W, H, DW, DH, fit: r2(fit)
     }),
+    pose: () => P(),
+    catBox: () => CATBOX,
+    // 逻辑坐标 -> 摸到的是哪个部位（head/tail/body/paw/null），用的是真剪影蒙版
+    catHit: (wx, wy) => (rigReady ? CATBOX.hit(P(), wx, wy) : null),
+    pounce: (wx, wy) => { pounce(wx === undefined ? dot.x : wx, wy === undefined ? dot.y : wy); return { lunge: cp.lunge }; },
     solve, render, start, reset, hit, miss, finish,
     step: (n = 1, dt = 1 / 60) => { for (let i = 0; i < n; i++) solve(dt); return score; },
     end: () => { if (mac.get() !== "PLAYING") { reset(); mac.set("PLAYING"); } finish(); return score; },

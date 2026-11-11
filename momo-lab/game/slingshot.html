@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FAF8F3">
 <title>弹弓喂猫 — MOMO 事务所</title>
-<meta name="description" content="按住零食往后拉、松手发射，抛物线要准，还要等猫张嘴的那一下：喂到加分、打翻东西扣分并累计拆家值。">
+<meta name="description" content="按住真零食照片往后拉、松手发射，抛物线要准，还要等你家猫布偶张嘴的那一下：喂到加分、打翻东西扣分并累计拆家值。">
 <link rel="stylesheet" href="../css/base.css">
 <link rel="stylesheet" href="../css/game.css">
 <style>
@@ -66,7 +66,7 @@
   <div class="banner" id="banner"></div>
 
   <div class="sl-stage" id="stage">
-    <canvas id="cv" width="480" height="640" aria-label="弹弓喂猫现场：下方弹弓，上方来回走动的猫"></canvas>
+    <canvas id="cv" width="480" height="640" aria-label="弹弓喂猫现场：下方弹弓装真零食照片，上方是真猫布偶在猫跳板上走动并张嘴"></canvas>
 
     <div class="ov" id="startOv">
       <div class="panel">
@@ -76,9 +76,10 @@
           <li>按住画面<b>把零食往后拖</b>：拖得越远初速度越大，拖的方向就是发射的反方向。</li>
           <li>松手才发射。虚线只画出<b>前 0.3 秒</b>的轨迹，后面全凭手感。</li>
           <li>零食走真实抛物线（重力 + 可选空气阻力），撞墙撞天花板会<b>反弹</b>。</li>
-          <li>MOMO 在猫跳板上散步、突然加速、还会回头。<b>只有张嘴的窗口期命中才算喂到</b>，闭嘴打上去一律弹开不算分。</li>
-          <li>飘过的气球、晾衣绳上的袜子、地板上的扫地机器人都会挡住零食。</li>
-          <li>打翻<b>花瓶 -60</b>、<b>水杯 -45</b>，并累计拆家值；拆家到 4 件以上它会越走越慌。</li>
+          <li>MOMO 是<b>你家猫的实拍分层布偶</b>（6 张真图拼的）：它在猫跳板上散步、突然加速、还会回头，头会追着飞起来的零食转。<b>只有张嘴的窗口期命中才算喂到</b>，闭嘴打上去一律弹开不算分。</li>
+          <li>弹药是<b>真零食照片</b>：猫粮、小鱼干、肉条、饼干、玩具鱼……每发随机换一种。</li>
+          <li>飘过来的<b>零食袋</b>、晾衣绳上的<b>真袜子照片</b>、地板上的<b>扫地机器人</b>都会挡住零食。</li>
+          <li>打翻<b>洗衣液 -60</b>、<b>吹风机 -45</b>，并累计拆家值；拆家到 4 件以上它会越走越慌。</li>
           <li>60 秒。喂到 +100×连击倍率，卡准刚张嘴的瞬间 +60，反弹入嘴 +40。</li>
         </ul>
         <div class="row"><button class="btn yel big" id="startBtn">上弹弓</button></div>
@@ -140,6 +141,7 @@
 
 <script src="../js/icons.js"></script>
 <script src="../js/core.js"></script>
+<script src="../js/cat-rig.js"></script>
 <script>
 (() => {
   "use strict";
@@ -161,13 +163,55 @@
   const FLOOR = 606, CEIL = 16, WALL_L = 12, WALL_R = 468;
   const LEDGE = 214;                   // 猫跳板表面 y（也是猫脚基准）
   const ROPE_Y = 288;                  // 晾衣绳
-  const SNACK_R = 8, MOUTH_R = 18;     // 零食半径 / 嘴部命中半径
+  const SNACK_R = 8, SNACK_DRAW = 26, MOUTH_R = 18;  // 零食判定半径 / 真图长边 / 嘴部命中半径
   const WALL_REST = .55, FLOOR_REST = .4;
   const RELOAD = .26;                  // 上膛间隔
   const BASE = 100, PERFECT_B = 60, BANK_B = 40, PERFECT_T = .3, MAX_MULT = 3;
   const PANIC_AT = 4;                  // 拆家值到多少猫开始慌
   const CAT_MIN = 70, CAT_MAX = 410;
-  const BALLOON_MIN = 352, BALLOON_MAX = 402;
+  const PILLOW_MIN = 352, PILLOW_MAX = 402;
+  const ROBOT_W = 62, ROBOT_TOP = FLOOR - 54;        // 真图扫地机器人：宽 62，顶面 y
+
+  /* 真猫布偶：480×560 舞台，猫脚落在舞台 y=528，把脚钉在猫跳板上 */
+  const RIG = { gw: 108, feet: 528 };
+  const RIG_S = RIG.gw / CatRig.STAGE_W;             // 舞台像素 → 世界像素
+  const RIG_GY = LEDGE - RIG.feet * RIG_S;
+  const MOUTH_L = [250, 408];          // head 图上张嘴中心的像素坐标，命中圈挂在这
+
+  /* ---------------- 实拍素材（assets/props 抠图，开屏一次性加载） ---------------- */
+  const ART_SRC = {
+    snackKibble: "assets/props/snack-kibble.png",
+    snackFish: "assets/props/snack-fish.png",
+    snackCookie: "assets/props/snack-cookie.png",
+    snackStrips: "assets/props/snack-strips.png",
+    snackBall: "assets/props/snack-ball.png",
+    snackDrop: "assets/props/snack-dropball.png",
+    snackPlatter: "assets/props/snack-platter.png",
+    snackToy: "assets/props/snack-toyfish.png",
+    pillow: "assets/props/prop-pillow.png",
+    socks: "assets/props/prop-socks.png",
+    vacuum: "assets/props/prop-vacuum.png",
+    detergent: "assets/props/prop-detergent.png",
+    hairdryer: "assets/props/prop-hairdryer.png",
+    frame: "assets/pets/pet001/avatar.png"      // 墙上相框：真猫照片
+  };
+  const SNACK_ART = ["snackKibble", "snackFish", "snackCookie", "snackStrips", "snackBall", "snackDrop", "snackPlatter", "snackToy"];
+  const ART = {}, artFailed = [];
+  function loadArt() {
+    return Promise.all(Object.keys(ART_SRC).map(k =>
+      ML.img(ML.asset(ART_SRC[k])).then(im => { ART[k] = im; }, () => { ART[k] = null; artFailed.push(k); })));
+  }
+  /* 等比塞进 bw×bh 的盒子，中心对齐 (cx,cy)；图没到位返回 false 由调用方走极简兜底 */
+  function blit(key, cx, cy, bw, bh, rot, alpha) {
+    const im = ART[key];
+    if (!im) return false;
+    const sc = Math.min(bw / im.width, bh / im.height), w = im.width * sc, h = im.height * sc;
+    x.save(); x.translate(cx, cy); if (rot) x.rotate(rot);
+    if (alpha !== undefined) x.globalAlpha = alpha;
+    x.drawImage(im, -w / 2, -h / 2, w, h);
+    x.restore();
+    return true;
+  }
 
   /* ---------------- 运行时 ---------------- */
   let W = 0, H = 0, dpr = 1, kx = 1, ky = 1, shX = 0, shY = 0;
@@ -179,7 +223,8 @@
   const kb = { on: false, ang: 62, pow: .85 };
   const hudCache = {};
   let parts = [], floats = [];
-  let petCfg = null, FUR = "#E8A857";
+  let petCfg = null, rigOk = false, rigErr = "";
+  let curPose = null, curBox = null;   // 每帧算一次的布偶姿态与坐标盒
 
   /* ---------------- 尺寸 ---------------- */
   function size() {
@@ -200,16 +245,97 @@
     return { x: (e.clientX - r.left) / (r.width || 1) * DW, y: (e.clientY - r.top) / (r.height || 1) * DH };
   }
 
-  /* ---------------- 猫 ---------------- */
+  /* ---------------- 猫（真猫布偶） ---------------- */
   const cat = {
     x: 240, dir: 1, speed: 58, st: "walk", t: 0, dur: 1.8,
-    mouth: 0, open: false, openT: 0, next: 1.1, eatT: 0, blink: 0, nextBlink: 3, flick: 0
+    mouth: 0, open: false, openT: 0, next: 1.1, eatT: 0, blink: 0, nextBlink: 3, flick: 0,
+    hx: 0, hy: 0, hr: 0,       // 头颈当前偏移/歪头（世界→舞台像素）
+    popT: 9,                   // 接住瞬间的挤压弹簧计时
+    sulk: 0,                  // 没吃上：别过头 + 半闭眼
+    wag: .22, puff: 0
   };
   const CAT_STATE = { walk: "散步", dash: "加速", pause: "停下", turn: "回头" };
-  const mouthPos = () => ({ x: cat.x + cat.dir * 30, y: LEDGE - 46 });
-  const headPos = () => ({ x: cat.x + cat.dir * 20, y: LEDGE - 58 });
-  const bodyPos = () => ({ x: cat.x - cat.dir * 2, y: LEDGE - 26 });
+
+  function catPose() {
+    const sq = settings.anim && cat.popT < 2.2 ? Math.exp(-cat.popT * 5.5) * Math.cos(cat.popT * 19) : 0;
+    const bl = cat.blink > 0 ? Math.sin(Math.PI * clamp(cat.blink / .14, 0, 1)) : 0;
+    const sulk = clamp(cat.sulk / .5, 0, 1);
+    const breathe = settings.anim ? Math.sin(tNow * (1.7 + cat.wag * 1.6 + destruction * .12)) : 0;
+    return CatRig.pose({
+      breathe,
+      bodySquash: clamp(sq * .55, -.3, .6),
+      headX: cat.hx, headY: cat.hy,
+      headRot: cat.hr - sulk * .3,
+      headSquash: clamp(1 + sq * .3, .8, 1.25),
+      blink: clamp(Math.max(bl, cat.eatT > 0 ? .8 : 0, sulk * .75), 0, 1),
+      mouth: cat.mouth,
+      tailRot: -.1 + cat.flick * .12,
+      tailWag: (settings.anim ? Math.sin(tNow * (2.1 + cat.wag * 2.6)) : 0) * (cat.wag + sulk * .1),
+      tailPuff: clamp(cat.puff + (destruction >= PANIC_AT ? .45 : 0), 0, 1),
+      shadow: clamp(1 - sq * .18, .78, 1.1)
+    });
+  }
+  /* 姿态与坐标盒每帧只算一次：命中判定、绘制、飘字都读同一份 */
+  function syncRig() {
+    curPose = catPose();
+    curBox = CatRig.box(cat.x - RIG.gw / 2, RIG_GY, RIG.gw);
+  }
+  function rigBox() { return curBox || (syncRig(), curBox); }
+  /* 嘴 = 头锚点（图片 anchor 永远落在 at+头位移上）+ 图上偏移，跟着头的旋转/挤压一起走 */
+  function mouthPos() {
+    const P = rigPose(), b = rigBox(), PH = CatRig.P_HEAD;
+    const br = 1 + .018 * P.breathe;
+    const ox = (MOUTH_L[0] - PH.anchor[0]) * PH.s * P.headSquash;
+    const oy = (MOUTH_L[1] - PH.anchor[1]) * PH.s * (2 - P.headSquash) * br;
+    const ca = Math.cos(P.headRot), sa = Math.sin(P.headRot);
+    const base = b.p(PH.at[0] + P.headX, PH.at[1] + P.headY, P);
+    return { x: base[0] + (ox * ca - oy * sa) * b.s, y: base[1] + (ox * sa + oy * ca) * b.s };
+  }
+  function headPos() { const P = rigPose(); return { x: rigBox().at(P, "head")[0], y: rigBox().at(P, "head")[1] }; }
+  function bodyPos() { const P = rigPose(); return { x: rigBox().at(P, "body")[0], y: rigBox().at(P, "body")[1] }; }
+  function rigPose() { return curPose || (syncRig(), curPose); }
   const mouthOpen = () => cat.mouth >= .5;
+
+  /* 分享卡上的猫：直接拿布偶离线渲一张，姿势写死，与动画时刻无关 */
+  function rigSnapshot(naughty) {
+    if (!rigOk) return "";
+    const c = document.createElement("canvas");
+    c.width = 260; c.height = 283;
+    try {
+      const P = CatRig.pose(naughty
+        ? { mouth: .25, headRot: -.14, tailRot: .2, tailPuff: .9, tailWag: .3, breathe: .4, shadow: .9 }
+        : { mouth: .85, headRot: .06, tailWag: .8, breathe: .6, shadow: .9 });
+      CatRig.box(10, 1, 240).draw(c.getContext("2d"), P);
+      return c.toDataURL("image/png");
+    } catch (e) { return ""; }
+  }
+
+  /* 头跟着飞行中的零食转：只追一半，留出手感；没零食可追就回中 */
+  function stepLook(dt) {
+    let tx = 0, ty = 0;
+    const m = mouthPos();
+    let best = null, bd = 1e9;
+    for (let i = 0; i < snacks.length; i++) {
+      const s = snacks[i];
+      if (s.dead || s.stuck > 0) continue;
+      const d = Math.hypot(s.x - m.x, s.y - m.y);
+      if (d < bd) { bd = d; best = s; }
+    }
+    if (best && bd < 300) {
+      tx = clamp((best.x - m.x) / RIG_S * .42, -46, 46);
+      ty = clamp((best.y - m.y) / RIG_S * .3, -40, 22);
+    } else if (best && bd < 480) {
+      tx = clamp((best.x - m.x) / RIG_S * .16, -22, 22);
+    }
+    const k = 1 - Math.exp(-8 * dt);
+    cat.hx += (tx - cat.hx) * k;
+    cat.hy += (ty - cat.hy) * k;
+    cat.hr += (clamp(cat.hx / 320, -.18, .18) - cat.hr) * k;
+    cat.wag += ((.2 + Math.min(combo, 6) * .1 + (cat.st === "dash" ? .12 : 0)) - cat.wag) * k;
+    cat.puff += (((cat.eatT > 0 || cat.sulk > .2) ? .3 : 0) - cat.puff) * k;
+    cat.popT += dt;
+    if (cat.sulk > 0) cat.sulk = Math.max(0, cat.sulk - dt);
+  }
 
   function pickMove() {
     const r = Math.random();
@@ -268,45 +394,49 @@
     }
   }
 
-  /* ---------------- 干扰物 ---------------- */
-  const balloons = [];
-  function newBalloon(spread) {
+  /* ---------------- 干扰物：飘过来的零食袋（真图，变量名沿用旧的 pillow） ---------------- */
+  const pillows = [];
+  function newPillow(spread) {
     const fromLeft = Math.random() < .5;
     return {
-      x: spread ? rand(50, DW - 50) : (fromLeft ? -26 : DW + 26),
-      y: rand(BALLOON_MIN, BALLOON_MAX), base: 0, r: 14,
-      vx: (fromLeft ? 1 : -1) * rand(28, 56), ph: rand(0, 6.28),
-      alive: true, back: 0, c: ["#F16D5B", "#DCD2F5", "#BFE4D0", "#F5E66B"][Math.floor(rand(0, 4))]
+      x: spread ? rand(50, DW - 50) : (fromLeft ? -32 : DW + 32),
+      y: rand(PILLOW_MIN, PILLOW_MAX), base: 0, r: 15,
+      vx: (fromLeft ? 1 : -1) * rand(26, 52), ph: rand(0, 6.28),
+      alive: true, back: 0
     };
   }
-  function resetBalloons() {
-    balloons.length = 0;
-    for (let i = 0; i < 3; i++) { const b = newBalloon(true); b.base = b.y; balloons.push(b); }
+  const pillowRot = b => settings.anim ? Math.sin(tNow * .9 + b.ph) * .34 : 0;
+  const pilDump = b => ({ alive: b.alive, x: Math.round(b.x), y: Math.round(b.y), back: Math.round(b.back * 10) / 10 });
+  function resetPillows() {
+    pillows.length = 0;
+    for (let i = 0; i < 3; i++) { const b = newPillow(true); b.base = b.y; pillows.push(b); }
   }
-  function stepBalloons(dt) {
-    for (let i = 0; i < balloons.length; i++) {
-      const b = balloons[i];
+  function stepPillows(dt) {
+    for (let i = 0; i < pillows.length; i++) {
+      const b = pillows[i];
       if (!b.alive) {
         b.back -= dt;
-        if (b.back <= 0) { const n = newBalloon(false); n.base = n.y; balloons[i] = n; }
+        if (b.back <= 0) { const n = newPillow(false); n.base = n.y; pillows[i] = n; }
         continue;
       }
       b.x += b.vx * dt;
       b.y = b.base + (settings.anim ? Math.sin(tNow * 1.5 + b.ph) * 9 : 0);
-      if (b.x < -34 || b.x > DW + 34) { const n = newBalloon(false); n.base = n.y; balloons[i] = n; }
+      if (b.x < -38 || b.x > DW + 38) { const n = newPillow(false); n.base = n.y; pillows[i] = n; }
     }
   }
-  function popBalloon(b) {
+  function popPillow(b) {
     b.alive = false; b.back = rand(2, 3.2);
-    spawnParts(b.x, b.y, b.c, 10);
+    spawnParts(b.x, b.y, "#F6EEDD", 12);
+    spawnParts(b.x, b.y, "#D9C9AE", 5);
     sound.tick();
-    say("气球砰了一声", "yel");
+    say("零食袋被砸中，薯片撒了一地", "yel");
   }
 
+  /* 晾衣绳上夹的是真袜子照片 */
   const cloths = [
-    { ax: 118, len: 46, w: 30, ang: .04, av: 0, ph: .4, c: "#DCD2F5" },
-    { ax: 236, len: 52, w: 34, ang: -.05, av: 0, ph: 2.1, c: "#BFE4D0" },
-    { ax: 336, len: 44, w: 28, ang: .03, av: 0, ph: 4, c: "#F5E66B" }
+    { ax: 118, len: 46, w: 32, ang: .04, av: 0, ph: .4 },
+    { ax: 236, len: 50, w: 36, ang: -.05, av: 0, ph: 2.1 },
+    { ax: 336, len: 44, w: 30, ang: .03, av: 0, ph: 4 }
   ];
   const ropeY = px => ROPE_Y + Math.sin(Math.PI * clamp(px / DW, 0, 1)) * 10;
   function clothCenter(c) {
@@ -323,7 +453,7 @@
   }
 
   const robot = { x: 150, dir: 1, sp: 84, bump: 0, brush: 0 };
-  const ROBOT_HW = 28, ROBOT_TOP = FLOOR - 24;
+  const ROBOT_HW = ROBOT_W / 2;
   function stepRobot(dt) {
     robot.x += robot.dir * robot.sp * dt;
     if (robot.x < 70) { robot.x = 70; robot.dir = 1; }
@@ -332,9 +462,10 @@
     if (settings.anim) robot.brush += dt * 9;
   }
 
+  /* 架子上会被打翻的两件：换成实拍抠图（洗衣液 / 吹风机） */
   const props = [
-    { id: "vase", name: "花瓶", x: 78, y: 444, w: 26, h: 44, pen: 60, st: "solid", t: 0, rot: 0, vy: 0, vx: 0, spin: 0, alpha: 1 },
-    { id: "cup", name: "水杯", x: 410, y: 494, w: 30, h: 26, pen: 45, st: "solid", t: 0, rot: 0, vy: 0, vx: 0, spin: 0, alpha: 1 }
+    { id: "detergent", name: "洗衣液", art: "detergent", tip: "洗衣液抱回柜子", x: 78, y: 446, w: 34, h: 40, pen: 60, pt: "#CFE0EE", st: "solid", t: 0, rot: 0, vy: 0, vx: 0, spin: 0, alpha: 1 },
+    { id: "hairdryer", name: "吹风机", art: "hairdryer", tip: "吹风机塞回架子", x: 410, y: 482, w: 30, h: 48, pen: 45, pt: "#D8D2C9", st: "solid", t: 0, rot: 0, vy: 0, vx: 0, spin: 0, alpha: 1 }
   ];
   props.forEach(p => { p.hx = p.x; p.hy = p.y; });   // 复位锚点，打掉后放回这里
   const shelves = [
@@ -367,7 +498,7 @@
     destruction++; combo = 0;
     sound.bad();
     if (settings.anim) { shake = .4; flash = .3; flashC = "#F16D5B"; }
-    spawnParts(p.x, p.y, p.id === "vase" ? "#BFD8E8" : "#DCD2F5", 14);
+    spawnParts(p.x, p.y, p.pt, 14);
     floats.push({ t: "-" + p.pen, x: p.x, y: p.y - 24, life: 1, c: "#F16D5B" });
     say(p.name + "被打翻了！-" + p.pen + " · 拆家值 " + destruction, "red");
     hud();
@@ -376,16 +507,18 @@
 
   /* ---------------- 零食（弹体） ---------------- */
   const snacks = [];
+  let pouchArt = SNACK_ART[0];           // 皮兜里那颗（也是下一发）用的真零食照片
   function fireFrom(vx, vy) {
     if (mac.get() !== "PLAYING") return false;
     if (reload > 0) return false;
     const s = {
       x: ANCH.x, y: ANCH.y, px: ANCH.x, py: ANCH.y, vx, vy, r: SNACK_R,
       life: 0, rest: 0, bounces: 0, stuck: 0, hold: -1, scored: false, bonked: false,
-      dead: false, rot: 0, spin: rand(-9, 9), trail: []
+      dead: false, rot: 0, spin: rand(-9, 9), trail: [], art: pouchArt
     };
     snacks.push(s);
     while (snacks.length > 6) snacks.shift();
+    pouchArt = SNACK_ART[Math.floor(rand(0, SNACK_ART.length))];
     shots++; reload = RELOAD;
     aiming = false; kb.on = false;
     pouch = { x: ANCH.x, y: ANCH.y };
@@ -436,6 +569,7 @@
     score += gain; fed++; combo++;
     if (combo > maxCombo) maxCombo = combo;
     cat.eatT = .6; cat.open = false; cat.mouth = .2;
+    cat.popT = 0;                        // 接住那一口：全身一顿挤压回弹
     if (combo >= 3) sound.combo(combo); else sound.good();
     if (perfect || bank) sound.bonus();
     spawnParts(m.x, m.y, "#F5E66B", 12);
@@ -452,6 +586,7 @@
   function bonk(s, nearMouth) {
     if (!s.bonked) {
       s.bonked = true; bounced++; combo = 0;
+      cat.sulk = 1;                      // 白拍一下：别过头、眼睛半闭
       sound.bad();
       floats.push({ t: nearMouth ? "闭嘴!" : "拍到身上", x: s.x, y: s.y - 18, life: .9, c: "#F16D5B" });
       say(nearMouth ? "它闭着嘴，零食弹开了" : "拍到身上，没吃上", "red");
@@ -464,6 +599,7 @@
     s.dead = true;
     if (!s.scored) {
       missed++;
+      cat.sulk = Math.max(cat.sulk, .7);
       if (!s.bonked) { combo = 0; say("零食掉地上了，一口没吃着", "yel"); hud(); }
     }
     spawnParts(s.x, s.y, "#C98A4B", 5);
@@ -477,39 +613,26 @@
     return true;
   }
   function hitCatBody(s) {
-    const h = headPos();
-    let dx = s.x - h.x, dy = s.y - h.y;
-    const hr = 19 + s.r * .5;
-    if (dx * dx + dy * dy < hr * hr) {
-      const d = Math.hypot(dx, dy) || 1;
-      s.x = h.x + dx / d * (hr + 1); s.y = h.y + dy / d * (hr + 1);
-      reflect(s, dx / d, dy / d, .5);
-      const m = mouthPos();
-      bonk(s, Math.hypot(s.x - m.x, s.y - m.y) < MOUTH_R + 10);
-      return true;
-    }
-    const b = bodyPos();
-    const brx = 30 + s.r * .5, bry = 22 + s.r * .5;
-    dx = (s.x - b.x) / brx; dy = (s.y - b.y) / bry;
-    const e = dx * dx + dy * dy;
-    if (e < 1) {
-      const d = Math.hypot(dx, dy) || 1;
-      s.x = b.x + dx / d * brx; s.y = b.y + dy / d * bry;
-      let nx = (s.x - b.x) / brx, ny = (s.y - b.y) / bry;
-      const nd = Math.hypot(nx, ny) || 1;
-      reflect(s, nx / nd, ny / nd, .45);
-      bonk(s, false);
-      return true;
-    }
-    return false;
+    if (!rigOk) return false;
+    const P = rigPose(), b = rigBox();
+    const part = b.hit(P, s.x, s.y);           // 用真剪影的 alpha 蒙版判定摸到了哪一层
+    if (!part) return false;
+    const c = b.at(P, part);                   // 各层的近似中心，弹开方向就从这里往外
+    let dx = s.x - c[0], dy = s.y - c[1];
+    const d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+    s.x = c[0] + ux * (d + s.r + 1.5); s.y = c[1] + uy * (d + s.r + 1.5);
+    reflect(s, ux, uy, part === "head" ? .5 : part === "tail" ? .38 : .45);
+    const m = mouthPos();
+    bonk(s, Math.hypot(s.x - m.x, s.y - m.y) < MOUTH_R + 12);
+    return true;
   }
-  function hitBalloon(s) {
-    for (let i = 0; i < balloons.length; i++) {
-      const b = balloons[i];
+  function hitPillow(s) {
+    for (let i = 0; i < pillows.length; i++) {
+      const b = pillows[i];
       if (!b.alive) continue;
       if (segDist(b.x, b.y, s.px, s.py, s.x, s.y) > b.r + s.r) continue;
-      popBalloon(b);
-      s.vx *= .3; s.vy = s.vy * .2 + 60;
+      popPillow(b);
+      s.vx *= .34; s.vy = s.vy * .2 + 70;      // 袋子是软的，零食被带偏后往下掉
       if (settings.anim) shake = Math.max(shake, .16);
       return true;
     }
@@ -594,7 +717,7 @@
         s.x += s.vx * h; s.y += s.vy * h;
         s.rot += s.spin * h;
         if (hitMouth(s)) break;
-        if (hitBalloon(s)) continue;
+        if (hitPillow(s)) continue;
         if (hitCloth(s)) break;
         if (hitProp(s)) continue;
         if (hitRobot(s)) continue;
@@ -634,7 +757,9 @@
     timeLeft -= dt;
     if (reload > 0) reload -= dt;
     stepCat(dt);
-    stepBalloons(dt);
+    stepLook(dt);
+    syncRig();
+    stepPillows(dt);
     stepCloths(dt);
     stepRobot(dt);
     stepProps(dt);
@@ -653,12 +778,13 @@
     rT += dt;
     if (settings.anim) tNow += dt;
     if (mac.get() === "PLAYING") step(dt);
-    else { stepBalloons(dt * .35); stepCloths(dt * .35); stepFx(dt * .3); }
+    else { stepPillows(dt * .35); stepCloths(dt * .35); stepFx(dt * .3); }
     draw();
   }
 
   /* ---------------- 绘制 ---------------- */
   function draw() {
+    syncRig();
     shX = shake > 0 ? rand(-5, 5) * shake : 0;
     shY = shake > 0 ? rand(-4, 4) * shake : 0;
     setScreen();
@@ -671,7 +797,7 @@
     drawClothesline();
     drawLedge();
     drawCat();
-    drawBalloons();
+    drawPillows();
     drawRobot();
     drawSnacks();
     drawSling();
@@ -715,13 +841,14 @@
       x.beginPath(); x.ellipse(cx, wy0 + 34, 14, 7, 0, 0, 6.283); x.fill();
       x.beginPath(); x.ellipse(cx + 12, wy0 + 30, 9, 6, 0, 0, 6.283); x.fill();
     }
-    // 挂画
+    // 墙上相框：挂的是你家猫的实拍照片
     x.fillStyle = "#FFF6E6"; x.strokeStyle = "#222"; x.lineWidth = 3;
     ML.rr(x, 322, 52, 96, 74, 6); x.fill(); x.stroke();
-    x.fillStyle = FUR;
-    x.beginPath(); x.arc(370, 92, 17, 0, 6.283); x.fill(); ink(2.4); x.stroke();
-    x.beginPath(); x.moveTo(358, 80); x.lineTo(356, 66); x.lineTo(368, 76); x.closePath(); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(382, 80); x.lineTo(384, 66); x.lineTo(372, 76); x.closePath(); x.fill(); x.stroke();
+    x.save();
+    ML.rr(x, 326, 56, 88, 66, 4); x.clip();
+    if (!blit("frame", 370, 89, 88, 66, 0)) { x.fillStyle = "#EFE6D6"; x.fillRect(326, 56, 88, 66); }
+    x.restore();
+    x.strokeStyle = "#222"; x.lineWidth = 2; ML.rr(x, 326, 56, 88, 66, 4); x.stroke();
   }
   function drawShelves() {
     for (let i = 0; i < shelves.length; i++) {
@@ -736,37 +863,16 @@
   function drawProp(p) {
     x.save();
     x.globalAlpha = p.alpha;
-    x.translate(p.x, p.y); x.rotate(p.rot);
-    x.strokeStyle = "#222"; x.lineWidth = 2.6; x.lineJoin = "round";
-    if (p.id === "vase") {
-      x.fillStyle = "#BFD8E8";
-      x.beginPath();
-      x.moveTo(-6, -p.h / 2); x.lineTo(6, -p.h / 2);
-      x.quadraticCurveTo(15, -p.h * .1, 12, p.h * .28);
-      x.quadraticCurveTo(9, p.h / 2, -9, p.h / 2);
-      x.quadraticCurveTo(-12, p.h * .28, -15, -p.h * .1);
-      x.quadraticCurveTo(-9, -p.h * .1, -6, -p.h / 2);
-      x.closePath(); x.fill(); x.stroke();
-      x.strokeStyle = "rgba(34,34,34,.25)"; x.lineWidth = 2;
-      x.beginPath(); x.moveTo(-9, -4); x.lineTo(9, -4); x.stroke();
-      // 花
-      x.strokeStyle = "#3E9E7A"; x.lineWidth = 2.4;
-      x.beginPath(); x.moveTo(0, -p.h / 2); x.quadraticCurveTo(-8, -p.h / 2 - 12, -10, -p.h / 2 - 20); x.stroke();
-      x.beginPath(); x.moveTo(0, -p.h / 2); x.quadraticCurveTo(7, -p.h / 2 - 10, 9, -p.h / 2 - 18); x.stroke();
-      x.fillStyle = "#F16D5B"; x.beginPath(); x.arc(-10, -p.h / 2 - 22, 5, 0, 6.283); x.fill(); x.strokeStyle = "#222"; x.lineWidth = 2; x.stroke();
-      x.fillStyle = "#F5E66B"; x.beginPath(); x.arc(9, -p.h / 2 - 20, 4.4, 0, 6.283); x.fill(); x.stroke();
-    } else {
-      x.fillStyle = "#DCD2F5";
-      ML.rr(x, -p.w / 2, -p.h / 2, p.w, p.h, 4); x.fill(); x.stroke();
-      x.beginPath(); x.moveTo(p.w / 2, -p.h * .2); x.quadraticCurveTo(p.w / 2 + 11, 0, p.w / 2, p.h * .28); x.stroke();
-      x.fillStyle = "#A78BE0";
-      ML.rr(x, -p.w / 2 + 3, -p.h / 2 + 5, p.w - 6, 5, 2); x.fill();
+    if (!blit(p.art, p.x, p.y, p.w, p.h, p.rot)) {      // 真图缺席时的同尺寸兜底块
+      x.translate(p.x, p.y); x.rotate(p.rot);
+      x.fillStyle = "#DCD2F5"; x.strokeStyle = "#222"; x.lineWidth = 2.6; x.lineJoin = "round";
+      ML.rr(x, -p.w / 2, -p.h / 2, p.w, p.h, 5); x.fill(); x.stroke();
     }
     x.restore();
     if (p.st === "gone") {
       x.save(); x.globalAlpha = .5; x.fillStyle = "#88847D";
       x.font = "800 10px 'PingFang SC',Arial"; x.textAlign = "center";
-      x.fillText(p.id === "vase" ? "花瓶在柜子里" : "水杯在架子上", p.hx, p.hy - p.h / 2 - 8);
+      x.fillText(p.tip, p.hx, p.hy - p.h / 2 - 8);
       x.restore();
     }
   }
@@ -779,13 +885,13 @@
       const ry = ropeY(c.ax);
       x.save();
       x.translate(c.ax, ry); x.rotate(c.ang);
-      x.fillStyle = c.c; x.strokeStyle = "#222"; x.lineWidth = 2.4; x.lineJoin = "round";
-      ML.rr(x, -c.w / 2, 0, c.w, c.len, 5); x.fill(); x.stroke();
-      x.strokeStyle = "rgba(34,34,34,.22)"; x.lineWidth = 2;
-      x.beginPath(); x.moveTo(-c.w / 2 + 5, c.len - 8); x.lineTo(c.w / 2 - 5, c.len - 8); x.stroke();
       x.fillStyle = "#88847D";
-      x.beginPath(); x.arc(-c.w / 2 - 1, 3, 3, 0, 6.283); x.fill();
-      x.beginPath(); x.arc(c.w / 2 + 1, 3, 3, 0, 6.283); x.fill();
+      x.beginPath(); x.arc(-3, 2, 3, 0, 6.283); x.fill();      // 夹子
+      x.beginPath(); x.arc(3, 2, 3, 0, 6.283); x.fill();
+      if (!blit("socks", 0, c.len * .5, c.w * 1.2, c.len * 1.1, 0)) {
+        x.fillStyle = "#E7DDCB"; x.strokeStyle = "#222"; x.lineWidth = 2.4; x.lineJoin = "round";
+        ML.rr(x, -c.w / 2, 4, c.w, c.len, 5); x.fill(); x.stroke();
+      }
       x.restore();
     }
   }
@@ -801,95 +907,17 @@
     x.fillText("猫跳板", 8, LEDGE - 6);
   }
 
-  /* ---------------- 猫 ---------------- */
+  /* ---------------- 猫：你家猫的实拍分层布偶 ---------------- */
   function drawCat() {
-    const m = mouthPos(), h = headPos();
-    x.save();
-    x.translate(cat.x, LEDGE); x.scale(cat.dir, 1);
-    x.lineJoin = "round"; x.lineCap = "round";
-    // 影子
-    x.fillStyle = "rgba(34,34,34,.16)";
-    x.beginPath(); x.ellipse(0, 1, 28, 6, 0, 0, 6.283); x.fill();
-    const stepPh = (cat.st === "walk" || cat.st === "dash") ? (settings.anim ? tNow * (cat.st === "dash" ? 16 : 8) : 0) : 0;
-    // 尾巴
-    x.strokeStyle = "#222"; x.lineWidth = 9;
-    const tailW = settings.anim ? Math.sin(tNow * 2.2 + cat.flick * 6) * 8 : 0;
-    x.beginPath(); x.moveTo(-24, -22);
-    x.quadraticCurveTo(-46, -30 + tailW, -40, -52 + tailW); x.stroke();
-    x.strokeStyle = FUR; x.lineWidth = 5.6; x.stroke();
-    // 后腿
-    for (let i = 0; i < 2; i++) {
-      const lift = Math.max(0, Math.sin(stepPh + i * 3.1)) * 4;
-      x.fillStyle = FUR; ink(2.4);
-      ML.rr(x, -20 + i * 12, -14 - lift, 8, 15 + lift, 3.6); x.fill(); x.stroke();
+    if (!rigOk) {
+      x.save(); x.fillStyle = "#88847D"; x.font = "700 12px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillText(rigErr || "猫的照片布偶加载中…", cat.x, LEDGE - 40); x.restore();
+      return;
     }
-    // 身体
-    x.fillStyle = FUR; ink(2.8);
-    x.beginPath(); x.ellipse(-2, -26, 26, 19, 0, 0, 6.283); x.fill(); x.stroke();
-    x.fillStyle = "#FFF6E6";
-    x.beginPath(); x.ellipse(2, -16, 13, 9, 0, 0, 6.283); x.fill();
-    x.strokeStyle = "rgba(34,34,34,.2)"; x.lineWidth = 3;
-    x.beginPath(); x.moveTo(-14, -40); x.lineTo(-11, -32); x.moveTo(-4, -43); x.lineTo(-2, -35); x.moveTo(6, -41); x.lineTo(8, -33); x.stroke();
-    // 前腿
-    for (let i = 0; i < 2; i++) {
-      const lift = Math.max(0, Math.sin(stepPh + 1.57 + i * 3.1)) * 4;
-      x.fillStyle = FUR; ink(2.4);
-      ML.rr(x, 6 + i * 10, -14 - lift, 8, 15 + lift, 3.6); x.fill(); x.stroke();
-    }
-    // 头
-    const nod = cat.mouth * 2.5;
-    x.save();
-    x.translate(20, -58 + nod); x.rotate(-cat.mouth * .07);
-    x.fillStyle = FUR; ink(2.8);
-    x.beginPath(); x.arc(0, 0, 18, 0, 6.283); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(-11, -12); x.lineTo(-14, -27); x.lineTo(-1, -17); x.closePath(); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(9, -13); x.lineTo(14, -26); x.lineTo(17, -10); x.closePath(); x.fill(); x.stroke();
-    x.fillStyle = "#FBD9CF";
-    x.beginPath(); x.moveTo(-10, -14); x.lineTo(-12, -23); x.lineTo(-3, -17); x.closePath(); x.fill();
-    x.beginPath(); x.moveTo(10, -15); x.lineTo(13, -23); x.lineTo(15, -12); x.closePath(); x.fill();
-    // 口鼻
-    x.fillStyle = "#FFF6E6";
-    x.beginPath(); x.ellipse(6, 5, 12, 9, 0, 0, 6.283); x.fill();
-    // 眼睛
-    x.fillStyle = "#222";
-    const shut = cat.eatT > 0 || cat.blink > 0;
-    if (shut) {
-      x.strokeStyle = "#222"; x.lineWidth = 2.4;
-      x.beginPath(); x.moveTo(-8, -3); x.quadraticCurveTo(-4, -7, 0, -3); x.stroke();
-      x.beginPath(); x.moveTo(6, -3); x.quadraticCurveTo(10, -7, 14, -3); x.stroke();
-    } else {
-      x.beginPath(); x.ellipse(-4, -3, 2.9, 3.4, 0, 0, 6.283); x.fill();
-      x.beginPath(); x.ellipse(10, -3, 2.9, 3.4, 0, 0, 6.283); x.fill();
-      x.fillStyle = "#fff";
-      x.beginPath(); x.arc(-3, -4.4, 1, 0, 6.283); x.fill();
-      x.beginPath(); x.arc(11, -4.4, 1, 0, 6.283); x.fill();
-    }
-    // 鼻子
-    x.fillStyle = "#F16D5B"; ink(1.6);
-    x.beginPath(); x.moveTo(13, 3); x.lineTo(18, 6); x.lineTo(12.5, 7.5); x.closePath(); x.fill(); x.stroke();
-    // 嘴（张合）
-    const mo = clamp(cat.mouth, 0, 1);
-    if (mo > .06) {
-      const mh = 3 + mo * 13;
-      x.fillStyle = "#7A2E2E"; ink(2.2);
-      x.beginPath();
-      x.moveTo(2, 8); x.quadraticCurveTo(11, 8 - 3 * mo, 17, 8);
-      x.quadraticCurveTo(11, 8 + mh, 2, 8); x.closePath(); x.fill(); x.stroke();
-      x.fillStyle = "#F1909A";
-      x.beginPath(); x.ellipse(10, 8 + mh * .55, 4.4, mh * .3 + 1, 0, 0, 6.283); x.fill();
-    } else {
-      x.strokeStyle = "#222"; x.lineWidth = 2;
-      x.beginPath(); x.moveTo(3, 9); x.quadraticCurveTo(10, 13, 16, 9); x.stroke();
-    }
-    // 胡须
-    x.strokeStyle = "rgba(34,34,34,.55)"; x.lineWidth = 1.4;
-    x.beginPath();
-    x.moveTo(16, 5); x.lineTo(30, 1); x.moveTo(16, 8); x.lineTo(31, 9); x.moveTo(15, 11); x.lineTo(28, 16);
-    x.stroke();
-    x.restore();
-    x.restore();
+    const P = rigPose(), b = rigBox(), m = mouthPos(), hc = b.at(P, "head"), h = { x: hc[0], y: hc[1] };
+    b.draw(x, P);
 
-    // 命中圈：画在猫之上，把判定范围摆明处
+    // 命中圈：挂在布偶的嘴上，头转圈就跟着转，把判定范围摆明处
     if (cat.mouth > .12) {
       x.save();
       x.globalAlpha = .3 + .6 * cat.mouth;
@@ -914,43 +942,29 @@
     }
   }
 
-  function drawBalloons() {
-    for (let i = 0; i < balloons.length; i++) {
-      const b = balloons[i];
+  function drawPillows() {
+    for (let i = 0; i < pillows.length; i++) {
+      const b = pillows[i];
       if (!b.alive) continue;
-      x.save(); x.translate(b.x, b.y);
-      x.strokeStyle = "rgba(34,34,34,.6)"; x.lineWidth = 1.6;
-      x.beginPath(); x.moveTo(0, b.r + 4);
-      x.quadraticCurveTo(6, b.r + 16, -2, b.r + 28); x.stroke();
-      x.fillStyle = b.c; ink(2.4);
-      x.beginPath(); x.ellipse(0, 0, b.r * .86, b.r, 0, 0, 6.283); x.fill(); x.stroke();
-      x.beginPath(); x.moveTo(-3, b.r); x.lineTo(3, b.r); x.lineTo(0, b.r + 5); x.closePath(); x.fill(); x.stroke();
-      x.fillStyle = "rgba(255,255,255,.55)";
-      x.beginPath(); x.ellipse(-b.r * .3, -b.r * .34, 3.2, 4.6, -.5, 0, 6.283); x.fill();
+      if (blit("pillow", b.x, b.y, b.r * 2.5, b.r * 2.5, pillowRot(b))) continue;
+      x.save(); x.translate(b.x, b.y); x.rotate(pillowRot(b));
+      x.fillStyle = "#EDE0C8"; ink(2.4);
+      ML.rr(x, -b.r, -b.r * .85, b.r * 2, b.r * 1.7, 5); x.fill(); x.stroke();
       x.restore();
     }
   }
   function drawRobot() {
-    const sq = robot.bump * 3;
-    x.save(); x.translate(robot.x, FLOOR);
+    const sq = robot.bump * 3, h = FLOOR - ROBOT_TOP;
+    x.save();
     x.fillStyle = "rgba(34,34,34,.16)";
-    x.beginPath(); x.ellipse(0, 0, ROBOT_HW + 2, 5, 0, 0, 6.283); x.fill();
-    x.translate(0, -sq);
+    x.beginPath(); x.ellipse(robot.x, FLOOR - 1, ROBOT_HW + 2, 5, 0, 0, 6.283); x.fill();
+    x.restore();
+    if (blit("vacuum", robot.x, FLOOR - h / 2 - sq, ROBOT_W, h + 4, 0)) return;
+    x.save(); x.translate(robot.x, FLOOR - sq);            // 照片缺席时的同尺寸兜底
     x.fillStyle = "#B9B5AD"; ink(2.8);
-    ML.rr(x, -ROBOT_HW, -(FLOOR - ROBOT_TOP), ROBOT_HW * 2, FLOOR - ROBOT_TOP, 8); x.fill(); x.stroke();
-    x.fillStyle = "#88847D";
-    ML.rr(x, -ROBOT_HW + 4, -6, ROBOT_HW * 2 - 8, 5, 2.5); x.fill();
+    ML.rr(x, -ROBOT_HW, -h, ROBOT_W, h, 8); x.fill(); x.stroke();
     x.fillStyle = "#F5E66B";
-    x.beginPath(); x.arc(0, -(FLOOR - ROBOT_TOP) + 8, 6, 0, 6.283); x.fill(); ink(2.2); x.stroke();
-    x.fillStyle = "#222";
-    x.beginPath(); x.arc(-ROBOT_HW + 9, -13, 2.2, 0, 6.283); x.fill();
-    x.strokeStyle = "#5C5852"; x.lineWidth = 2;
-    const bs = robot.brush;
-    for (let i = 0; i < 3; i++) {
-      const a = bs + i * 2.09;
-      x.beginPath(); x.moveTo(-ROBOT_HW + 14, -4);
-      x.lineTo(-ROBOT_HW + 14 + Math.cos(a) * 6, -4 + Math.abs(Math.sin(a)) * 3); x.stroke();
-    }
+    x.beginPath(); x.arc(0, -h + 8, 6, 0, 6.283); x.fill(); ink(2.2); x.stroke();
     x.restore();
   }
   function drawSnacks() {
@@ -963,10 +977,12 @@
           x.beginPath(); x.arc(p.x, p.y, 2 + t * .28, 0, 6.283); x.fill();
         }
       }
-      drawTreat(s.x, s.y, s.rot, 1);
+      drawTreat(s.x, s.y, s.rot, 1, s.art);
     }
   }
-  function drawTreat(px, py, rot, sc) {
+  /* 弹药就是这些真零食照片；图没读到才画一颗同尺寸的素色圆 */
+  function drawTreat(px, py, rot, sc, art) {
+    if (blit(art || pouchArt, px, py, SNACK_DRAW * sc, SNACK_DRAW * sc, rot)) return;
     x.save(); x.translate(px, py); x.rotate(rot || 0); x.scale(sc, sc);
     x.fillStyle = "#C98A4B"; ink(2.4);
     x.beginPath(); x.ellipse(0, 0, SNACK_R + 1, SNACK_R - 1.5, .5, 0, 6.283); x.fill(); x.stroke();
@@ -1237,7 +1253,7 @@
     $("#endOv").classList.remove("hide");
     score >= 1400 ? sound.win() : sound.lose();
     refreshBest();
-    const expr = (petCfg && petCfg.petExpressions && (destruction >= 6 ? petCfg.petExpressions.mischief : petCfg.petExpressions.happy)) || "";
+    const expr = rigSnapshot(destruction >= 6);
     ML.shareCard({
       game: "弹弓喂猫", petName: (petCfg && petCfg.petName) || "MOMO", rating: r, ratingColor: color,
       score, timeText: "喂到 " + fed + " 口 · 命中率 " + acc + "% · 拆家 " + destruction,
@@ -1288,12 +1304,15 @@
     shake = 0; flash = 0; bannerT = 0;
     cat.x = 240; cat.dir = 1; cat.st = "walk"; cat.t = 0; cat.dur = 1.8;
     cat.mouth = 0; cat.open = false; cat.openT = 0; cat.next = 1.1; cat.eatT = 0; cat.flick = 0;
+    cat.hx = 0; cat.hy = 0; cat.hr = 0; cat.popT = 9; cat.sulk = 0; cat.wag = .22; cat.puff = 0;
+    cat.blink = 0; cat.nextBlink = 3;
+    syncRig();
     for (let i = 0; i < props.length; i++) {
       const p = props[i];
       p.st = "solid"; p.t = 0; p.rot = 0; p.vx = 0; p.vy = 0; p.spin = 0; p.alpha = 1;
       p.x = p.hx; p.y = p.hy;
     }
-    resetBalloons();
+    resetPillows();
     for (let i = 0; i < cloths.length; i++) { cloths[i].ang = (i % 2 ? -.05 : .04); cloths[i].av = 0; }
     robot.x = 150; robot.dir = 1; robot.bump = 0;
     $("#banner").innerHTML = "";
@@ -1336,10 +1355,9 @@
   ML.bindPause(mac, togglePause);
   mac.on(st => { if (st === "FINISHED") { aiming = false; kb.on = false; pouch = { x: ANCH.x, y: ANCH.y }; } });
 
-  /* ---------------- 宠物配置（仅用于配色 / 分享卡，画面全程序化绘制） ---------------- */
+  /* ---------------- 宠物配置（名字/头像；猫本体是 js/cat-rig.js 的真图布偶） ---------------- */
   ML.pet().then(cfg => {
     petCfg = cfg;
-    if (cfg.furColor) FUR = cfg.furColor;
     $("#petName").textContent = (cfg.petName || "MOMO") + " 主演";
   }).catch(() => {});
 
@@ -1347,12 +1365,23 @@
   window.addEventListener("orientationchange", size);
   if (window.ResizeObserver) { try { new ResizeObserver(size).observe(stage); } catch (e) {} }
 
-  /* ---------------- 启动 ---------------- */
-  resetBalloons();
+  /* ---------------- 启动：真图布偶和零食照片到位后才有猫可喂 ---------------- */
+  resetPillows();
   refreshBest();
   size(); hud(); draw();
   last = performance.now();
   requestAnimationFrame(loop);
+  Promise.all([CatRig.load(), loadArt()]).then(() => {
+    rigOk = true;
+    syncRig();
+    if (artFailed.length) say(artFailed.length + " 张真图没读到，那几样退回简笔占位", "red");
+    else say("猫和零食照片都到位了", "mint");
+  }).catch(err => {
+    rigOk = false;
+    rigErr = "真猫部件图没读到：" + (err && err.message || err);
+    say(rigErr + "。请用本地服务器打开本页，并确认 assets/pets/realcat/ 的 6 张 webp 都在", "red");
+    draw();
+  });
 
   /* ---------------- 调试钩子 ---------------- */
   function manualStep(dt) {
@@ -1375,14 +1404,21 @@
       dur: Math.round(cat.dur * 100) / 100, speed: Math.round(cat.speed), panic: destruction >= PANIC_AT,
       mouth: Math.round(cat.mouth * 100) / 100, open: cat.open, openT: Math.round(cat.openT * 100) / 100,
       nextSwitch: Math.round(cat.next * 100) / 100, eatT: Math.round(cat.eatT * 100) / 100,
-      mouthPos: mouthPos(), headPos: headPos(), bodyPos: bodyPos(), MOUTH_R
+      mouthPos: mouthPos(), headPos: headPos(), bodyPos: bodyPos(), MOUTH_R,
+      look: { hx: Math.round(cat.hx), hy: Math.round(cat.hy), hr: Math.round(cat.hr * 100) / 100 },
+      pose: (() => { const P = rigPose(); return { breathe: P.breathe, mouth: P.mouth, blink: P.blink, headSquash: P.headSquash, tailPuff: P.tailPuff }; })()
     }),
+    /* 布偶真身：命中用 alpha 蒙版，这里把同一份判定开放给测试 */
+    rig: () => ({ ok: rigOk, err: rigErr, gw: RIG.gw, s: Math.round(rigBox().s * 1000) / 1000, feet: RIG_GY + RIG.feet * rigBox().s }),
+    partAt: (px, py) => (rigOk ? rigBox().hit(rigPose(), +px || 0, +py || 0) : null),
+    artState: () => ({ failed: artFailed.slice(), loaded: Object.keys(ART).filter(k => !!ART[k]) }),
     snacks: () => snacks.map(s => ({
       x: Math.round(s.x), y: Math.round(s.y), vx: Math.round(s.vx), vy: Math.round(s.vy),
       bounces: s.bounces, stuck: Math.round(s.stuck * 100) / 100, scored: s.scored, bonked: s.bonked, life: Math.round(s.life * 100) / 100
     })),
     props: () => props.map(p => ({ id: p.id, st: p.st, x: Math.round(p.x), y: Math.round(p.y) })),
-    balloons: () => balloons.map(b => ({ alive: b.alive, x: Math.round(b.x), y: Math.round(b.y), back: Math.round(b.back * 10) / 10 })),
+    pillows: () => pillows.map(pilDump),
+    balloons: () => pillows.map(pilDump),   // 早期钩子名，留给外部脚本
     robot: () => ({ x: Math.round(robot.x), dir: robot.dir, top: ROBOT_TOP }),
     start, finish: () => { if (mac.get() === "PLAYING") finish(); },
     reset: () => { reset(); mac.set("READY"); draw(); return mac.get(); },
@@ -1411,7 +1447,7 @@
       const s = {
         x: m.x, y: m.y, px: m.x, py: m.y + 10, vx: 0, vy: 60, r: SNACK_R,
         life: 0, rest: 0, bounces: 0, stuck: 0, hold: -1, scored: false, bonked: false,
-        dead: false, rot: 0, spin: 0, trail: []
+        dead: false, rot: 0, spin: 0, trail: [], art: pouchArt
       };
       cat.open = true; cat.mouth = 1; cat.openT = .05; cat.eatT = 0;
       shots++;
@@ -1424,7 +1460,7 @@
       const s = {
         x: m.x, y: m.y, px: m.x, py: m.y + 10, vx: 0, vy: 120, r: SNACK_R,
         life: .1, rest: 0, bounces: 0, stuck: 0, hold: -1, scored: false, bonked: false,
-        dead: false, rot: 0, spin: 0, trail: []
+        dead: false, rot: 0, spin: 0, trail: [], art: pouchArt
       };
       cat.open = false; cat.mouth = 0;
       shots++;

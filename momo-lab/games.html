@@ -46,7 +46,7 @@
   const NEW = ["jump", "sneak", "dressup"];
   let filter = "all";
 
-  const thumb = g => g.art.img ? `<img src="${ML.asset(g.art.img)}" alt="">` : ML_GAME_ART[g.art.svg];
+  const thumb = g => `<img src="${ML.asset(g.art.img)}" alt="${g.n}" loading="lazy">`;
 
   function keep(g) {
     if (filter === "new") return NEW.includes(g.id);

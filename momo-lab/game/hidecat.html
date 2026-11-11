@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FAF8F3">
 <title>找猫躲猫猫 — MOMO 事务所</title>
-<meta name="description" content="一屏房间，猫藏在纸箱、窗帘后、沙发下、被窝、衣柜、猫包其中之一。拖动或点按翻开遮蔽物，靠冷热线索在限时与有限次数内把它找出来。5 关递增，全程 Canvas 程序化绘制。">
+<meta name="description" content="一屏房间，猫藏在垃圾桶、礼物盒、零食袋、袜子、洗衣液、扫地机器人其中之一。拖动或点按翻开遮蔽物，靠冷热线索在限时与有限次数内把它找出来。5 关递增，猫是六层真猫照片布偶，遮蔽物是真物照片。">
 <link rel="stylesheet" href="../css/base.css">
 <link rel="stylesheet" href="../css/game.css">
 <style>
@@ -74,10 +74,10 @@
         <span class="tag red">循声找猫</span>
         <h2 class="h2">找猫躲猫猫</h2>
         <ul class="desc">
-          <li>猫藏在其中一处遮蔽物后面：<b>纸箱、窗帘、沙发底、被窝、衣柜、猫包、洗衣篮、抽屉……</b>每局位置重新随机。</li>
-          <li><b>点一下</b>遮蔽物就整个翻开；<b>按住往上拖</b>能先掀开一条缝（缝里只有一团影子，松手没拉够会自动合上）。</li>
-          <li>翻开不是猫就是<b>干扰物</b>：拖鞋、毛线球、空碗、扫地机器人。每翻一处都算一次翻找。</li>
-          <li>把手指<b>按在地板上拖动</b>（电脑上是移动鼠标）就是「循声」：越接近猫，下方<b>冷热条</b>越高、<b>喵…</b>越急，缝隙里越能看见它的眼睛。</li>
+          <li>猫藏在其中一处真东西后面：<b>垃圾桶、礼物盒、零食袋、袜子、洗衣液、扫地机器人……</b>每局位置重新随机。</li>
+          <li><b>点一下</b>遮蔽物就整个挪开；<b>按住往上拖</b>能先掀开一条缝（缝里只有一团影子，松手没拉够会自动合上）。</li>
+          <li>翻开不是猫就是<b>干扰物</b>：扫把、吹风机、玩具鱼、零食球。每翻一处都算一次翻找。</li>
+          <li>把手指<b>按在地板上拖动</b>（电脑上是移动鼠标）就是「循声」：越接近猫，下方<b>冷热条</b>越高、<b>喵…</b>越急，缝隙里越能看见它本身。</li>
           <li>每关 <b>45 秒</b> + 有限次翻找，用完或时间归零就结束这一局。</li>
           <li><b>第 3 关起它会偷换窝</b>：翻错的时候听见「窸窣」，就是它挪了地方，冷热条会跟着变。</li>
           <li>共 5 关，遮蔽物一关比一关多。翻错越少、剩的时间越多，分越高。</li>
@@ -139,8 +139,9 @@
 
 <script src="../js/icons.js"></script>
 <script src="../js/core.js"></script>
+<script src="../js/cat-rig.js"></script>
 <script>
-(() => {
+(async () => {
   "use strict";
   const { $, clamp, rand, irand, pick, shuffle, sound } = ML;
   const animOn = () => ML.settings.anim !== false;
@@ -169,8 +170,10 @@
   ];
   const ROW_SC = [.80, .95, 1.12];
 
-  const DECOYS = ["slipper", "yarn", "bowl", "robot"];
-  const DECOY_WORD = { slipper: "一双拖鞋", yarn: "一团毛线", bowl: "一个空碗", robot: "扫地机器人" };
+  // 干扰物也全是真图照片
+  const DECOYS = ["broom", "hairdryer", "toyfish", "snackball"];
+  const DECOY_WORD = { broom: "一把扫把", hairdryer: "一只吹风机", toyfish: "一条玩具鱼", snackball: "一颗零食球" };
+  const DECOY_IMG = { broom: "prop-broom", hairdryer: "prop-hairdryer", toyfish: "snack-toyfish", snackball: "snack-ball" };
 
   /* ---------------- 运行时 ---------------- */
   let W = 0, H = 0, DH = 620, dpr = 1, fit = 1, sz = 1;
@@ -182,7 +185,54 @@
   let parts = [], floats = [], bubbles = [], shake = 0;
   let grab = null, downX = 0, downY = 0, downT = 0, moved = 0, activeId = null;
   let listenX = 0, listenY = 0, listenLive = false, listenHas = false;
-  let petName = "MOMO", FUR = "#E8A857";
+  let petName = "MOMO";
+  /* 真猫布偶 + 真物照片：IMG 启动时一次性灌满，rigOk 决定这一帧画不画猫 */
+  const IMG = {};
+  let rigOk = false, catBox = null, catP = null, catPetT = -9, lastMood = "shy";
+  const spotOrigin = { x: 0, y: 0 };      // 当前遮蔽物的绘图原点，盒子和命中都用它换算
+  const PROPS = ["prop-trashbin", "prop-gift", "prop-pillow", "prop-detergent", "prop-socks",
+    "prop-vacuum", "prop-broom", "prop-hairdryer", "snack-toyfish", "snack-ball"];
+  function loadProps() {
+    return Promise.all(PROPS.map(k =>
+      ML.img(ML.asset("assets/props/" + k + ".png")).then(im => { IMG[k] = im; })));
+  }
+  /* 一张照片里塞了两样东西（扫把边上躺着吹风机）：CROP 只留下属于它的那几块 */
+  const CROP = {
+    "prop-broom": [[85, 0, 33, 45], [62, 45, 56, 105], [0, 150, 118, 81]],
+    "prop-hairdryer": [[0, 0, 97, 88]]
+  };
+  // 裁剪块的整体外接框；没配 CROP 就是整张图
+  function pbox(im, key) {
+    const ps = CROP[key];
+    if (!ps) return [0, 0, im.width, im.height];
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const p of ps) {
+      x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]);
+      x1 = Math.max(x1, p[0] + p[2]); y1 = Math.max(y1, p[1] + p[3]);
+    }
+    return [x0, y0, x1 - x0, y1 - y0];
+  }
+  // 等比塞进 maxW×maxH 的盒子，外接框中心对齐 (cx, cy)；缺图返回 false 让调用方兜底
+  function photo(key, cx, cy, maxW, maxH, rot) {
+    const im = IMG[key];
+    if (!im) return false;
+    const b = pbox(im, key), r = Math.min(maxW / b[2], maxH / b[3]);
+    x.save(); x.translate(cx, cy); if (rot) x.rotate(rot);
+    for (const p of CROP[key] || [b])
+      x.drawImage(im, p[0], p[1], p[2], p[3],
+        (p[0] - b[0] - b[2] / 2) * r, (p[1] - b[1] - b[3] / 2) * r, p[2] * r, p[3] * r);
+    x.restore();
+    return true;
+  }
+  // 站在地上的东西：照片 contain 之后高度可能矮于盒子，得按实际高度把底边压到 baseY
+  function photoStand(key, cx, baseY, maxW, maxH, rot) {
+    const im = IMG[key];
+    if (!im) return false;
+    const b = pbox(im, key);
+    return photo(key, cx, baseY - b[3] * Math.min(maxW / b[2], maxH / b[3]) / 2, maxW, maxH, rot);
+  }
+  // 干扰物的取景框（单位 u）：扫把细长、零食球方正，全都贴着照片自己的比例
+  const DECOY_BOX = { broom: [30, 62], hairdryer: [44, 40], toyfish: [46, 34], snackball: [34, 34] };
   const hudCache = {};
 
   /* ---------------- 尺寸 / 布局 ---------------- */
@@ -212,7 +262,11 @@
     lv = clamp(n, 1, LEVELS.length);
     cfg = LEVELS[lv - 1];
     const chosen = shuffle(SLOTS.slice()).slice(0, cfg.spots).sort((a, b) => a.y - b.y);
-    const kinds = shuffle(Object.keys(TYPES)).slice(0, cfg.spots);
+    // 只有 6 样真东西，第 4、5 关要 10~12 处 → 按轮转补齐，同类可以重复出现
+    const pool = Object.keys(TYPES);
+    let bag = [];
+    for (let i = Math.ceil(cfg.spots / pool.length); i > 0; i--) bag = bag.concat(shuffle(pool.slice()));
+    const kinds = bag.slice(0, cfg.spots);
     spots = chosen.map((sl, i) => ({
       id: i, type: kinds[i], row: sl.r, fx: sl.x, fy: sl.y,
       cx: 0, cy: 0, w: 0, h: 0,
@@ -321,6 +375,20 @@
     return true;
   }
 
+  /* 找到那一刻猫是真能戳的：吃 alpha 蒙版命中，只给反馈，不动分数 / 次数 / 翻开状态 */
+  function tapCat(px, py) {
+    if (!catBox || !catP) return false;
+    const c = catSpot();
+    if (!c || !c.revealed || !catBox.hit(catP, px, py)) return false;
+    if (tNow - catPetT < .3) return true;
+    catPetT = tNow;
+    sound.good();
+    spawnParts(px, py - 6, "#F16D5B", 7, "heart");
+    addBubble(pick(["喵呜！", "别戳啦", "咕噜咕噜…", "被找到还不满意？"]), px, py - 24, "#222");
+    say("你挠了它一下 · 分数和次数都不变", "mint");
+    return true;
+  }
+
   /* ---------------- 主循环 ---------------- */
   function update(dt) {
     if (intro > 0) { intro = Math.max(0, intro - dt); stepFx(dt); hud(); return; }
@@ -412,6 +480,7 @@
   /* ---------------- 绘制：房间 ---------------- */
   function render() {
     const sx = shake > 0 ? rand(-4, 4) * shake : 0, sy = shake > 0 ? rand(-3, 3) * shake : 0;
+    catBox = catP = null;                   // 盒子只在本帧真画过猫时有效，免得 hit 打空
     x.setTransform(dpr * fit, 0, 0, dpr * fit, dpr * fit * sx, dpr * fit * sy);
     drawRoom();
     for (const s of spots) drawSpot(s);
@@ -489,325 +558,55 @@
   }
   const lerp = (a, b, t) => a + (b - a) * t;
 
-  /* ---------------- 绘制：遮蔽物 ---------------- */
+  /* ---------------- 绘制：遮蔽物（全是家里真东西的照片） ---------------- */
+  // w/h 跟着照片自身的比例，免得被拉伸；g = 开口在自身框里的分数位置 [fx, fy, fw, fh]
+  // dir = 照片往哪儿挪开，开口必须贴着那个方向的边框，缝才漏不出地板
+  // label 跟着照片里真正拍的东西走：prop-pillow 其实是零食袋，文件名不作数
   const TYPES = {
-    box:      { label: "纸箱", w: 116, h: 100 },
-    curtain:  { label: "窗帘后", w: 104, h: 146 },
-    sofa:     { label: "沙发底", w: 128, h: 88 },
-    bed:      { label: "被窝", w: 126, h: 88 },
-    wardrobe: { label: "衣柜", w: 112, h: 150 },
-    bag:      { label: "猫包", w: 98, h: 98 },
-    basket:   { label: "洗衣篮", w: 104, h: 104 },
-    drawer:   { label: "抽屉", w: 126, h: 82 },
-    plant:    { label: "盆栽后", w: 110, h: 134 },
-    shoes:    { label: "鞋柜", w: 124, h: 84 },
-    table:    { label: "桌布下", w: 128, h: 92 },
-    tree:     { label: "猫爬架", w: 104, h: 140 }
+    trashbin: { label: "垃圾桶", img: "prop-trashbin", w: 92, h: 106, dir: "up", g: [-.34, .10, .68, .40] },
+    gift: { label: "礼物盒", img: "prop-gift", w: 118, h: 112, dir: "up", g: [-.34, .08, .68, .42] },
+    snackbag: { label: "零食袋", img: "prop-pillow", w: 122, h: 106, dir: "up", g: [-.34, .12, .68, .38] },
+    socks: { label: "袜子", img: "prop-socks", w: 96, h: 104, dir: "down", g: [-.30, -.50, .60, .40] },
+    detergent: { label: "洗衣液", img: "prop-detergent", w: 100, h: 115, dir: "right", g: [-.50, -.08, .66, .44] },
+    vacuum: { label: "扫地机器人", img: "prop-vacuum", w: 128, h: 114, dir: "down", g: [-.34, -.50, .68, .36] }
   };
 
-  /* 每个类型：open(w,h) 开口矩形 / dir 揭示方向 / base 外壳 / cover 会动的那块 */
+  /* 开口矩形：k 是已掀开的比例，返回此刻「看得见里面」的那块 */
   function revealRect(g, k, dir) {
-    if (dir === "lr") return [g.x + g.w * (1 - k) / 2, g.y, g.w * k, g.h];
+    if (dir === "right") return [g.x, g.y, g.w * k, g.h];
     if (dir === "down") return [g.x, g.y, g.w, g.h * k];
     return [g.x, g.y + g.h * (1 - k), g.w, g.h * k];
   }
-
-  const ART = {
-    box: {
-      dir: "up",
-      open: (w, h) => ({ x: -w * .38, y: -h * .40, w: w * .76, h: h * .46 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        rrp(-w / 2, -h / 2, w, h, 5, "#D9A96E", 2.6);
-        x.fillStyle = "rgba(34,34,34,.10)"; x.fillRect(-w / 2, h * .10, w, 3);
-        x.fillStyle = "rgba(255,255,255,.22)"; x.fillRect(-w / 2 + 4, -h / 2 + 4, 8, h - 8);
-        ink(2); x.strokeStyle = "rgba(34,34,34,.35)";
-        x.beginPath(); x.moveTo(0, h * .14); x.lineTo(0, h / 2 - 3); x.stroke();
-      },
+  /* 每个类型只剩三件事：开口在哪、照片往哪儿挪、缺图时兜底画什么 */
+  const ART = {};
+  for (const key in TYPES) {
+    const T = TYPES[key];
+    ART[key] = {
+      dir: T.dir,
+      open: (w, h) => ({ x: T.g[0] * w, y: T.g[1] * h, w: T.g[2] * w, h: T.g[3] * h }),
+      base() {},
       cover(s, g, o) {
-        const w = s.w;
-        x.save(); x.translate(g.x, g.y); x.rotate(-.12 * o); x.scale(1, Math.max(.06, 1 - .94 * o));
-        rrp(0, 0, g.w, g.h, 3, "#C99A63", 2.4);
-        x.fillStyle = "rgba(34,34,34,.18)"; x.fillRect(g.w * .46, 0, 3, g.h);
-        x.restore();
-        // 两侧小折盖
-        x.save(); x.translate(-w / 2, -s.h / 2); x.rotate(-.9 * o);
-        rrp(0, -s.h * .12, w * .17, s.h * .14, 2, "#D9A96E", 2); x.restore();
-        x.save(); x.translate(w / 2, -s.h / 2); x.rotate(.9 * o);
-        rrp(-w * .17, -s.h * .12, w * .17, s.h * .14, 2, "#D9A96E", 2); x.restore();
-      }
-    },
-    curtain: {
-      dir: "lr",
-      open: (w, h) => ({ x: -w * .34, y: -h * .34, w: w * .68, h: h * .64 }),
-      base(s, g) {
         const w = s.w, h = s.h;
-        rrp(-w / 2, -h / 2 + h * .04, w, h * .92, 6, "#EFE7D8", 2.6);
-        rrp(g.x - 4, g.y - 4, g.w + 8, g.h + 8, 3, "#DDEBF7", 2);
-        ink(1.8); x.strokeStyle = "rgba(34,34,34,.45)";
-        x.beginPath(); x.moveTo(0, g.y - 4); x.lineTo(0, g.y + g.h + 4);
-        x.moveTo(g.x - 4, g.y + g.h * .5); x.lineTo(g.x + g.w + 4, g.y + g.h * .5); x.stroke();
-        rrp(-w / 2 - 5, -h / 2, w + 10, 7, 3, "#B98F5E", 2.2);   // 窗帘杆
-      },
-      cover(s, g, o) {
-        const pw = g.w * (.55 - .42 * o), ph = g.h + 10, yy = g.y - 5;
-        for (const sgn of [-1, 1]) {
-          const bx = sgn < 0 ? g.x - 4 : g.x + g.w + 4 - pw;
-          rrp(bx, yy, pw, ph, 4, "#DCD2F5", 2.4);
-          ink(1.6); x.strokeStyle = "rgba(34,34,34,.28)";
-          for (let i = 1; i < 3; i++) {
-            const lx = bx + pw * (i / 3);
-            x.beginPath(); x.moveTo(lx, yy + 3); x.lineTo(lx, yy + ph - 3); x.stroke();
-          }
-        }
-      }
-    },
-    sofa: {
-      dir: "up",
-      open: (w, h) => ({ x: -w * .30, y: -h * .04, w: w * .60, h: h * .42 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        rrp(-w / 2, -h / 2, w, h * .58, 10, "#DCD2F5", 2.6);
-        rrp(-w / 2 - 4, -h * .18, w * .17, h * .78, 7, "#CBBDEE", 2.4);
-        rrp(w / 2 - w * .17 + 4, -h * .18, w * .17, h * .78, 7, "#CBBDEE", 2.4);
-        rrp(-w / 2 + 6, h * .34, w - 12, h * .16, 4, "#B9A9D8", 2.2);
-        ink(2); x.strokeStyle = "rgba(34,34,34,.3)";
-        x.beginPath(); x.moveTo(-w * .2, -h * .28); x.lineTo(-w * .2, h * .02);
-        x.moveTo(w * .2, -h * .28); x.lineTo(w * .2, h * .02); x.stroke();
-      },
-      cover(s, g, o) {
-        x.save(); x.translate(0, -o * g.h * 1.5); x.rotate(-.10 * o);
-        rrp(g.x - 8, g.y - 4, g.w + 16, g.h * .92, 8, "#E6DEF8", 2.6);
-        ink(1.8); x.strokeStyle = "rgba(34,34,34,.25)";
-        x.beginPath(); x.moveTo(g.x + g.w * .5, g.y + 2); x.lineTo(g.x + g.w * .5, g.y + g.h * .78); x.stroke();
+        let dx = 0, dy = 0, rot = 0;
+        // 位移刚好让照片边缘退到开口边上：掀多少缝就露多少，不会多咬掉一块
+        if (T.dir === "up") { dy = -o * (h / 2 - g.y); rot = -.10 * o; }
+        else if (T.dir === "down") { dy = o * (g.y + g.h + h / 2); rot = .07 * o; }
+        else { dx = o * (g.x + g.w + w / 2); dy = -o * h * .12; rot = .05 * o; }
+        x.save(); x.translate(dx, dy); x.rotate(rot);
+        if (!photo(T.img, 0, 0, w, h)) rrp(-w / 2, -h / 2, w, h, 6, "#E9D8B8", 2.6);
         x.restore();
       }
-    },
-    bed: {
-      dir: "up",
-      open: (w, h) => ({ x: -w * .34, y: -h * .18, w: w * .68, h: h * .52 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        rrp(-w / 2, -h * .30, w, h * .80, 8, "#F4F1E9", 2.6);
-        rrp(-w / 2 + 5, -h * .26, w * .30, h * .30, 6, "#FFFFFF", 2.2);
-        rrp(-w / 2 - 3, h * .30, w + 6, h * .20, 4, "#C9A87C", 2.4);
-      },
-      cover(s, g, o) {
-        const bot = g.y + g.h * (1 - o);
-        x.beginPath();
-        x.moveTo(g.x - 8, g.y - 6);
-        x.lineTo(g.x + g.w + 8, g.y - 6);
-        x.lineTo(g.x + g.w + 8, bot);
-        for (let i = 4; i >= 0; i--) {
-          const t = i / 4, wx = g.x - 8 + (g.w + 16) * t;
-          x.lineTo(wx, bot + Math.sin(t * 6.283 + 1) * 3 + 5);
-        }
-        x.closePath();
-        x.fillStyle = "#F16D5B"; x.fill(); ink(2.6); x.stroke();
-        ink(1.8); x.strokeStyle = "rgba(255,255,255,.6)";
-        for (let i = 1; i < 4; i++) {
-          const t = i / 4, wx = g.x - 8 + (g.w + 16) * t;
-          x.beginPath(); x.moveTo(wx, g.y - 2); x.lineTo(wx, bot + 2); x.stroke();
-        }
-      }
-    },
-    wardrobe: {
-      dir: "lr",
-      open: (w, h) => ({ x: -w * .38, y: -h * .42, w: w * .76, h: h * .74 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        rrp(-w / 2, -h / 2, w, h, 5, "#E0C9A6", 2.8);
-        rrp(-w / 2 + 3, h / 2 - 6, w - 6, 6, 2, "#C9A87C", 0);
-        ink(2); x.strokeStyle = "rgba(34,34,34,.35)";
-        x.beginPath(); x.moveTo(g.x, g.y + 6); x.lineTo(g.x + g.w, g.y + 6); x.stroke();
-        x.fillStyle = "rgba(120,90,60,.5)";
-        rrp(g.x + 4, g.y + 8, g.w * .26, h * .16, 2, "rgba(220,210,190,.7)", 1.6);
-        rrp(g.x + g.w * .36, g.y + 8, g.w * .30, h * .20, 2, "rgba(241,109,91,.55)", 1.6);
-      },
-      cover(s, g, o) {
-        const dw = g.w * .5 * (1 - .93 * o);
-        rrp(g.x, g.y, dw, g.h, 3, "#EAD7B8", 2.4);
-        rrp(g.x + g.w - dw, g.y, dw, g.h, 3, "#EAD7B8", 2.4);
-        if (dw > 6) {
-          x.fillStyle = "#222";
-          rrp(g.x + dw - 8, g.y + g.h * .42, 4, g.h * .16, 2, "#8B6B44", 1.4);
-          rrp(g.x + g.w - dw + 4, g.y + g.h * .42, 4, g.h * .16, 2, "#8B6B44", 1.4);
-        }
-      }
-    },
-    bag: {
-      dir: "up",
-      open: (w, h) => ({ x: -w * .32, y: -h * .28, w: w * .64, h: h * .46 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        rrp(-w / 2, -h / 2 + h * .06, w, h * .94, 14, "#BFE4D0", 2.8);
-        rrp(-w * .10, -h / 2 - 4, w * .20, h * .12, 5, "#8CCBAA", 2.2);
-        ink(1.6); x.strokeStyle = "rgba(34,34,34,.3)";
-        for (let i = 0; i <= 4; i++) {
-          const yy = g.y + g.h * (i / 4);
-          x.beginPath(); x.moveTo(g.x, yy); x.lineTo(g.x + g.w, yy); x.stroke();
-        }
-        for (let i = 0; i <= 4; i++) {
-          const xx = g.x + g.w * (i / 4);
-          x.beginPath(); x.moveTo(xx, g.y); x.lineTo(xx, g.y + g.h); x.stroke();
-        }
-      },
-      cover(s, g, o) {
-        x.save(); x.translate(0, -o * g.h * 1.15); x.scale(1, Math.max(.14, 1 - .5 * o));
-        rrp(g.x - 6, g.y - 8, g.w + 12, g.h * .96, 8, "#9BD3B8", 2.6);
-        ink(1.6); x.strokeStyle = "rgba(34,34,34,.35)";
-        x.beginPath(); x.moveTo(g.x - 4, g.y + g.h * .78); x.lineTo(g.x + g.w + 4, g.y + g.h * .78); x.stroke();
-        x.restore();
-      }
-    },
-    basket: {
-      dir: "up",
-      open: (w, h) => ({ x: -w * .32, y: -h * .40, w: w * .64, h: h * .42 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        x.beginPath();
-        x.moveTo(-w / 2, -h * .12); x.lineTo(w / 2, -h * .12);
-        x.lineTo(w * .42, h / 2); x.lineTo(-w * .42, h / 2); x.closePath();
-        x.fillStyle = "#E9D8B8"; x.fill(); ink(2.6); x.stroke();
-        ink(1.5); x.strokeStyle = "rgba(34,34,34,.3)";
-        for (let i = 1; i < 4; i++) {
-          const yy = -h * .12 + (h * .62) * (i / 4);
-          x.beginPath(); x.moveTo(-w * .49 + i * 1.5, yy); x.lineTo(w * .49 - i * 1.5, yy); x.stroke();
-        }
-        rrp(-w / 2 - 3, -h * .18, w + 6, 8, 4, "#DCBB8C", 2.4);
-      },
-      cover(s, g, o) {
-        x.save(); x.translate(0, -o * g.h * 1.25); x.scale(1, Math.max(.2, 1 - .55 * o));
-        x.fillStyle = "#F5E66B"; ink(2.4);
-        x.beginPath(); x.ellipse(g.x + g.w * .28, g.y + g.h * .55, g.w * .30, g.h * .42, .2, 0, 6.283); x.fill(); x.stroke();
-        x.fillStyle = "#DCD2F5";
-        x.beginPath(); x.ellipse(g.x + g.w * .74, g.y + g.h * .62, g.w * .28, g.h * .38, -.25, 0, 6.283); x.fill(); x.stroke();
-        x.fillStyle = "#fff";
-        x.beginPath(); x.ellipse(g.x + g.w * .5, g.y + g.h * .30, g.w * .26, g.h * .30, .1, 0, 6.283); x.fill(); x.stroke();
-        x.restore();
-      }
-    },
-    drawer: {
-      dir: "down",
-      open: (w, h) => ({ x: -w * .38, y: -h * .34, w: w * .76, h: h * .58 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        rrp(-w / 2, -h / 2, w, h, 5, "#E0C9A6", 2.8);
-        rrp(-w / 2 + 4, h / 2 - 8, 10, 8, 2, "#B98F5E", 1.6);
-        rrp(w / 2 - 14, h / 2 - 8, 10, 8, 2, "#B98F5E", 1.6);
-      },
-      cover(s, g, o) {
-        x.save();
-        x.translate(0, o * g.h * 1.35); x.scale(1 + .06 * o, 1); x.rotate(-.05 * o);
-        rrp(g.x - 5, g.y + 1, g.w + 10, g.h - 2, 4, "#D8B27F", 2.6);
-        rrp(-g.w * .12, g.y + g.h * .34, g.w * .24, 6, 3, "#8B6B44", 2);
-        x.restore();
-      }
-    },
-    plant: {
-      dir: "lr",
-      open: (w, h) => ({ x: -w * .30, y: -h * .40, w: w * .60, h: h * .50 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        x.beginPath();
-        x.moveTo(-w * .26, h * .18); x.lineTo(w * .26, h * .18);
-        x.lineTo(w * .20, h / 2); x.lineTo(-w * .20, h / 2); x.closePath();
-        x.fillStyle = "#E9D8B8"; x.fill(); ink(2.6); x.stroke();
-        ink(2.4); x.strokeStyle = "#4E7A55";
-        x.beginPath(); x.moveTo(0, h * .20); x.lineTo(0, g.y + g.h * .7); x.stroke();
-      },
-      cover(s, g, o) {
-        const cxp = 0, cyp = g.y + g.h * .72;
-        for (let i = 0; i < 5; i++) {
-          const t = i / 4, ang = -Math.PI + .35 + t * (Math.PI - .7);
-          x.save(); x.translate(cxp, cyp); x.rotate(ang + (t - .5) * .9 * o);
-          const len = g.h * (.95 - .1 * Math.abs(t - .5)), wd = g.w * .20;
-          x.beginPath(); x.moveTo(0, 0);
-          x.quadraticCurveTo(len * .45, -wd, len, -wd * .18);
-          x.quadraticCurveTo(len * .5, wd * .9, 0, 0);
-          x.closePath();
-          x.fillStyle = i % 2 ? "#7FBF95" : "#6FAF85"; x.fill(); ink(2.2); x.stroke();
-          x.restore();
-        }
-      }
-    },
-    shoes: {
-      dir: "lr",
-      open: (w, h) => ({ x: -w * .38, y: -h * .26, w: w * .76, h: h * .54 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        rrp(-w / 2, -h / 2, w, h, 4, "#E9D8B8", 2.8);
-        rrp(-w / 2 - 3, -h / 2 - 6, w + 6, 7, 3, "#D6BE97", 2.2);
-        x.fillStyle = "#BFE4D0";
-        rrp(-w * .30, -h / 2 - 16, w * .22, 10, 4, "#BFE4D0", 2);
-        rrp(w * .06, -h / 2 - 14, w * .22, 8, 4, "#F5E66B", 2);
-      },
-      cover(s, g, o) {
-        const dw = g.w * .5 * (1 - .93 * o);
-        rrp(g.x, g.y, dw, g.h, 3, "#F2E4CB", 2.4);
-        rrp(g.x + g.w - dw, g.y, dw, g.h, 3, "#F2E4CB", 2.4);
-        if (dw > 6) {
-          rrp(g.x + dw - 7, g.y + g.h * .30, 3.5, g.h * .22, 2, "#8B6B44", 1.4);
-          rrp(g.x + g.w - dw + 3.5, g.y + g.h * .30, 3.5, g.h * .22, 2, "#8B6B44", 1.4);
-        }
-      }
-    },
-    table: {
-      dir: "up",
-      open: (w, h) => ({ x: -w * .34, y: -h * .10, w: w * .68, h: h * .50 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        rrp(-w / 2, -h / 2, w, h * .16, 4, "#E9D8B8", 2.6);
-        rrp(-w * .42, -h * .34, 8, h * .84, 3, "#C9A87C", 2.2);
-        rrp(w * .42 - 8, -h * .34, 8, h * .84, 3, "#C9A87C", 2.2);
-        x.fillStyle = "#F5E66B"; rrp(-w * .18, -h / 2 - 12, w * .22, 12, 3, "#F5E66B", 2);
-      },
-      cover(s, g, o) {
-        const bot = g.y + g.h, lift = o * g.h * 1.55;
-        x.beginPath();
-        x.moveTo(g.x - 10, g.y - 6);
-        x.lineTo(g.x + g.w + 10, g.y - 6);
-        x.lineTo(g.x + g.w + 10, bot);
-        x.quadraticCurveTo(0, bot - lift, g.x - 10, bot);
-        x.closePath();
-        x.fillStyle = "#DCD2F5"; x.fill(); ink(2.6); x.stroke();
-        ink(1.6); x.strokeStyle = "rgba(34,34,34,.25)";
-        for (let i = 1; i < 4; i++) {
-          const t = i / 4, xx = g.x - 10 + (g.w + 20) * t;
-          x.beginPath(); x.moveTo(xx, g.y - 2); x.lineTo(xx, bot - lift * Math.sin(Math.PI * t) * .8); x.stroke();
-        }
-      }
-    },
-    tree: {
-      dir: "up",
-      open: (w, h) => ({ x: -w * .34, y: -h * .22, w: w * .68, h: h * .34 }),
-      base(s, g) {
-        const w = s.w, h = s.h;
-        rrp(-w * .10, -h * .10, w * .20, h * .60, 3, "#D9C7A6", 2.4);
-        for (let i = 0; i < 5; i++) {
-          ink(1.6); x.strokeStyle = "rgba(34,34,34,.28)";
-          const yy = -h * .06 + i * h * .11;
-          x.beginPath(); x.moveTo(-w * .10, yy); x.lineTo(w * .10, yy + 3); x.stroke();
-        }
-        rrp(-w * .40, -h * .16, w * .80, 9, 4, "#E9D8B8", 2.4);
-        rrp(-w * .44, -h * .34, w * .88, h * .20, 6, "#F1D9E3", 2.6);
-        rrp(-w / 2, h / 2 - 10, w, 10, 4, "#DCBB8C", 2.4);
-      },
-      cover(s, g, o) {
-        x.save(); x.translate(0, -o * g.h * 1.9); x.rotate(.06 * o);
-        rrp(g.x, g.y, g.w, g.h * 1.05, 6, "#F1D9E3", 2.6);
-        x.fillStyle = "rgba(34,34,34,.12)";
-        x.beginPath(); x.ellipse(0, g.y + g.h * .55, g.w * .18, g.h * .30, 0, 0, 6.283); x.fill();
-        x.restore();
-      }
-    }
-  };
+    };
+  }
 
   function drawSpot(s) {
     const A = ART[s.type], o = clamp(s.open, 0, 1);
+    const jg = (s.jig > 0 && animOn()) ? s.jig : 0;
+    const jx = jg ? Math.sin(tNow * 44) * 3 * jg : 0, jy = jg ? Math.cos(tNow * 37) * 1.6 * jg : 0;
+    // 猫的舞台盒按逻辑坐标建，绘图原点带上抖动，hit 才和画面对得严丝合缝
+    spotOrigin.x = s.cx + jx; spotOrigin.y = s.cy + jy;
     x.save();
-    x.translate(s.cx, s.cy);
-    if (s.jig > 0 && animOn()) x.translate(Math.sin(tNow * 44) * 3 * s.jig, Math.cos(tNow * 37) * 1.6 * s.jig);
+    x.translate(spotOrigin.x, spotOrigin.y);
     x.lineJoin = "round"; x.lineCap = "round";
     const g = A.open(s.w, s.h);
     // 落影
@@ -846,17 +645,15 @@
     const c = catSpot();
     if (c === s) {
       const a = clamp((heat - .58) / .42, 0, 1) * (intro > 0 || resolve ? 0 : 1);
-      if (a > .02) {
-        const ey = g.y + g.h * .52, blink = animOn() ? (Math.sin(tNow * 2.1) > .93 ? .18 : 1) : 1;
-        x.save(); x.globalAlpha = a;
-        for (const sgn of [-1, 1]) {
-          const ex = sgn * g.w * .16;
-          x.fillStyle = "#F5E66B";
-          x.beginPath(); x.ellipse(ex, ey, g.w * .10, g.w * .075 * blink, 0, 0, 6.283); x.fill();
-          ink(1.4); x.strokeStyle = "#222"; x.stroke();
-          x.fillStyle = "#222";
-          x.beginPath(); x.ellipse(ex, ey, g.w * .032, g.w * .062 * blink, 0, 0, 6.283); x.fill();
-        }
+      // 热度够了就从缝里透出真猫的眼睛：只画一条缝宽的切片，纵向按眼睛层反推位置
+      if (a > .02 && rigOk) {
+        const u = Math.min(g.h / 76, g.w / 54), gw = CAT_GW * u, sc = gw / CatRig.STAGE_W;
+        const ey = g.y + g.h * .52, bh = Math.max(10, g.h * .22);
+        x.save();
+        x.beginPath(); x.rect(g.x + g.w * .08, ey - bh / 2, g.w * .84, bh); x.clip();
+        x.globalAlpha = a;
+        x.translate(-spotOrigin.x, -spotOrigin.y);
+        CatRig.box(spotOrigin.x - gw / 2, spotOrigin.y + ey - CAT_EYE * sc, gw).draw(x, catPose("peek", u));
         x.restore();
       }
     } else {
@@ -904,113 +701,52 @@
   }
 
   /* ---------------- 绘制：猫 / 干扰物 ---------------- */
+  // 舞台 480×560 里猫身约占 512 高；66 倍 u 的盒宽 ≈ 旧手绘猫 68u 的身高
+  const CAT_GW = 66;
+  const CAT_PAW = CatRig.P_BODY.anchor[1];              // 爪线在舞台里的 y
+  const CAT_EYE = CatRig.P_FACE["eyes-open"].at[1];     // 眼睛层在舞台里的 y
   function drawCat(cx, baseY, u, mood) {
-    x.save(); x.translate(cx, baseY); x.scale(u, u);
-    x.lineJoin = "round"; x.lineCap = "round";
-    x.fillStyle = "rgba(0,0,0,.22)"; x.beginPath(); x.ellipse(0, -1, 24, 5.5, 0, 0, 6.283); x.fill();
-    const hop = (mood === "found" && animOn()) ? Math.abs(Math.sin(tNow * 8.5)) * 7 : 0;
-    x.translate(0, -hop);
-    // 尾巴
-    const tw = animOn() ? Math.sin(tNow * 2.3) * 4 : 0;
-    x.strokeStyle = "#222"; x.lineWidth = 8.5;
-    x.beginPath(); x.moveTo(15, -12); x.quadraticCurveTo(36, -18 + tw, 32, -38 + tw); x.stroke();
-    x.strokeStyle = FUR; x.lineWidth = 5.4; x.stroke();
-    // 身体
-    x.fillStyle = FUR; ink(2.6);
-    x.beginPath(); x.ellipse(0, -19, 20, 19, 0, 0, 6.283); x.fill(); x.stroke();
-    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(0, -13, 11.5, 10.5, 0, 0, 6.283); x.fill();
-    // 前爪
-    x.fillStyle = "#FFF6E6"; ink(2.1);
-    x.beginPath(); x.ellipse(-8.5, -3.5, 6.6, 4.4, 0, 0, 6.283); x.fill(); x.stroke();
-    x.beginPath(); x.ellipse(8.5, -3.5, 6.6, 4.4, 0, 0, 6.283); x.fill(); x.stroke();
-    // 头
-    x.fillStyle = FUR; ink(2.6);
-    x.beginPath(); x.arc(0, -44, 17, 0, 6.283); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(-15, -54); x.lineTo(-19, -68); x.lineTo(-4, -58); x.closePath(); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(15, -54); x.lineTo(19, -68); x.lineTo(4, -58); x.closePath(); x.fill(); x.stroke();
-    x.fillStyle = "#FBD9CF";
-    x.beginPath(); x.moveTo(-14, -56); x.lineTo(-16.5, -64); x.lineTo(-8, -58); x.closePath(); x.fill();
-    x.beginPath(); x.moveTo(14, -56); x.lineTo(16.5, -64); x.lineTo(8, -58); x.closePath(); x.fill();
-    x.strokeStyle = "rgba(34,34,34,.28)"; x.lineWidth = 2.3;
-    x.beginPath(); x.moveTo(-6, -58); x.lineTo(-7, -51); x.moveTo(0, -60); x.lineTo(0, -52); x.moveTo(6, -58); x.lineTo(7, -51); x.stroke();
-    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(0, -38, 10.5, 7.5, 0, 0, 6.283); x.fill();
-    const blink = animOn() && Math.sin(tNow * 1.7 + 1.3) > .985;
-    if (mood === "found") {
-      x.strokeStyle = "#222"; x.lineWidth = 2.6;
-      x.beginPath(); x.arc(-7, -46, 4.2, Math.PI * 1.12, Math.PI * 1.88); x.stroke();
-      x.beginPath(); x.arc(7, -46, 4.2, Math.PI * 1.12, Math.PI * 1.88); x.stroke();
-    } else if (blink) {
-      x.strokeStyle = "#222"; x.lineWidth = 2.3;
-      x.beginPath(); x.moveTo(-11, -46); x.lineTo(-3, -46); x.moveTo(3, -46); x.lineTo(11, -46); x.stroke();
-    } else {
-      x.fillStyle = "#222";
-      x.beginPath(); x.ellipse(-7, -46, 3.5, 4.3, 0, 0, 6.283); x.fill();
-      x.beginPath(); x.ellipse(7, -46, 3.5, 4.3, 0, 0, 6.283); x.fill();
-      x.fillStyle = "#fff";
-      x.beginPath(); x.arc(-5.8, -47.6, 1.25, 0, 6.283); x.fill();
-      x.beginPath(); x.arc(8.2, -47.6, 1.25, 0, 6.283); x.fill();
-    }
-    x.fillStyle = "#F16D5B";
-    x.beginPath(); x.moveTo(-3, -39); x.lineTo(3, -39); x.lineTo(0, -35.6); x.closePath(); x.fill();
-    x.strokeStyle = "#222"; x.lineWidth = 1.8; x.beginPath();
-    x.moveTo(0, -35.6); x.lineTo(0, -33.4);
-    if (mood === "found") { x.moveTo(-5, -33.4); x.quadraticCurveTo(0, -28.4, 5, -33.4); }
-    else { x.moveTo(-4, -32.6); x.quadraticCurveTo(0, -30.4, 4, -32.6); }
-    x.stroke();
-    x.strokeStyle = "rgba(34,34,34,.45)"; x.lineWidth = 1.2;
-    x.beginPath();
-    x.moveTo(-11, -38); x.lineTo(-23, -41); x.moveTo(-11, -35); x.lineTo(-23, -33);
-    x.moveTo(11, -38); x.lineTo(23, -41); x.moveTo(11, -35); x.lineTo(23, -33);
-    x.stroke();
+    if (!rigOk) return;
+    const gw = CAT_GW * u, s = gw / CatRig.STAGE_W;
+    // 盒子建在逻辑坐标（绘图原点 + 局部偏移），hit 才吃得下游戏坐标
+    catBox = CatRig.box(spotOrigin.x + cx - gw / 2, spotOrigin.y + baseY - CAT_PAW * s, gw);
+    catP = catPose(mood, u); lastMood = mood;
+    x.save(); x.translate(-spotOrigin.x, -spotOrigin.y);
+    catBox.draw(x, catP);
     x.restore();
+  }
+  /* 情绪 → 姿态：被找到就蹦 + 眯眼张嘴，还没掀开时屏住呼吸、耳朵往后压 */
+  function catPose(mood, u) {
+    const an = animOn(), sc = CAT_GW * (u || 1) / CatRig.STAGE_W;
+    const hop = mood === "found" && an ? Math.abs(Math.sin(tNow * 8.5)) : 0;
+    const hid = mood !== "found";
+    const pet = clamp(1 - (tNow - catPetT) / .4, 0, 1);   // 刚被戳过：缩一下身、炸半秒毛
+    const blinkPh = tNow % (mood === "found" ? 9 : 3.4);
+    return CatRig.pose({
+      y: -hop * 7 / sc,                          // 旧手感是蹦 7u，换算到舞台单位后与 u 无关
+      breathe: hid ? Math.sin(tNow * (mood === "peek" ? 1.1 : 1.7)) * .16 : Math.sin(tNow * 5.4) * .34,
+      bodyRot: hop * .04 * (an ? Math.sin(tNow * 3) : 0),
+      bodySquash: hop * .16 + pet * .2,
+      headX: mood === "shy" ? -3 : 0,
+      headY: mood === "shy" ? 2 : -hop * 5 + pet * 6,
+      headRot: mood === "shy" ? -.06 : Math.sin(tNow * 2.1) * .04,
+      blink: mood === "found" ? 1 : clamp(1 - Math.abs(blinkPh - .14) / .14, 0, 1),
+      mouth: mood === "found" ? .8 : (mood === "shy" ? .12 : 0),
+      tailRot: -.06 - hop * .1,
+      tailWag: an ? Math.sin(tNow * (mood === "found" ? 5.6 : 2.3)) * (mood === "peek" ? .07 : .2) : 0,
+      tailPuff: clamp(mood === "peek" ? .3 : (hid ? .12 : 0) + pet * .3, 0, 1),
+      shadow: 1 - hop * .35
+    });
   }
   function drawDecoy(kind, cx, baseY, u) {
-    x.save(); x.translate(cx, baseY); x.scale(u, u);
-    x.lineJoin = "round"; x.lineCap = "round";
-    x.fillStyle = "rgba(0,0,0,.2)"; x.beginPath(); x.ellipse(0, -1, 22, 5.5, 0, 0, 6.283); x.fill();
-    ink(2.4);
-    if (kind === "slipper") {
-      for (const sgn of [-1, 1]) {
-        x.save(); x.translate(sgn * 11, -8); x.rotate(sgn * .12);
-        x.fillStyle = "#F16D5B";
-        x.beginPath(); x.ellipse(0, 0, 15, 8, 0, 0, 6.283); x.fill(); x.stroke();
-        x.fillStyle = "#FFF6E6";
-        x.beginPath(); x.ellipse(-4, -2, 8, 5, 0, 0, 6.283); x.fill(); x.stroke();
-        x.restore();
-      }
-    } else if (kind === "yarn") {
-      x.fillStyle = "#F5E66B";
-      x.beginPath(); x.arc(0, -17, 16, 0, 6.283); x.fill(); x.stroke();
-      x.strokeStyle = "rgba(34,34,34,.5)"; x.lineWidth = 2;
-      for (let i = -2; i <= 2; i++) {
-        x.beginPath(); x.ellipse(0, -17, 15, 5 + Math.abs(i) * 2.2, i * .7, 0, 6.283); x.stroke();
-      }
-      x.strokeStyle = "#F16D5B"; x.lineWidth = 3;
-      x.beginPath(); x.moveTo(13, -8); x.quadraticCurveTo(26, -2, 18, 4); x.stroke();
-    } else if (kind === "bowl") {
-      x.fillStyle = "#DCD2F5";
-      x.beginPath(); x.moveTo(-20, -14); x.quadraticCurveTo(0, 6, 20, -14); x.closePath(); x.fill(); x.stroke();
-      x.beginPath(); x.ellipse(0, -14, 20, 6.5, 0, 0, 6.283);
-      x.fillStyle = "#B7A6DF"; x.fill(); ink(2.4); x.stroke();
-      x.fillStyle = "rgba(34,34,34,.35)";
-      x.beginPath(); x.arc(-6, -14, 1.5, 0, 6.283); x.fill();
-      x.beginPath(); x.arc(4, -13, 1.2, 0, 6.283); x.fill();
-    } else {
-      x.fillStyle = "#F2F0EC";
-      x.beginPath(); x.ellipse(0, -11, 21, 12, 0, Math.PI, 0); x.closePath(); x.fill(); x.stroke();
-      x.fillStyle = "#DCD2F5";
-      ML.rr(x, -21, -11, 42, 11, 4); x.fill(); x.stroke();
-      x.fillStyle = "#222";
-      x.beginPath(); x.arc(-7, -14, 2.4, 0, 6.283); x.fill();
-      x.beginPath(); x.arc(7, -14, 2.4, 0, 6.283); x.fill();
-      x.strokeStyle = "#88847D"; x.lineWidth = 2;
-      x.beginPath(); x.moveTo(-14, -1); x.lineTo(-11, 3); x.moveTo(0, -1); x.lineTo(0, 4); x.moveTo(14, -1); x.lineTo(11, 3); x.stroke();
-      x.strokeStyle = "#222"; x.lineWidth = 2;
-      x.beginPath(); x.arc(0, -22, 4, Math.PI, 0); x.stroke();
-    }
+    const box = DECOY_BOX[kind] || [44, 40];
+    // 干扰物全是真图：扫把、吹风机、玩具鱼、零食球，底边贴着遮蔽物的地面
+    if (photoStand(DECOY_IMG[kind], cx, baseY - 1, box[0] * u, box[1] * u)) return;
+    x.save(); x.translate(cx, baseY); x.scale(u, u);      // 缺图兜底：一团能辨认的圆角块
+    x.fillStyle = "#EFEAD8"; ink(2.4);
+    ML.rr(x, -20, -34, 40, 34, 8); x.fill(); x.stroke();
     x.restore();
   }
-
   /* ---------------- 绘制：特效 / 卡面 ---------------- */
   function spawnParts(wx, wy, c, n, kind) {
     if (!animOn()) return;
@@ -1182,6 +918,8 @@
     e.preventDefault();
     const p = toPt(e);
     listenX = p.x; listenY = p.y; listenHas = true; listenLive = true;
+    // 结算那 1.6 秒里，画面上的真猫可以直接戳（locked 会吞掉触摸，所以放在最前面）
+    if (resolve && resolve.kind === "found" && tapCat(p.x, p.y)) return;
     if (locked()) { refreshHeat(); return; }
     try { cv.setPointerCapture(e.pointerId); } catch (err) {}
     activeId = e.pointerId;
@@ -1350,9 +1088,8 @@
   ML.bindPause(mac, togglePause);
   mac.on(st => { if (st !== "PLAYING" && grab) { grab.hold = false; if (!grab.revealed && !grab.commit) grab.open = 0; grab = null; } });
 
-  /* ---------------- 宠物配置（只用颜色与名字，画面全程序化） ---------------- */
+  /* ---------------- 宠物配置（只用名字；猫是六层真猫照片布偶） ---------------- */
   ML.pet().then(cfg2 => {
-    if (cfg2.furColor) FUR = cfg2.furColor;
     petName = cfg2.petName || "MOMO";
     $("#petTag").textContent = petName + " 主演";
   }).catch(() => {});
@@ -1366,6 +1103,9 @@
   size();
   $("#bestTag").textContent = "最佳 " + bestSafe();
   hud();
+  // 6 层猫部件 + 遮蔽物 / 干扰物照片全部到位后才画第一帧；缺图就退回只画房间
+  await CatRig.load().then(() => { rigOk = true; }).catch(() => {});
+  await loadProps().catch(() => {});
   render();
   last = performance.now();
   requestAnimationFrame(loop);
@@ -1384,6 +1124,8 @@
         open: Math.round(s.open * 100) / 100, revealed: s.revealed, decoy: s.decoy,
         cx: Math.round(s.cx), cy: Math.round(s.cy), heat: Math.round(heatAt(s.cx, s.cy) * 100) / 100
       })),
+      rig: rigOk, masks: !!(CatRig.masks && CatRig.masks.body), photos: Object.keys(IMG).length,
+      catBox: catBox ? { gx: Math.round(catBox.gx), gy: Math.round(catBox.gy), gw: Math.round(catBox.gw) } : null,
       W, H, DW, DH, fit: Math.round(fit * 1000) / 1000
     }),
     get level() { return lv; },
@@ -1444,7 +1186,21 @@
       window.__hidecatDebug.listen(s.cx, s.cy);
       return { heat: Math.round(heat * 100) / 100, word: heatWord(heat) };
     },
-    togglePause, types: Object.keys(TYPES), levels: LEVELS
+    togglePause, types: Object.keys(TYPES), levels: LEVELS,
+    // 真猫布偶：pose/box/hitCat 对的是「上一帧真正画出来的那只」，没画过时返回 null
+    pose: (mood, u) => catPose(mood || lastMood, u || 1),
+    box: () => catBox,
+    hitCat: (gx, gy) => (catBox && catP ? catBox.hit(catP, +gx || 0, +gy || 0) : null),
+    catPoint: which => (catBox && catP ? catBox.at(catP, which) : null),
+    tapCat,
+    // 整个掀开猫那一处并渲染一帧，逼出真猫盒子，之后 hitCat 才有东西可命中
+    showCat: () => {
+      const s = catSpot();
+      if (!s) return null;
+      s.commit = false; s.revealed = true; s.open = 1;
+      render();
+      return { mood: lastMood, box: catBox, pose: catP };
+    }
   };
 })();
 </script>

@@ -191,6 +191,27 @@ window.CatRig = (() => {
     return [part.at[0] + t.dx + x, part.at[1] + t.dy + y];
   }
 
-  const API = { STAGE_W, STAGE_H, P_BODY, P_HEAD, P_TAIL, P_FACE, imgs, masks, pose, load, draw, hit, center };
+  /* 舞台盒：把 480×560 的布偶塞进游戏自己的逻辑坐标系。
+   * 游戏只需给出左上角和目标宽，盒子里 draw/hit/at 说的是游戏的坐标，
+   * 免得九款游戏各自复刻一遍 translate/scale 反算。 */
+  function box(gx, gy, gw) {
+    const s = gw / STAGE_W, self = {
+      gx, gy, gw, gh: STAGE_H * s, s,
+      draw(x, P) { x.save(); x.translate(gx, gy); x.scale(s, s); draw(x, P); x.restore(); },
+      hit(P, wx, wy) { return hit(P, (wx - gx) / s, (wy - gy) / s); },
+      /* 舞台点 -> 游戏点；P 传了就带上整体位移与缩放 */
+      p(px, py, P) {
+        if (P) {
+          return [gx + (STAGE_W / 2 + P.x + (px - STAGE_W / 2) * P.scale) * s,
+            gy + (STAGE_H / 2 + P.y + (py - STAGE_H / 2) * P.scale) * s];
+        }
+        return [gx + px * s, gy + py * s];
+      },
+      at(P, which) { const c = center(P, which); return self.p(c[0], c[1], P); }
+    };
+    return self;
+  }
+
+  const API = { STAGE_W, STAGE_H, P_BODY, P_HEAD, P_TAIL, P_FACE, imgs, masks, pose, load, draw, hit, center, box };
   return API;
 })();

@@ -117,7 +117,7 @@
     });
   }
 
-  const thumb = g => g.art.img ? `<img src="${ML.asset(g.art.img)}" alt="">` : ML_GAME_ART[g.art.svg];
+  const thumb = g => `<img src="${ML.asset(g.art.img)}" alt="${g.n}" loading="lazy">`;
 
   function renderGames() {
     const ids = ["jump", "sneak", "dressup", "meme"];

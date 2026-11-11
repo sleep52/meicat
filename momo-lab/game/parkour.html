@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FAF8F3">
-<title>跑酷躲黄瓜 — MOMO 事务所</title>
-<meta name="description" content="横版自动奔跑：点屏幕跳（短按小跳、长按大跳），下滑或按住钻键低头钻。黄瓜要跳，横杆要钻。">
+<title>跑酷大扫除 — MOMO 事务所</title>
+<meta name="description" content="横版自动奔跑：点屏幕跳（短按小跳、长按大跳），下滑或按住钻键低头钻。地上的杂物要跳，头顶的家什要钻。">
 <link rel="stylesheet" href="../css/base.css">
 <link rel="stylesheet" href="../css/game.css">
 <style>
@@ -64,7 +64,7 @@
 <div class="g-wrap">
   <div class="g-top">
     <a class="icon-btn" href="../games.html" aria-label="返回游戏列表"><span data-icon="back"></span></a>
-    <div class="title">跑酷躲黄瓜<small>跑酷 · 点屏跳 / 下滑钻</small></div>
+    <div class="title">跑酷大扫除<small>跑酷 · 点屏跳 / 下滑钻</small></div>
     <button class="icon-btn" id="pauseBtn" type="button" aria-label="暂停"><span data-icon="pause"></span></button>
   </div>
 
@@ -78,13 +78,13 @@
   <div class="banner" id="banner"></div>
 
   <div class="pk-stage" id="stage">
-    <canvas id="cv" aria-label="跑酷躲黄瓜游戏画面"></canvas>
+    <canvas id="cv" aria-label="跑酷大扫除游戏画面"></canvas>
     <button class="pk-duck" id="duckBtn" type="button" aria-label="低头钻">钻<small>按住 / 下滑</small></button>
 
     <div class="ov" id="startOv">
       <div class="panel">
         <span class="tag yel">点屏幕跳 · 下滑钻</span>
-        <h2 class="h2">跑酷躲黄瓜</h2>
+        <h2 class="h2">跑酷大扫除</h2>
         <div class="pk-record">
           <span class="tag">最高 <b id="rBest">0</b></span>
           <span class="tag">局数 <b id="rPlays">0</b></span>
@@ -92,8 +92,8 @@
         <ul class="desc">
           <li>猫自己往前冲，越跑越快。<b>点屏幕 = 跳</b>：短按小跳，按住大跳。</li>
           <li><b>下滑手势</b>或按住右下角「钻」= 低头钻；空中下滑还能快速落地。</li>
-          <li>地上的<b>黄瓜 / 扫地机器人 / 水枪</b>必须跳，上方的<b>横杆 / 吊窗帘 / 飞来的拖鞋</b>必须钻。</li>
-          <li>撞到扣 1 格血，血尽结束。吃到<b>零食</b>加分，<b>逗猫棒</b>短暂无敌，<b>牛奶</b>回血。</li>
+          <li>地上的<b>垃圾桶 / 扫地机器人 / 洗衣液</b>必须跳，上方的<b>扫把 / 吹风机 / 飞来的零食袋</b>必须钻。</li>
+          <li>撞到扣 1 格血，血尽结束。吃到<b>零食</b>加分，<b>玩具鱼</b>短暂无敌，<b>小鱼干</b>回血。</li>
           <li>距离即分数，零食每包额外 +10。键盘：空格 / ↑ 跳（按住跳更高），↓ 钻，P / Esc 暂停。</li>
         </ul>
         <div class="row"><button class="btn yel big" id="startBtn" type="button">开始跑</button></div>
@@ -103,7 +103,7 @@
     <div class="ov hide" id="pauseOv">
       <div class="panel">
         <h2 class="h2">已暂停</h2>
-        <p class="mut" style="font-size:12px">黄瓜不会趁你不在偷偷靠近——大概吧。</p>
+        <p class="mut" style="font-size:12px">扫地机器人不会趁你不在偷偷靠近——大概吧。</p>
         <div class="row">
           <button class="btn yel" id="resumeBtn" type="button">继续</button>
           <button class="btn" id="quitBtn" type="button">结束这局</button>
@@ -115,7 +115,7 @@
     <div class="ov hide" id="endOv">
       <div class="panel">
         <div id="endNew"></div>
-        <div class="pk-endhead"><span class="rating" id="endRating">D</span><h2 class="h2" id="endTitle">被黄瓜劝退了</h2></div>
+        <div class="pk-endhead"><span class="rating" id="endRating">D</span><h2 class="h2" id="endTitle">被扫地机器人劝退了</h2></div>
         <div class="pk-stats">
           <div><b id="stDist">0m</b><span>奔跑距离</span></div>
           <div><b id="stSnack">0</b><span>捡到零食</span></div>
@@ -135,8 +135,8 @@
   </div>
 
   <div class="pk-legend">
-    <div class="pk-leg"><b><span class="pk-key j">跳</span>地上的要跳</b><i>黄瓜 · 扫地机器人 · 水枪（水枪更高，要多按一会儿）</i></div>
-    <div class="pk-leg"><b><span class="pk-key d">钻</span>上方的要钻</b><i>横杆 · 吊窗帘 · 飞来的拖鞋（跳过去一定会撞）</i></div>
+    <div class="pk-leg"><b><span class="pk-key j">跳</span>地上的要跳</b><i>垃圾桶 · 扫地机器人 · 洗衣液（洗衣液更高，要多按一会儿）</i></div>
+    <div class="pk-leg"><b><span class="pk-key d">钻</span>上方的要钻</b><i>扫把 · 垂下的吹风机 · 飞来的零食袋（跳过去一定会撞）</i></div>
   </div>
 
   <div class="g-actions"><span class="label">点屏幕跳 · 长按大跳 · 下滑或按住钻 · P / Esc 暂停</span></div>
@@ -144,6 +144,7 @@
 
 <script src="../js/icons.js"></script>
 <script src="../js/core.js"></script>
+<script src="../js/cat-rig.js"></script>
 <script>
 (() => {
   "use strict";
@@ -174,40 +175,52 @@
   const STEP = 1 / 120;                 // 固定物理步长，与帧率无关
   const BASE_SPEED = 240, MAX_SPEED = 450, RAMP = .38;
 
-  const INK = "#222", FUR = "#E8A857", FUR_D = "#C9853A", BELLY = "#FFF3DF";
+  const INK = "#222";
   const YEL = "#F5E66B", MINT = "#BFE4D0", RED = "#F16D5B", PUR = "#DCD2F5";
-  const GREEN = "#61B96C", GREEN_D = "#2E7D46", CLOTH = "#C9A7E0";
 
-  /* 障碍：act=jump 必须跳，act=duck 必须钻（上方的带都延伸到跳不到的海拔） */
+  /* 障碍：act=jump 必须跳，act=duck 必须钻（上方的带都延伸到跳不到的海拔）
+   * 键名沿用旧类型位（生成器 / 判定带都靠它），画面一律换成家里的真东西照片 */
   const HAZ = {
-    cucumber: { act: "jump", label: "黄瓜", w: 26, h: 36 },
-    robot:    { act: "jump", label: "扫地机器人", w: 52, h: 44 },
-    watergun: { act: "jump", label: "水枪", w: 42, h: 52 },
-    bar:      { act: "duck", label: "横杆", w: 64, top: 150, bot: 44 },
-    curtain:  { act: "duck", label: "吊窗帘", w: 74, top: 168, bot: 50 },
-    slipper:  { act: "duck", label: "拖鞋", w: 56, top: 128, bot: 52, fact: 1.18 }
+    bin:       { act: "jump", label: "垃圾桶",     img: "prop-trashbin",  w: 26, h: 36 },
+    robot:     { act: "jump", label: "扫地机器人", img: "prop-vacuum",    w: 52, h: 44 },
+    detergent: { act: "jump", label: "洗衣液",     img: "prop-detergent", w: 42, h: 52 },
+    broom:     { act: "duck", label: "扫把",       img: "prop-broom",     w: 64, top: 150, bot: 44 },
+    hairdryer: { act: "duck", label: "吹风机",     img: "prop-hairdryer", w: 74, top: 168, bot: 50 },
+    pillow:    { act: "duck", label: "零食袋",     img: "prop-pillow",    w: 56, top: 128, bot: 52, fact: 1.18 }
   };
   const HINT = {
-    cucumber: "黄瓜 · 点屏幕跳",
+    bin: "垃圾桶 · 点屏幕跳",
     robot: "扫地机器人来了 · 跳！",
-    watergun: "水枪偏高 · 按住跳大跳",
-    bar: "横杆 · 下滑或按住钻",
-    curtain: "窗帘垂下来 · 低头钻",
-    slipper: "拖鞋飞来 · 快钻！"
+    detergent: "洗衣液偏高 · 按住跳大跳",
+    broom: "扫把横在头上 · 下滑或按住钻",
+    hairdryer: "吹风机垂下来 · 低头钻",
+    pillow: "零食袋飞来 · 快钻！"
   };
   const PK = {
-    treat: { label: "零食", w: 20, h: 20 },
-    wand:  { label: "逗猫棒", w: 26, h: 30 },
-    milk:  { label: "牛奶", w: 22, h: 26 }
+    treat: { label: "零食",   w: 20, h: 20, img: "snack-kibble",  glow: YEL },
+    toy:   { label: "玩具鱼", w: 26, h: 30, img: "snack-toyfish", glow: PUR },
+    fish:  { label: "小鱼干", w: 22, h: 26, img: "snack-fish",    glow: MINT }
   };
-  const PK_FILL = ["treat", "treat", "treat", "treat", "treat", "treat", "wand", "milk"];
+  const PK_FILL = ["treat", "treat", "treat", "treat", "treat", "treat", "toy", "fish"];
+
+  /* 真图道具：一次性解码，之后只走 drawImage */
+  const PROPS = ["prop-trashbin", "prop-vacuum", "prop-detergent", "prop-broom",
+    "prop-hairdryer", "prop-pillow", "prop-socks", "prop-gift",
+    "snack-kibble", "snack-toyfish", "snack-fish", "snack-platter"];
+  const PHOTO = {};
+  const loadProps = () => Promise.all(PROPS.map(k =>
+    ML.img(ML.asset("assets/props/" + k + ".png")).then(im => { PHOTO[k] = im; }, () => {})));
+
+  /* 布偶舞台 480×560，爪底约在 y=528：盒子底边钉在地板线上 */
+  const RIG_W = 67, RIG_FOOT = 528, RIG_S = RIG_W / CatRig.STAGE_W;
 
   /* ================= 运行时状态 ================= */
   const cat = {
     y: GY, vy: 0, onGround: true, duck: false,
-    hp: HP_MAX, inv: 0, wand: 0, hurt: 0, anim: 0, airT: 0, fallFrom: GY
+    hp: HP_MAX, inv: 0, wand: 0, hurt: 0, anim: 0, airT: 0, fallFrom: GY, sq: 0, duckK: 1
   };
   const CAT = { w: 42, h: 62, dw: 54, dh: 30 };
+  let rigReady = false, rigPose = null, rigBox = null, rigRot = 0;   // rigBox：布偶舞台盒，和下面的碰撞盒 catBox() 是两回事
   const obstacles = [], pickups = [], parts = [];
   let scrolled = 0, distM = 0, curSpeed = BASE_SPEED;
   let snacks = 0, bonus = 0, hits = 0, runTime = 0;
@@ -373,12 +386,12 @@
     return o;
   }
   function pickHazard(d) {
-    const ground = ["cucumber", "cucumber", "robot"];
+    const ground = ["bin", "bin", "robot"];
     const over = [];
-    if (d > 80) ground.push("watergun");
-    if (d > 150) { ground.push("robot"); over.push("slipper"); }
-    if (d > 40) over.push("bar");
-    if (d > 115) over.push("curtain");
+    if (d > 80) ground.push("detergent");
+    if (d > 150) { ground.push("robot"); over.push("pillow"); }
+    if (d > 40) over.push("broom");
+    if (d > 115) over.push("hairdryer");
     if (over.length && Math.random() < .42) return pick(over);
     return pick(ground);
   }
@@ -399,7 +412,7 @@
       if (sa === "jump" && sb === "jump") t = rand(.8, .95);
       else if (sa !== sb) t = sa === "jump" ? rand(.92, 1.08) : rand(.76, .88);
       else t = rand(.8, .96);
-      // 按「到达猫面前的时间差」而不是像素差来排第二个：飞过来的拖鞋速度不同，必须这样算才不会贴脸
+      // 按「到达猫面前的时间差」而不是像素差来排第二个：飞过来的零食袋速度不同，必须这样算才不会贴脸
       const catFront = CAT_X + CAT.w / 2, lead = VW + 40 - catFront;
       const tA = lead / (s * HAZ[a].fact);
       const xb = catFront + (tA + t) * s * HAZ[b].fact;
@@ -419,8 +432,8 @@
   }
   function addPickup(kind, x) {
     const c = PK[kind];
-    const lanes = kind === "milk" ? [rand(14, 42), rand(44, 62)]
-      : kind === "wand" ? [rand(58, 112), rand(30, 56)]
+    const lanes = kind === "fish" ? [rand(14, 42), rand(44, 62)]
+      : kind === "toy" ? [rand(58, 112), rand(30, 56)]
       : [rand(14, 108), rand(56, 112), rand(12, 34)];
     let placed = null;
     for (let i = 0; i < lanes.length && !placed; i++) {
@@ -455,6 +468,9 @@
     if (cat.inv > 0) cat.inv = Math.max(0, cat.inv - dt);
     if (cat.wand > 0) cat.wand = Math.max(0, cat.wand - dt);
     if (cat.hurt > 0) cat.hurt = Math.max(0, cat.hurt - dt);
+    if (cat.sq > 0) cat.sq = Math.max(0, cat.sq - dt * 5);
+    // 趴下的高度平滑过渡，别整块布偶硬跳
+    cat.duckK += ((cat.duck && cat.onGround ? .5 : 1) - cat.duckK) * Math.min(1, dt * 22);
     if (shake > 0) shake = Math.max(0, shake - dt * 26);
     if (duckSrc.size) { duckSafeT -= dt; if (duckSafeT <= 0) { duckSrc.forEach(endDuck); duckSafeT = DUCK_SAFE; } }
     else duckSafeT = DUCK_SAFE;
@@ -509,6 +525,7 @@
     cat.y = GY; cat.vy = 0;
     const fell = GY - cat.fallFrom;
     cat.onGround = true; cat.airT = 0; coyote = COYOTE;
+    cat.sq = clamp(fell / 125, .35, 1);
     if (animOn() && fell > 40) puff(GY, Math.min(9, 2 + Math.round(fell / 22)), "#DDD3C2");
   }
   function puff(y, n, color) {
@@ -532,7 +549,7 @@
       if (o.hit || o.dead) continue;
       if (!ov(hb.x, hb.y, hb.w, hb.h, o.x + 3, o.y + 2, o.w - 6, o.h - 4)) continue;
       o.hit = true;
-      if (cat.wand > 0) {                       // 逗猫棒无敌：直接撞开，还能加分
+      if (cat.wand > 0) {                       // 玩具鱼无敌：直接撞开，还能加分
         o.dead = true; o.vy = -520; o.rot = 0;
         bonus += 5;
         burst(o.x + o.w / 2, o.y + o.h / 2, 10, YEL, 260);
@@ -571,14 +588,14 @@
       sound.good();
       floatAt(cx, cy, "+10 零食", "yel");
       if (animOn()) burst(cx, cy, 7, YEL, 190);
-    } else if (p.k === "wand") {
+    } else if (p.k === "toy") {
       cat.wand = WAND_TIME;
       sound.bonus();
-      msg("逗猫棒到手 · 无敌 " + WAND_TIME.toFixed(1) + " 秒", "mint");
+      msg("玩具鱼到手 · 无敌 " + WAND_TIME.toFixed(1) + " 秒", "mint");
       if (animOn()) burst(cx, cy, 14, PUR, 240);
     } else {
-      if (cat.hp < HP_MAX) { cat.hp++; sound.bonus(); msg("喝到牛奶 · 生命 +1", "mint"); }
-      else { bonus += 15; sound.good(); msg("血是满的 · 牛奶折算 +15", "yel"); }
+      if (cat.hp < HP_MAX) { cat.hp++; sound.bonus(); msg("小鱼干下肚 · 生命 +1", "mint"); }
+      else { bonus += 15; sound.good(); msg("血是满的 · 小鱼干折算 +15", "yel"); }
       floatAt(cx, cy, "HP", "mint");
       if (animOn()) burst(cx, cy, 10, "#fff", 180);
     }
@@ -646,8 +663,8 @@
   }
   function rateColor(r) { return r === "S" ? YEL : r === "A" ? MINT : r === "B" ? PUR : r === "C" ? YEL : RED; }
   function titleFor(r) {
-    return r === "S" ? "猫界跑酷冠军" : r === "A" ? "丝滑到家，没几根黄瓜能拦住你"
-      : r === "B" ? "跑得挺像样，就是偶尔亲了下地板" : r === "C" ? "被黄瓜劝退了" : "第一集：猫与蔬菜的战争";
+    return r === "S" ? "猫界跑酷冠军" : r === "A" ? "丝滑到家，没几件家什能拦住你"
+      : r === "B" ? "跑得挺像样，就是偶尔亲了下地板" : r === "C" ? "被扫地机器人劝退了" : "第一集：猫和大扫除的战争";
   }
   function doGameOver() {
     if (mac.get() === "OVER") return;
@@ -682,9 +699,11 @@
     const dm = Math.round(snap.dist), sm = snap.snack, ft = fmtTime(snap.time);
     try {
       png = await ML.shareCard({
-        game: "跑酷躲黄瓜", rating: r, ratingColor: rateColor(r), petName: "MOMO",
+        game: "跑酷大扫除", rating: r, ratingColor: rateColor(r), petName: "MOMO",
         ending: dm + " 米 · " + sm + " 包零食",
-        score: sc, timeText: ft, badge: "跑酷躲黄瓜"
+        score: sc, timeText: ft, badge: "跑酷大扫除",
+        // 分享卡也只用真猫：默认表情包是另一只橘猫
+        expr: ML.asset("assets/pets/realcat/head.webp")
       });
       endImg.src = png; endImg.style.display = "";
       saveBtn.href = png; saveBtn.download = "momo-parkour-" + dm + "m.png";
@@ -692,8 +711,8 @@
     if (!workAdded && (isNew || r === "S" || r === "A")) {
       workAdded = true;
       ML.addWork({
-        id: "parkour-" + Date.now(), game: "parkour", gameName: "跑酷躲黄瓜",
-        title: "躲黄瓜 " + dm + " 米 · 评级 " + r,
+        id: "parkour-" + Date.now(), game: "parkour", gameName: "跑酷大扫除",
+        title: "躲家什 " + dm + " 米 · 评级 " + r,
         score: sc, rating: r, time: ft, png: png
       });
     }
@@ -753,32 +772,27 @@
       }
     }
   }
+  /* 中景换成家里真有的东西：礼物盒 / 袜子堆 / 零食盘，底边压在地板线上慢慢往后退 */
+  const SCENE = [
+    { img: "prop-gift", w: 96, h: 92 },
+    { img: "prop-socks", w: 78, h: 84 },
+    { img: "snack-platter", w: 92, h: 54 }
+  ];
   function drawMid() {
     const p = scrolled * .52, period = 268;
     const base = Math.floor(p / period);
-    ctx.lineWidth = 3; ctx.strokeStyle = INK;
+    ctx.save(); ctx.globalAlpha = .5;
     for (let i = 0; i < 4; i++) {
-      const idx = base + i, x = idx * period - p, kind = ((idx % 3) + 3) % 3;
-      ctx.save(); ctx.globalAlpha = .55;
-      if (kind === 0) {                                    // 沙发
-        ctx.fillStyle = PUR;
-        ML.rr(ctx, x, GY - 56, 132, 56, 12); ctx.fill(); ctx.stroke();
-        ML.rr(ctx, x + 8, GY - 84, 116, 34, 12); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#C3B6E4";
-        ML.rr(ctx, x + 20, GY - 52, 40, 22, 8); ctx.fill(); ctx.stroke();
-      } else if (kind === 1) {                             // 猫爬架
-        ctx.fillStyle = "#E9D8B8";
-        ctx.fillRect(x + 20, GY - 110, 12, 110); ctx.strokeRect(x + 20, GY - 110, 12, 110);
-        ML.rr(ctx, x, GY - 12, 74, 12, 4); ctx.fill(); ctx.stroke();
-        ML.rr(ctx, x - 6, GY - 74, 66, 12, 5); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.arc(x + 26, GY - 96, 16, 0, TAU); ctx.fill(); ctx.stroke();
-      } else {                                             // 食盆
-        ctx.fillStyle = MINT;
-        ctx.beginPath(); ctx.ellipse(x + 30, GY - 10, 30, 12, 0, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(x + 30, GY - 20, 30, 8, 0, 0, TAU); ctx.fill(); ctx.stroke();
+      const idx = base + i, kind = ((idx % 3) + 3) % 3, s = SCENE[kind];
+      const x = idx * period - p + (kind === 2 ? 96 : 0);
+      const im = PHOTO[s.img];
+      if (im) { cover(im, x, GY - s.h, s.w, s.h); }
+      else {
+        ctx.lineWidth = 2.4; ctx.strokeStyle = "rgba(34,34,34,.3)";
+        ML.rr(ctx, x, GY - s.h, s.w, s.h, 8); ctx.stroke();
       }
-      ctx.restore();
     }
+    ctx.restore();
   }
   function drawFloor() {
     ctx.strokeStyle = "rgba(34,34,34,.5)"; ctx.lineWidth = 3;
@@ -825,186 +839,60 @@
       ctx.fillStyle = "rgba(34,34,34,.2)";
       ctx.beginPath(); ctx.ellipse(o.x + o.w / 2, GY + 5, o.w * .55, 4.5, 0, 0, TAU); ctx.fill();
     }
-    if (o.k === "cucumber") drawCucumber(o);
-    else if (o.k === "robot") drawRobot(o);
-    else if (o.k === "watergun") drawGun(o);
-    else if (o.k === "bar") drawBar(o);
-    else if (o.k === "curtain") drawCurtain(o);
-    else drawSlipper(o);
+    drawProp(o);
     ctx.restore();
   }
-  function drawCucumber(o) {
-    const x = o.x, y = o.y, w = o.w, h = o.h;
-    ctx.lineWidth = 3; ctx.strokeStyle = INK;
-    ctx.save();
-    ctx.translate(x + w / 2, y + h); ctx.rotate(-.1); ctx.translate(-(x + w / 2), -(y + h));
-    ctx.fillStyle = GREEN;
-    ctx.beginPath();
-    ctx.moveTo(x + 5, y + 10);
-    ctx.quadraticCurveTo(x + w / 2 - 4, y - 3, x + w - 4, y + 8);
-    ctx.quadraticCurveTo(x + w + 1, y + h * .55, x + w - 6, y + h - 3);
-    ctx.quadraticCurveTo(x + w / 2, y + h + 4, x + 4, y + h - 4);
-    ctx.quadraticCurveTo(x - 1, y + h * .5, x + 5, y + 10);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = "rgba(255,255,255,.45)"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(x + 8, y + 14); ctx.quadraticCurveTo(x + 10, y + h * .6, x + 12, y + h - 10); ctx.stroke();
-    ctx.fillStyle = GREEN_D;
-    for (let i = 0; i < 6; i++) {
-      const t = .18 + i * .12;
-      ctx.beginPath(); ctx.arc(x + 6 + (i % 2 ? w - 14 : 6), y + h * t, 1.7, 0, TAU); ctx.fill();
-    }
-    ctx.fillStyle = "#8BD98F";
-    ctx.beginPath(); ctx.moveTo(x + w / 2, y + 2); ctx.lineTo(x + w / 2 + 7, y - 6); ctx.lineTo(x + w / 2 - 6, y - 5);
-    ctx.closePath(); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 2.4; ctx.stroke();
+  /* 真图 cover 铺满判定框并裁掉多余边：底贴地板、顶贴判定带上沿 */
+  function cover(im, x0, y0, w, h) {
+    const iw = im.naturalWidth || 1, ih = im.naturalHeight || 1, s = Math.max(w / iw, h / ih);
+    const dw = iw * s, dh = ih * s;
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, w, h); ctx.clip();
+    ctx.drawImage(im, x0 + (w - dw) / 2, y0 + h - dh, dw, dh);
     ctx.restore();
   }
-  function drawRobot(o) {
-    const x = o.x, y = o.y, w = o.w, h = o.h;
-    ctx.lineWidth = 3; ctx.strokeStyle = INK;
-    ctx.fillStyle = "#fff";
-    ML.rr(ctx, x, y + 6, w, h - 6, 10); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#E7E3DA";
-    ML.rr(ctx, x, y + 6, w, 13, 8); ctx.fill(); ctx.stroke();
-    // 天线灯
-    ctx.fillStyle = YEL;
-    ctx.beginPath(); ctx.arc(x + w / 2, y + 4, 6, 0, TAU); ctx.fill(); ctx.stroke();
-    // 眼睛
-    ctx.fillStyle = INK;
-    ctx.beginPath(); ctx.arc(x + 15, y + 22, 3, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(x + w - 15, y + 22, 3, 0, TAU); ctx.fill();
-    // 滚刷（动画关闭时静止）
-    const a = animOn() ? T * 9 : o.spin;
-    ctx.save();
-    ctx.beginPath(); ctx.rect(x, y + h - 12, w, 12); ctx.clip();
-    ctx.strokeStyle = "#C08A4A"; ctx.lineWidth = 4;
-    for (let i = 0; i < 4; i++) {
-      const bx = x + w / 2 + Math.cos(a + i * 1.57) * (w * .36);
-      ctx.beginPath(); ctx.moveTo(x + w / 2, y + h - 6); ctx.lineTo(bx, y + h - 1 + Math.sin(a + i * 1.57) * 3); ctx.stroke();
-    }
-    ctx.restore();
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(x + 4, y + h - 12); ctx.lineTo(x + w - 4, y + h - 12); ctx.stroke();
+  function wire(x0, y0, w, h) {                    // 照片没解码成功时的线框，判定范围照样看得见
+    ctx.lineWidth = 2.4; ctx.strokeStyle = INK; ctx.fillStyle = "rgba(233,216,184,.7)";
+    ML.rr(ctx, x0, y0, w, h, 5); ctx.fill(); ctx.stroke();
   }
-  function drawGun(o) {
-    const x = o.x, y = o.y, w = o.w, h = o.h;
-    ctx.lineWidth = 3; ctx.strokeStyle = INK;
-    ctx.fillStyle = MINT;
-    ML.rr(ctx, x + 6, y + 12, w - 8, 20, 8); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#8FD3E8";
-    ML.rr(ctx, x + 2, y + 4, 22, 14, 6); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = RED;
-    ML.rr(ctx, x + 16, y + 28, 14, h - 30, 6); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#5BC7E0";
-    ML.rr(ctx, x + 4, y + 4, 26, 8, 4); ctx.fill();
-    // 水柱
-    const a = animOn() ? (T * 5) % 1 : .4;
-    ctx.strokeStyle = "#63C7E6"; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(x + 2, y + 10);
-    ctx.quadraticCurveTo(x - 12, y + 8 + a * 4, x - 20, y + 20 + a * 8); ctx.stroke();
-    ctx.fillStyle = "#63C7E6";
-    ctx.beginPath(); ctx.arc(x - 22, y + 24 + a * 8, 3, 0, TAU); ctx.fill();
+  /* 零食不裁切：整颗按 contain 缩放居中，判定框本来就比图松 */
+  function fit(im, cx, cy, w, h) {
+    const iw = im.naturalWidth || 1, ih = im.naturalHeight || 1;
+    const s = Math.min(w / iw, h / ih);
+    ctx.drawImage(im, cx - iw * s / 2, cy - ih * s / 2, iw * s, ih * s);
   }
-  function drawBar(o) {
-    const x = o.x, y = o.y, w = o.w, h = o.h, bottom = y + h;
-    ctx.lineWidth = 3; ctx.strokeStyle = INK;
-    ctx.fillStyle = "#E9D8B8";
-    ctx.fillRect(x + 8, -10, 7, bottom - 8 + 10); ctx.strokeRect(x + 8, -10, 7, bottom + 2);
-    ctx.fillRect(x + w - 15, -10, 7, bottom + 2); ctx.strokeRect(x + w - 15, -10, 7, bottom + 2);
-    ctx.fillStyle = YEL;
-    ML.rr(ctx, x, bottom - 14, w, 14, 6); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = RED;
-    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(x + 14 + i * 18, bottom - 7, 3.4, 0, TAU); ctx.fill(); }
-    ctx.strokeStyle = "rgba(34,34,34,.35)"; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
-    ctx.beginPath(); ctx.moveTo(x + 14, 0); ctx.lineTo(x + 14, bottom - 16);
-    ctx.moveTo(x + w - 12, 0); ctx.lineTo(x + w - 12, bottom - 16); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-  function drawCurtain(o) {
-    const x = o.x, y = o.y, w = o.w, bottom = y + o.h;
-    ctx.lineWidth = 3; ctx.strokeStyle = INK;
-    ctx.fillStyle = "#D9C7EE";
-    ctx.beginPath();
-    ctx.moveTo(x + 4, -6); ctx.lineTo(x + w - 4, -6);
-    ctx.lineTo(x + w - 2, bottom - 12);
-    for (let i = 3; i >= 0; i--) {
-      const cx = x + 6 + (i + .5) * ((w - 12) / 4);
-      ctx.quadraticCurveTo(cx, bottom + 4, x + 6 + i * ((w - 12) / 4), bottom - 12);
+  function drawProp(o) {
+    const im = PHOTO[HAZ[o.k].img];
+    const wob = animOn() ? Math.sin(T * 6 + o.seed) : 0;
+    if (o.act === "duck") {
+      if (o.k === "pillow") {                      // 飞来的零食袋拖三条速度线
+        const cy = o.y + o.h - 22 + wob * 3;
+        ctx.strokeStyle = "rgba(34,34,34,.28)"; ctx.lineWidth = 2;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath(); ctx.moveTo(o.x + o.w + 6, cy - 16 + i * 10); ctx.lineTo(o.x + o.w + 26, cy - 16 + i * 10); ctx.stroke();
+        }
+      } else {                                     // 挂着的家什轻轻晃一下
+        ctx.translate(o.x + o.w / 2, o.y); ctx.rotate(wob * .03); ctx.translate(-(o.x + o.w / 2), -o.y);
+      }
     }
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = "rgba(34,34,34,.22)"; ctx.lineWidth = 2;
-    for (let i = 1; i < 5; i++) {
-      const cx = x + 4 + i * ((w - 8) / 5);
-      ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx - 3, bottom - 16); ctx.stroke();
+    if (im) cover(im, o.x, o.y, o.w, o.h); else wire(o.x, o.y, o.w, o.h);
+    if (o.act === "jump" && o.k === "robot" && animOn()) {   // 滚刷转圈
+      ctx.strokeStyle = "rgba(34,34,34,.35)"; ctx.lineWidth = 2;
+      const a = T * 9 + o.spin;
+      ctx.beginPath(); ctx.arc(o.x + o.w / 2, o.y + o.h - 6, o.w * .3, a, a + 2.2); ctx.stroke();
     }
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
-    ctx.fillStyle = "#B79BD8";
-    ML.rr(ctx, x, -10, w, 12, 5); ctx.fill(); ctx.stroke();
-  }
-  function drawSlipper(o) {
-    const x = o.x, y = o.y, w = o.w, h = o.h;
-    const wob = animOn() ? Math.sin(T * 11 + o.seed) * 3 : 0;
-    const cy = y + h - 22 + wob;
-    ctx.lineWidth = 3; ctx.strokeStyle = INK;
-    // 拖着的袜子尾巴，撑满判定带
-    ctx.fillStyle = CLOTH;
-    ctx.beginPath();
-    ctx.moveTo(x + w - 12, cy - 6);
-    ctx.quadraticCurveTo(x + w + 4, cy - h * .5, x + w - 22, y + 4);
-    ctx.quadraticCurveTo(x + w - 34, cy - h * .35, x + w - 20, cy - 2);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // 速度线
-    ctx.strokeStyle = "rgba(34,34,34,.28)"; ctx.lineWidth = 2;
-    for (let i = 0; i < 3; i++) {
-      ctx.beginPath(); ctx.moveTo(x + w + 6, cy - 16 + i * 10); ctx.lineTo(x + w + 26, cy - 16 + i * 10); ctx.stroke();
-    }
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
-    ctx.fillStyle = RED;
-    ctx.beginPath();
-    ctx.moveTo(x + 2, cy + 12);
-    ctx.quadraticCurveTo(x + 4, cy - 4, x + 22, cy - 6);
-    ctx.quadraticCurveTo(x + w - 2, cy - 8, x + w - 2, cy + 6);
-    ctx.quadraticCurveTo(x + w - 6, cy + 16, x + 12, cy + 16);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#fff";
-    ML.rr(ctx, x + 2, cy + 10, w - 6, 6, 3); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = INK;
-    ctx.beginPath(); ctx.arc(x + 14, cy + 1, 1.8, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(x + 22, cy, 1.8, 0, TAU); ctx.fill();
   }
   function drawPickup(p) {
     const bob = animOn() ? Math.sin(T * 3.4 + p.seed) * 2.6 : 0;
     const x = p.x, y = p.y + bob, w = p.w, h = p.h;
-    ctx.lineWidth = 2.6; ctx.strokeStyle = INK;
-    if (p.k === "treat") {
-      ctx.fillStyle = YEL;
-      ML.rr(ctx, x, y, w, h, 4); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = RED; ctx.fillRect(x + 2, y + 6, w - 4, 4);
-      ctx.fillStyle = INK;
-      ctx.beginPath(); ctx.arc(x + w / 2, y + h - 6, 2.4, 0, TAU); ctx.fill();
-      ctx.fillStyle = "#fff"; ctx.fillRect(x + 3, y + 2, 4, 2);
-    } else if (p.k === "wand") {
-      ctx.strokeStyle = "#B4762F"; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(x + 2, y + h); ctx.lineTo(x + w - 6, y + 8); ctx.stroke();
-      ctx.strokeStyle = INK; ctx.lineWidth = 2.4;
-      ctx.fillStyle = PUR;
-      for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        ctx.ellipse(x + w - 6 + i * 3, y + 6 - i * 2, 6, 3.4, -.7, 0, TAU);
-        ctx.fill(); ctx.stroke();
-      }
-      ctx.fillStyle = "#fff";
-      ctx.beginPath(); ctx.arc(x + w - 8, y + 9, 2, 0, TAU); ctx.fill();
-    } else {
-      ctx.fillStyle = "#fff";
-      ctx.beginPath();
-      ctx.moveTo(x + 3, y); ctx.lineTo(x + w - 3, y); ctx.lineTo(x + w, y + 8);
-      ctx.lineTo(x + w, y + h); ctx.lineTo(x, y + h); ctx.lineTo(x, y + 8);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = MINT; ctx.fillRect(x + 1, y + 8, w - 2, 5);
-      ctx.strokeRect(x + 1, y + 8, w - 3, 5);
-      ctx.fillStyle = "#fff"; ctx.fillRect(x + 4, y - 4, w - 8, 5);
-      ctx.strokeRect(x + 4, y - 4, w - 8, 5);
-    }
+    const cfg = PK[p.k] || PK.treat;
+    ctx.save();
+    ctx.globalAlpha = .4 + Math.sin(T * 4 + p.seed) * .12;   // 类型光圈：一眼看出是哪样
+    ctx.fillStyle = cfg.glow;
+    ctx.beginPath(); ctx.ellipse(x + w / 2, y + h / 2, w * .82, h * .82, 0, 0, TAU); ctx.fill();
+    ctx.restore();
+    const im = PHOTO[cfg.img];
+    if (im) fit(im, x + w / 2, y + h / 2, w * 1.5, h * 1.5);
+    else wire(x, y, w, h);
   }
   function drawParticles() {
     for (let i = 0; i < parts.length; i++) {
@@ -1036,167 +924,55 @@
     ctx.fillStyle = INK; ctx.font = "700 10px system-ui,sans-serif"; ctx.textAlign = "left";
     ctx.fillText("无敌 " + cat.wand.toFixed(1) + "s", x + 4, y + 26);
   }
-  const LEGS = [
-    { bx: -13, ph: 0, front: false }, { bx: 10, ph: .5, front: true },
-    { bx: -7, ph: .3, front: false }, { bx: 16, ph: .8, front: true }
-  ];
-  function drawCat() {
-    const duckAir = cat.duck && !cat.onGround;
-    const duck = cat.duck && cat.onGround;
-
-    // 影子
+  /* ================= 猫：真猫布偶 ================= */
+  /* 舞台里头、身、尾各自锚定，整只猫的俯仰只能包在外面转，用 bodyRot 会把头甩脱 */
+  function makePose() {
+    const duck = cat.duck && cat.onGround, duckAir = cat.duck && !cat.onGround;
     const air = clamp((GY - cat.y) / 190, 0, 1);
-    ctx.fillStyle = "rgba(34,34,34," + (.2 - air * .12) + ")";
-    ctx.beginPath(); ctx.ellipse(CAT_X + 2, GY + 6, 26 * (1 - air * .28), 5.5, 0, 0, TAU); ctx.fill();
-
+    const m = {
+      sq: cat.sq * 2.2, rot: 0, headX: 0, headY: 0, headRot: 0,
+      wag: animOn() ? Math.sin(T * 7 + cat.anim) * .3 : .12,
+      puff: 0, mouth: 0, br: Math.sin(T * 3.2), sh: 1 - air * .55
+    };
+    if (!cat.onGround) {                       // 腾空：上升拉、下坠栽，尾巴扬起来
+      const r = clamp(cat.vy / 700, -1, 1);
+      m.rot = (duckAir ? .3 : 0) + r * .16 - .06;
+      m.sq = -Math.max(0, -r) * 1.1;
+      m.wag = .45 + r * .2;
+      m.headY = -7 * r;
+      m.headRot = -m.rot * .5;
+    } else if (duck) {                         // 钻洞：趴低、头往前探
+      m.sq = 1.2; m.headY = 20; m.headX = 6;
+      m.wag = Math.sin(T * 4) * .12;
+    }
+    if (cat.hurt > 0) { m.mouth = 1; m.puff = 1; m.headRot = -.16; m.wag = .7; }
+    return m;
+  }
+  function drawCat() {
+    if (!rigReady) return;
+    const m = makePose();
+    // 旧版「站定时偶尔眨一下」的节拍原样搬过来
+    const blink = animOn() && cat.onGround && Math.floor(T * .9) % 5 === 0 && (T * .9) % 1 > .9;
+    const P = CatRig.pose({
+      breathe: m.br, bodySquash: m.sq, headX: m.headX, headY: m.headY, headRot: m.headRot,
+      blink: (cat.hurt > 0 || blink) ? 1 : 0, mouth: m.mouth,
+      tailWag: m.wag, tailPuff: m.puff, shadow: m.sh
+    });
+    rigPose = P; rigRot = m.rot;
+    rigBox = CatRig.box(CAT_X - RIG_W / 2, cat.y - RIG_FOOT * RIG_S, RIG_W);
     ctx.save();
     if (cat.wand > 0 && Math.floor(T * 9) % 2 === 0) {
       ctx.strokeStyle = PUR; ctx.lineWidth = 4;
       ctx.beginPath(); ctx.arc(CAT_X, cat.y - 30, 40 + Math.sin(T * 8) * 3, 0, TAU); ctx.stroke();
     }
     if (cat.inv > 0 && Math.floor(T * 16) % 2 === 0) ctx.globalAlpha = .4;
-
+    // 以爪底为轴：先竖向压扁（钻），再俯仰（腾空），影子跟着落地高度收
     ctx.translate(CAT_X, cat.y);
-    if (!cat.onGround) {
-      const r = clamp(cat.vy / 700, -1, 1);
-      ctx.rotate((duckAir ? .3 : 0) + r * .16 - .06);
-    }
-
-    const bodyRx = duck ? 30 : 22;
-    const bodyRy = duck ? 12 : 16;
-    const bodyCy = duck ? -13 : -26;
-    const headR = duck ? 12 : 14;
-    const hx = duck ? 25 : 15, hy = duck ? -18 : -46;
-
-    // 尾巴（描边 + 填色）
-    const wag = animOn() ? Math.sin(T * 7 + cat.anim) * 7 : 3;
-    const tailLift = cat.onGround ? 0 : (cat.vy < 0 ? -14 : 8);
-    const tailBase = duck ? -14 : -34;
-    const tailTip = duck ? -26 : -66;
-    for (let pass = 0; pass < 2; pass++) {
-      ctx.strokeStyle = pass ? FUR : INK;
-      ctx.lineWidth = pass ? 6 : 9;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(-bodyRx + 2, tailBase);
-      ctx.quadraticCurveTo(-bodyRx - 16, tailBase - 16 + wag * .4 + tailLift, -bodyRx - 6 + wag * .5, tailTip + tailLift + wag * .3);
-      ctx.stroke();
-    }
-
-    // 后腿（远侧）
-    drawLeg(LEGS[0], duck, bodyCy);
-    drawLeg(LEGS[1], duck, bodyCy);
-
-    // 身体
-    ctx.lineWidth = 3; ctx.strokeStyle = INK;
-    ctx.fillStyle = FUR;
-    ctx.beginPath(); ctx.ellipse(0, bodyCy, bodyRx, bodyRy, duck ? -.05 : 0, 0, TAU); ctx.fill(); ctx.stroke();
-    // 肚皮
-    ctx.fillStyle = BELLY;
-    ctx.beginPath(); ctx.ellipse(duck ? 6 : 2, bodyCy + (duck ? 5 : 6), bodyRx * .58, bodyRy * .48, 0, 0, TAU); ctx.fill();
-    // 条纹
-    ctx.strokeStyle = FUR_D; ctx.lineWidth = 3;
-    for (let i = 0; i < 3; i++) {
-      const sx = -12 + i * 9;
-      ctx.beginPath();
-      ctx.moveTo(sx, bodyCy - bodyRy + 2);
-      ctx.quadraticCurveTo(sx + 2, bodyCy - bodyRy + 8, sx - 1, bodyCy - bodyRy + 12);
-      ctx.stroke();
-    }
-
-    // 近侧腿
-    drawLeg(LEGS[2], duck, bodyCy);
-    drawLeg(LEGS[3], duck, bodyCy);
-
-    // 头
-    ctx.lineWidth = 3; ctx.strokeStyle = INK;
-    ctx.fillStyle = FUR;
-    ctx.beginPath(); ctx.arc(hx, hy, headR, 0, TAU); ctx.fill(); ctx.stroke();
-    // 耳朵
-    const flat = duck || !cat.onGround;
-    ear(hx - headR * .62, hy - headR * .62, flat ? -1 : 0, headR);
-    ear(hx + headR * .58, hy - headR * .66, flat ? 1 : 0, headR);
-    // 眼
-    const blink = animOn() && cat.onGround && Math.floor(T * .9) % 5 === 0 && (T * .9) % 1 > .9;
-    ctx.fillStyle = INK;
-    if (cat.hurt > 0) {
-      ctx.lineWidth = 2.4;
-      cross(hx - 5, hy - 2, 3); cross(hx + 5, hy - 2, 3);
-    } else if (blink) {
-      ctx.beginPath(); ctx.moveTo(hx - 8, hy - 2); ctx.lineTo(hx - 2, hy - 2);
-      ctx.moveTo(hx + 2, hy - 2); ctx.lineTo(hx + 8, hy - 2); ctx.stroke();
-    } else {
-      const ex = cat.onGround ? 0 : (duckAir ? 2 : -1);
-      ctx.beginPath(); ctx.ellipse(hx - 5 + ex, hy - 2, 2.4, cat.duck ? 2 : 3, 0, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(hx + 5 + ex, hy - 2, 2.4, cat.duck ? 2 : 3, 0, 0, TAU); ctx.fill();
-    }
-    // 鼻 + 嘴
-    ctx.fillStyle = RED;
-    ctx.beginPath(); ctx.moveTo(hx, hy + 3); ctx.lineTo(hx - 2.6, hy + 1); ctx.lineTo(hx + 2.6, hy + 1); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = INK; ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    if (cat.hurt > 0) { ctx.moveTo(hx - 4, hy + 8); ctx.quadraticCurveTo(hx, hy + 5, hx + 4, hy + 8); }
-    else { ctx.moveTo(hx - 4, hy + 6); ctx.quadraticCurveTo(hx, hy + 9, hx + 4, hy + 6); }
-    ctx.stroke();
-    // 胡须
-    ctx.strokeStyle = "rgba(34,34,34,.55)"; ctx.lineWidth = 1.4;
-    for (let s = -1; s <= 1; s += 2) {
-      for (let i = 0; i < 2; i++) {
-        ctx.beginPath();
-        ctx.moveTo(hx + s * 8, hy + 3 + i * 3);
-        ctx.lineTo(hx + s * (18), hy + 1 + i * 4 + (cat.onGround ? 0 : s));
-        ctx.stroke();
-      }
-    }
+    if (m.rot) ctx.rotate(m.rot);
+    if (cat.duckK < .999) ctx.scale(1, cat.duckK);
+    ctx.translate(-CAT_X, -cat.y);
+    rigBox.draw(ctx, P);
     ctx.restore();
-  }
-  function ear(x, y, flat, r) {
-    ctx.save();
-    ctx.translate(x, y);
-    if (flat) { ctx.rotate(x < 0 ? -.9 : -1.4); ctx.scale(1, .62); }
-    ctx.beginPath();
-    ctx.moveTo(-6, 4); ctx.lineTo(0, -11); ctx.lineTo(7, 3); ctx.closePath();
-    ctx.fillStyle = FUR; ctx.fill();
-    ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-2.6, 1); ctx.lineTo(0, -6); ctx.lineTo(3.2, 1); ctx.closePath();
-    ctx.fillStyle = "#F3B9B9"; ctx.fill();
-    ctx.restore();
-  }
-  function cross(x, y, r) {
-    ctx.beginPath();
-    ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r);
-    ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r);
-    ctx.stroke();
-  }
-  function drawLeg(L, duck, bodyCy) {
-    const bx = L.bx;
-    const near = L.ph > .4;
-    ctx.strokeStyle = near ? FUR : FUR_D;
-    ctx.lineWidth = 6; ctx.lineCap = "round";
-    let fx, fy, kx;
-    if (!cat.onGround) {
-      const r = clamp(cat.vy / 700, -1, 1);
-      fx = bx + (L.front ? -6 - r * 8 : 6 + r * 8);
-      fy = L.front ? -18 + r * 6 : -6 - r * 6;
-      kx = bx + (L.front ? -2 : 2);
-    } else if (duck) {
-      const s = Math.sin(cat.anim * TAU + L.ph * TAU);
-      fx = bx + s * 12; fy = -3; kx = bx;
-    } else {
-      const a = cat.anim * TAU + L.ph * TAU;
-      const s = Math.sin(a), c = Math.cos(a);
-      fx = bx + s * 10;
-      fy = c > .2 && s > 0 ? -(c - .2) * 11 : 0;
-      kx = bx + s * 4;
-    }
-    const top = duck ? -9 : bodyCy + 8;
-    ctx.beginPath();
-    ctx.moveTo(bx, top);
-    ctx.lineTo(kx, (top + fy) / 2 + 3);
-    ctx.lineTo(fx, fy);
-    ctx.stroke();
-    ctx.fillStyle = near ? FUR : FUR_D;
-    ctx.beginPath(); ctx.arc(fx, fy, 3.2, 0, TAU); ctx.fill();
   }
 
   function render() {
@@ -1279,14 +1055,43 @@
   showOv("start");
   window.addEventListener("resize", size);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", size);
-  rafId = requestAnimationFrame(loop);
+  /* 真图先解码完再开第一帧：布偶缺任何一层就只剩半只猫；1.5s 兜底，别被一张挂住的图卡死 */
+  (async () => {
+    await Promise.race([
+      Promise.all([CatRig.load(), loadProps()].map(p => Promise.resolve(p).catch(() => {}))),
+      new Promise(r => setTimeout(r, 1500))
+    ]);
+    rigReady = !!(CatRig.imgs.body && CatRig.imgs.head && CatRig.imgs.tail);
+    rafId = requestAnimationFrame(loop);
+  })();
 
   /* ================= 调试钩子 ================= */
+  /* 旧脚本里的蔬菜/水枪名字在这儿统一换成现在的真家伙，测试用例不用一起改 */
+  const KIND_ALIAS = { cucumber: "bin", watergun: "detergent", bar: "broom", curtain: "hairdryer", slipper: "pillow", wand: "toy", milk: "fish" };
+  const aliasKind = k => KIND_ALIAS[k] || k;
   window.__parkourDebug = {
     get obstacles() { return obstacles; },
     get pickups() { return pickups; },
     get cat() { return cat; },
     mac: mac,
+    rigW: RIG_W, rigFoot: RIG_FOOT,
+    ready: () => rigReady,
+    props: () => PROPS.filter(k => !!PHOTO[k]),
+    pose: () => rigPose && {
+      breathe: rigPose.breathe, bodySquash: rigPose.bodySquash, headX: rigPose.headX, headY: rigPose.headY,
+      headRot: rigPose.headRot, blink: rigPose.blink, mouth: rigPose.mouth,
+      tailWag: rigPose.tailWag, tailPuff: rigPose.tailPuff, shadow: rigPose.shadow,
+      rot: rigRot, duckK: cat.duckK
+    },
+    box: () => rigBox && { gx: rigBox.gx, gy: rigBox.gy, gw: rigBox.gw, gh: rigBox.gh, s: rigBox.s },
+    /* 屏幕上这点是不是压在猫身上：先把 drawCat 那组旋转/压扁换回去，再走布偶的 alpha 判定 */
+    hitCat: (x, y) => {
+      if (!rigBox || !rigPose) return null;
+      const k = cat.duckK || 1, r = rigRot;
+      let dx = x - CAT_X, dy = y - cat.y;
+      if (r) { const c = Math.cos(-r), s = Math.sin(-r), nx = dx * c - dy * s; dy = dx * s + dy * c; dx = nx; }
+      return rigBox.hit(rigPose, CAT_X + dx, cat.y + dy / k);
+    },
     state: () => ({
       mac: mac.get(),
       distance: Math.round(distM * 10) / 10, score: scoreNow(), snacks: snacks, bonus: bonus,
@@ -1307,14 +1112,14 @@
     releaseJump: () => { jumpHold = false; cutJump(); },
     duck: on => { if (on === false) endDuck("key"); else startDuck("key"); return window.__parkourDebug.state(); },
     spawn: (kind, x) => {
-      const x0 = x == null ? VW + 40 : x;
-      if (HAZ[kind]) return addHazard(kind, x0);
-      if (PK[kind]) return addPickup(kind, x0);
+      const x0 = x == null ? VW + 40 : x, kk = aliasKind(kind);
+      if (HAZ[kk]) return addHazard(kk, x0);
+      if (PK[kk]) return addPickup(kk, x0);
       msg("未知类型：" + kind, "red");
       return null;
     },
     forceHit: kind => {
-      const k = kind || "cucumber";
+      const k = aliasKind(kind || "cucumber");
       if (!HAZ[k]) return null;
       let o = null;
       for (let i = 0; i < obstacles.length; i++) if (obstacles[i].k === k && !obstacles[i].hit && !obstacles[i].dead) { o = obstacles[i]; break; }
@@ -1328,7 +1133,7 @@
       return { type: o.k, from: before, to: cat.hp, hits: hits, mac: mac.get(), distance: Math.round(distM * 10) / 10 };
     },
     forcePick: kind => {
-      const k = kind || "treat";
+      const k = aliasKind(kind || "treat");
       if (!PK[k]) return null;
       let p = null, idx = -1;
       for (let i = 0; i < pickups.length; i++) if (pickups[i].k === k && !pickups[i].got) { p = pickups[i]; idx = i; break; }

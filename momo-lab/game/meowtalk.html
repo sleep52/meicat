@@ -38,9 +38,7 @@
   .mt-marks span i{font-style:normal;color:var(--mut);font-size:10px}
   .mt-mood{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
   .mt-rule{font-size:11px;color:var(--mut);line-height:1.6;margin-top:8px;overflow-wrap:anywhere}
-  .mt-expr{width:52px;height:52px;padding:3px;overflow:hidden}
-  .mt-expr img{width:100%;height:100%;object-fit:contain}
-  .mt-expr.fb{display:grid;place-items:center;font-size:15px;font-weight:900;background:var(--bg)}
+  .mt-expr{min-width:52px;height:44px;padding:0 11px;font-size:12px;line-height:1.2;white-space:nowrap}
   .mt-choices{display:grid;grid-template-columns:minmax(0,1fr);gap:9px;margin-top:12px}
   .mt-choices .choice{margin:0}
   .choice.right{background:var(--mint)}
@@ -99,7 +97,7 @@
     <div class="chip"><div class="k">音节</div><div class="v" id="cSyl">0</div></div>
     <div class="chip yel"><div class="k">心情</div><div class="v" id="cMood" style="font-size:14px">—</div></div>
     <div class="chip"><div class="k">规则命中</div><div class="v" id="cHit" style="font-size:14px">0/0</div></div>
-    <div class="chip"><div class="k">形象</div><div class="v" id="cArt" style="font-size:14px">素材</div></div>
+    <div class="chip"><div class="k">形象</div><div class="v" id="cArt" style="font-size:14px">读取中</div></div>
   </div>
 
   <div class="hud" id="hudQz" hidden>
@@ -114,11 +112,11 @@
   <div class="mt-grid">
     <div class="mt-col mt-left">
       <div class="mt-stage" id="stage">
-        <canvas id="mtCv" width="600" height="760" aria-label="猫语翻译机现场：MOMO 的表情与喵语气泡"></canvas>
+        <canvas id="mtCv" width="600" height="760" aria-label="猫语翻译机现场：你家猫的实拍布偶按当前表情摆姿态，旁边是喵语气泡"></canvas>
         <span class="mt-corner" id="stageTag">喵语 600×760</span>
       </div>
       <p class="mt-note" id="stageNote">这一格就是最终导出的图：所见 = 所得。</p>
-      <p class="mt-note" id="artNote">表情形象：正在读取站内素材…</p>
+      <p class="mt-note" id="artNote">形象：正在读取你家猫的 6 张实拍分层图…</p>
     </div>
 
     <div class="mt-col mt-right">
@@ -237,6 +235,7 @@
 
 <script src="../js/icons.js"></script>
 <script src="../js/core.js"></script>
+<script src="../js/cat-rig.js"></script>
 <script>
 (() => {
   const { $, $$, clamp, settings, sound } = ML;
@@ -469,74 +468,89 @@
     return true;
   }
 
-  /* ================= 6. 表情形象：真实素材 + 程序化简笔猫兜底 ================= */
-  let petCfg = null, EXPRS = [], curExpr = "deadpan";
-  const imgCache = {}, imgState = {};
-  let FUR = "#E8A857";
+  /* ================= 6. 表情：真猫布偶的姿态（表情图一张都不用，全现场算） ================= */
+  let petName = "MOMO", curExpr = "deadpan", rigOk = false, rigErr = "";
   const EXP_LABEL = {
     happy: "开心", angry: "炸毛", surprised: "震惊", innocent: "无辜",
     sleep: "困", deadpan: "无语", mischief: "使坏"
   };
-  const artOk = () => imgState[curExpr] === "ok";
+  const EXPRS = Object.keys(EXP_LABEL);
+  /* 布偶只有嘴、眼、头、尾能动，七种情绪全部落在这些姿态字段上 */
+  const EXP_POSE = {
+    happy:     { mouth: .55, headRot: -.05, blink: .05, tailWag: .90 },
+    angry:     { mouth: .80, headRot:  .12, blink: 0,   tailWag: .25, tailPuff: 1, headY: -6, bodySquash: .10 },
+    surprised: { mouth: .70, headRot:  .18, blink: 0,   tailWag: .10, tailPuff: .35, headY: -12 },
+    innocent:  { mouth: .12, headRot: -.16, blink: .45, tailWag: .20, headX: -10 },
+    sleep:     { mouth: .05, headRot:  .22, blink: 1,   tailWag: .05, headY: 14 },
+    deadpan:   { mouth: 0,   headRot:  0,   blink: .28, tailWag: .12 },
+    mischief:  { mouth: .30, headRot:  .10, blink: .20, tailWag: 1.10, headX: 12, tailRot: .18 }
+  };
+  /* 心情 → 呼吸快慢（同一份 key，跟 MOOD_SOUND 的口径对齐） */
+  const MOOD_RATE = { angry: 3.4, sleep: .8, mischief: 3.1, happy: 2.4, surprised: 4.2, innocent: 2.1, deadpan: 1.4 };
+  /* 声调 → 头怎么歪：二声上扬、四声砸下去，和合成喵叫用的是同一条规则 */
+  const TONE_TILT = { 1: 0, 2: -.16, 3: .08, 4: .2, 5: -.05 };
 
-  // 素材路径只从 ML.pet() 的配置里取；取不到就返回 ""，由页面走程序化简笔猫兜底。
-  function exprSrc(key) {
-    const ex = (petCfg && petCfg.petExpressions) || {};
-    return ex[key] || (petCfg && petCfg.petAvatar) || "";
-  }
-  function exprList() {
-    const ex = (petCfg && petCfg.petExpressions) || {};
-    return Object.keys(EXP_LABEL).filter(k => ex[k]);
+  /* ph 是姿态时刻：现场跟时间走，导出固定 0 —— 同一句话永远导出同一张图 */
+  function meowPose(res, ph) {
+    const b = EXP_POSE[curExpr] || EXP_POSE.deadpan;
+    const ok = !!(res && res.ok), syl = ok ? res.syllables : [];
+    const mood = ok ? res.mood.key : curExpr;
+    const nA = syl.filter(s => s.syl === "喵").length;
+    const tone = syl.length ? syl[syl.length - 1].tone : 1;
+    return CatRig.pose({
+      breathe: Math.sin(ph * (MOOD_RATE[mood] || 1.4)),
+      bodySquash: b.bodySquash || 0,
+      headX: b.headX || 0, headY: b.headY || 0,
+      headRot: (b.headRot || 0) + (ok ? (TONE_TILT[tone] || 0) : 0),
+      headSquash: mood === "surprised" ? 1.06 : 1,
+      blink: mood === "sleep" ? 1 : b.blink,
+      mouth: clamp((b.mouth || 0) + nA / MAX_SYL * .5, 0, .95),
+      tailRot: b.tailRot || 0,
+      tailWag: (.5 + .5 * Math.sin(ph * 1.9)) * (b.tailWag || 0),
+      tailPuff: clamp((b.tailPuff || 0) + (mood === "angry" ? .6 : 0), 0, 1)
+    });
   }
 
   function buildExprRow() {
     $("#exprRow").innerHTML = EXPRS.map(k => {
-      const s = exprSrc(k), lab = EXP_LABEL[k];
-      return s
-        ? `<button class="ed-btn exp mt-expr" data-k="${k}" title="${lab}" aria-label="切换到${lab}表情"><img src="${s}" alt="${lab}"></button>`
-        : `<button class="ed-btn exp mt-expr fb" data-k="${k}" title="${lab}" aria-label="切换到${lab}表情">${lab.slice(0, 1)}</button>`;
+      const lab = EXP_LABEL[k];
+      return `<button class="ed-btn exp mt-expr" data-k="${k}" title="${lab}" aria-label="切换到${lab}姿态">${lab}</button>`;
     }).join("");
     $$("#exprRow .mt-expr").forEach(b => {
       b.onclick = () => { setExpr(b.dataset.k, { fromUser: true }); sound.tap(); };
-      const im = b.querySelector("img");
-      if (im) im.onerror = () => { b.classList.add("fb"); b.textContent = EXP_LABEL[b.dataset.k].slice(0, 1); };
     });
     syncExprRow();
   }
   function syncExprRow() {
-    $$("#exprRow .mt-expr").forEach(b => b.classList.toggle("sel", b.dataset.k === curExpr));
+    $$("#exprRow .mt-expr").forEach(b => {
+      b.classList.toggle("sel", b.dataset.k === curExpr);
+      b.setAttribute("aria-pressed", String(b.dataset.k === curExpr));
+    });
   }
   function setExpr(key, opt) {
     if (!EXP_LABEL[key]) return false;
     curExpr = key;
-    const src = exprSrc(key);
-    if (!src) imgState[key] = "fail";
-    else if (!imgCache[key] && imgState[key] !== "fail") {
-      imgState[key] = "load";
-      ML.img(src).then(im => { imgCache[key] = im; imgState[key] = "ok"; dirty = true; }).catch(() => { imgState[key] = "fail"; dirty = true; });
-    }
     syncExprRow(); updateArtNote(); dirty = true;
     if (opt && opt.fromUser && opt.sound !== false) playExpr(key);
     if (opt && opt.count) try { ML.patchStats({ interactions: 1 }); } catch (e) {}
     return true;
   }
-  function moodExprKey(moodKey) { return EXPRS.indexOf(moodKey) >= 0 ? moodKey : (EXPRS[0] || "deadpan"); }
+  function moodExprKey(moodKey) { return EXP_LABEL[moodKey] ? moodKey : "deadpan"; }
 
   function updateArtNote() {
-    const st = imgState[curExpr];
-    const el = $("#artNote");
-    if (!petCfg) { el.textContent = "表情形象：正在读取站内素材…"; el.classList.remove("warn"); return; }
-    if (st === "ok") {
-      el.textContent = "表情形象：真实素材「" + (EXP_LABEL[curExpr] || curExpr) + "」· " + (petCfg.petName || "MOMO") + "。加载失败时会自动改用程序化简笔猫。";
-      el.classList.remove("warn");
-    } else if (st === "fail") {
-      el.textContent = "表情形象：兜底 —— 这张表情图没能加载，当前是 Canvas 现场画的简笔猫，不是素材。";
+    const el = $("#artNote"), lab = EXP_LABEL[curExpr] || curExpr;
+    el.classList.remove("warn");
+    if (rigOk) {
+      el.textContent = "形象：你家猫的实拍布偶，当前姿态「" + lab + "」—— 张嘴量、歪头、眨眼、炸毛全由这句喵语现场算出来，不是表情图。";
+      $("#cArt").textContent = "布偶";
+    } else if (rigErr) {
+      el.textContent = "形象：真猫分层图没读到（" + rigErr + "），这一格留白说明，不画假猫冒充；翻译、出题、导出照常。";
       el.classList.add("warn");
+      $("#cArt").textContent = "留白";
     } else {
-      el.textContent = "表情形象：素材读取中，先给你看简笔猫。";
-      el.classList.remove("warn");
+      el.textContent = "形象：正在读取你家猫的 6 张实拍分层图（body / head / tail / 眼 / 嘴）…";
+      $("#cArt").textContent = "读取中";
     }
-    $("#cArt").textContent = st === "ok" ? "素材" : (st === "fail" ? "简笔" : "读取中");
   }
 
   function updateSoundNote() {
@@ -562,90 +576,11 @@
     return out.length ? out : [""];
   }
 
-  function drawCatArt(x, bx, by, bw, bh, o) {
-    x.save();
-    x.translate(bx, by); x.scale(bw / 200, bh / 200);
-    x.lineJoin = "round"; x.lineCap = "round";
-    x.fillStyle = "rgba(34,34,34,.13)";
-    x.beginPath(); x.ellipse(100, 182, 54, 9, 0, 0, 6.283); x.fill();
-
-    x.strokeStyle = INK; x.lineWidth = 6;
-    x.beginPath(); x.moveTo(52, 156); x.quadraticCurveTo(20, 140, 30, 106); x.stroke();
-    x.strokeStyle = o.fur; x.lineWidth = 3.4; x.stroke();
-
-    x.fillStyle = o.fur; x.strokeStyle = INK; x.lineWidth = 3;
-    x.beginPath(); x.ellipse(100, 150, 46, 32, 0, 0, 6.283); x.fill(); x.stroke();
-    x.fillStyle = "#FFF6E6";
-    x.beginPath(); x.ellipse(100, 160, 26, 17, 0, 0, 6.283); x.fill();
-
-    x.fillStyle = o.fur; x.strokeStyle = INK; x.lineWidth = 3;
-    x.beginPath(); x.moveTo(66, 62); x.lineTo(56, 24); x.lineTo(92, 48); x.closePath(); x.fill(); x.stroke();
-    x.beginPath(); x.moveTo(134, 62); x.lineTo(144, 24); x.lineTo(108, 48); x.closePath(); x.fill(); x.stroke();
-    x.fillStyle = "#FBD9CF";
-    x.beginPath(); x.moveTo(70, 55); x.lineTo(64, 33); x.lineTo(86, 49); x.closePath(); x.fill();
-    x.beginPath(); x.moveTo(130, 55); x.lineTo(136, 33); x.lineTo(114, 49); x.closePath(); x.fill();
-    x.beginPath(); x.arc(100, 90, 42, 0, 6.283); x.fillStyle = o.fur; x.fill(); x.stroke();
-    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(100, 108, 26, 18, 0, 0, 6.283); x.fill();
-
-    const L = 82, R = 118, E = 86;
-    x.fillStyle = INK; x.strokeStyle = INK; x.lineWidth = 3;
-    const face = o.expr;
-    if (face === "happy") {
-      [-1, 1].forEach(s => { const cx = s < 0 ? L : R; x.beginPath(); x.arc(cx, E + 3, 9, Math.PI * 1.15, Math.PI * 1.85); x.stroke(); });
-    } else if (face === "angry") {
-      [L, R].forEach(cx => { x.beginPath(); x.arc(cx, E, 6, 0, 6.283); x.fill(); });
-      x.lineWidth = 4;
-      x.beginPath(); x.moveTo(L - 12, E - 14); x.lineTo(L + 8, E - 6); x.stroke();
-      x.beginPath(); x.moveTo(R + 12, E - 14); x.lineTo(R - 8, E - 6); x.stroke();
-    } else if (face === "surprised") {
-      [L, R].forEach(cx => {
-        x.beginPath(); x.arc(cx, E, 12, 0, 6.283); x.fillStyle = "#fff"; x.fill(); x.stroke();
-        x.beginPath(); x.arc(cx, E, 5, 0, 6.283); x.fillStyle = INK; x.fill();
-      });
-    } else if (face === "innocent") {
-      [L, R].forEach(cx => {
-        x.beginPath(); x.arc(cx, E + 2, 11, 0, 6.283); x.fillStyle = INK; x.fill();
-        x.beginPath(); x.arc(cx + 4, E - 2, 3.4, 0, 6.283); x.fillStyle = "#fff"; x.fill();
-      });
-      x.fillStyle = "rgba(241,109,91,.45)";
-      x.beginPath(); x.ellipse(64, 104, 9, 5, 0, 0, 6.283); x.fill();
-      x.beginPath(); x.ellipse(136, 104, 9, 5, 0, 0, 6.283); x.fill();
-    } else if (face === "sleep") {
-      x.lineWidth = 3.4;
-      [L, R].forEach(cx => { x.beginPath(); x.arc(cx, E - 3, 10, Math.PI * .15, Math.PI * .85); x.stroke(); });
-      x.fillStyle = MUT; x.font = FONT("900", 22); x.textAlign = "left";
-      x.fillText("Z", 142, 42); x.font = FONT("900", 15); x.fillText("z", 158, 26);
-    } else if (face === "deadpan") {
-      x.lineWidth = 3.4;
-      [L, R].forEach(cx => { x.beginPath(); x.moveTo(cx - 11, E - 1); x.lineTo(cx + 11, E - 1); x.stroke(); });
-      [L, R].forEach(cx => { x.beginPath(); x.arc(cx, E + 5, 4, 0, 6.283); x.fillStyle = INK; x.fill(); });
-    } else { // mischief
-      x.beginPath(); x.arc(L, E, 6.5, 0, 6.283); x.fill();
-      x.lineWidth = 3.4; x.beginPath(); x.moveTo(R - 11, E + 1); x.lineTo(R + 11, E - 4); x.stroke();
-      x.lineWidth = 3.6; x.beginPath(); x.moveTo(L - 12, E - 14); x.lineTo(L + 6, E - 16); x.stroke();
-    }
-
-    x.fillStyle = "#F16D5B";
-    x.beginPath(); x.moveTo(94, 104); x.lineTo(106, 104); x.lineTo(100, 111); x.closePath(); x.fill();
-    x.strokeStyle = INK; x.lineWidth = 2.6;
-    if (face === "surprised" || face === "angry") {
-      x.beginPath(); x.arc(100, 118, 6, 0, 6.283); x.stroke();
-    } else if (face === "happy" || face === "innocent" || face === "mischief") {
-      x.beginPath(); x.moveTo(88, 118); x.quadraticCurveTo(94, 124, 100, 118);
-      x.quadraticCurveTo(106, 124, 112, 118); x.stroke();
-    } else {
-      x.beginPath(); x.moveTo(92, 120); x.lineTo(108, 120); x.stroke();
-    }
-    x.strokeStyle = "rgba(34,34,34,.45)"; x.lineWidth = 1.8;
-    [[68, 104, 34, -6], [68, 112, 34, 4], [132, 104, -34, -6], [132, 112, -34, 4]].forEach(([a, b, c, d]) => {
-      x.beginPath(); x.moveTo(a, b); x.lineTo(a + c, b + d); x.stroke();
-    });
-    x.restore();
-  }
+  /* 布偶 6 层真图在 480×560 舞台上的可见范围：尾巴尖到脚。导出按这个盒子等比塞进卡面 */
+  const RIG_CONTENT = { x0: 96, y0: 10, x1: 472, y1: 534 };
 
   function drawArtBox(x, o) {
     const bx = 150, by = 122, bs = 300;
-    const bob = o.bob || 0;   // 只在现场预览里动，导出 PNG 永远是正位
     x.save();
     x.fillStyle = "#F3EEE5"; x.strokeStyle = INK; x.lineWidth = 3;
     ML.rr(x, 130, 108, 340, 328, 18); x.fill(); x.stroke();
@@ -654,15 +589,28 @@
     x.strokeStyle = INK; x.lineWidth = 3; ML.rr(x, 130, 108, 340, 328, 18); x.stroke();
     x.restore();
 
-    const im = o.withImgs !== false ? imgCache[o.expr] : null;
-    if (im && o.withImgs !== false) {
-      const iw = im.width || 300, ih = im.height || 300;
-      const sc = Math.min(bs / iw, bs / ih), w = iw * sc, h = ih * sc;
-      try { x.drawImage(im, bx + (bs - w) / 2, by + (bs - h) / 2 + bob, w, h); return "素材"; }
-      catch (e) { /* 图坏了 / 画布被 taint，交给简笔猫 */ }
-    }
-    drawCatArt(x, bx, by + bob, bs, bs, { expr: o.expr, fur: o.fur || FUR });
-    return "简笔";
+    if (!rigOk || o.withImgs === false) { drawArtBlank(x, o); return "留白"; }
+    const rw = RIG_CONTENT.x1 - RIG_CONTENT.x0, rh = RIG_CONTENT.y1 - RIG_CONTENT.y0;
+    const s = Math.min(bs / rw, bs / rh);
+    x.save();
+    ML.rr(x, 130, 108, 340, 328, 18); x.clip();      // 图层出框就切掉，绝不压到标题和徽章
+    CatRig.box(bx + (bs - rw * s) / 2 - RIG_CONTENT.x0 * s,
+      by + (bs - rh * s) / 2 - RIG_CONTENT.y0 * s, CatRig.STAGE_W * s).draw(x, meowPose(o.res, o.ph || 0));
+    x.restore();
+    return "布偶";
+  }
+  /* 分层图没到位时这块只留白并写明白，不画简笔猫冒充你家猫 */
+  function drawArtBlank(x, o) {
+    x.save();
+    x.strokeStyle = "rgba(34,34,34,.4)"; x.lineWidth = 3; x.setLineDash([10, 8]);
+    ML.rr(x, 150, 122, 300, 300, 14); x.stroke(); x.setLineDash([]);
+    x.fillStyle = MUT; x.textAlign = "center";
+    x.font = FONT("900", 20); x.fillText("真猫分层图没到位", 300, 258);
+    x.font = FONT("700", 14);
+    x.fillText("姿态「" + (EXP_LABEL[o.expr] || "—") + "」要等 6 张实拍图读进来才画得出", 300, 286);
+    x.font = FONT("700", 13);
+    x.fillText(rigErr || "素材读取中…", 300, 312);
+    x.restore();
   }
 
   function drawSpeech(x, cx, y, w, lines, maxLines) {
@@ -798,12 +746,12 @@
     x.fillStyle = MUT; x.font = FONT("700", 13);
     x.fillText((o.date || "") + " · 为它做一个小世界", 300, 742);
     x.fillStyle = MUT; x.font = FONT("700", 12); x.textAlign = "left";
-    x.fillText(used === "素材" ? "形象：站内素材" : "形象：程序化兜底", 46, 742);
+    x.fillText(used === "布偶" ? "形象：你家猫实拍布偶（6 层真图）" : "形象：真图未到位，留白说明", 46, 742);
   }
 
   /* ================= 8. 现场画布（同一张卡，实时预览） ================= */
   const cv = $("#mtCv"), ctx = cv.getContext("2d"), stage = $("#stage");
-  let cw = 0, chh = 0, dpr = 1, scale = 1, dirty = true, lastAnimTick = -1, bobT = 0;
+  let cw = 0, chh = 0, dpr = 1, scale = 1, dirty = true, lastAnimTick = -1, phT = 0;
 
   function sizeCanvas() {
     const r = stage.getBoundingClientRect();
@@ -820,7 +768,7 @@
 
   function posterData() {
     return {
-      res: state.res, expr: curExpr, fur: FUR, withImgs: true,
+      res: state.res, expr: curExpr, withImgs: true, ph: 0,
       isQuiz: state.mode === "quiz", source: state.resSource,
       text: state.res ? state.res.text : "", moodLabel: state.res && state.res.ok ? state.res.mood.label : "—",
       score: qz.score, maxCombo: qz.maxCombo, right: qz.right, total: qz.total,
@@ -836,7 +784,8 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cv.width, cv.height);
     const d = posterData();
-    d.bob = settings.anim ? Math.sin(t * 2.1) * 4 : 0;   // 呼吸位移：只给现场预览，导出走 bob=0
+    // ph 只驱动布偶的呼吸与摆尾：现场跟着时间走，导出永远是 ph=0 的那一帧
+    d.ph = settings.anim ? t : 0;
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     try {
       drawPoster(ctx, d);
@@ -857,7 +806,7 @@
     const animOn = settings.anim && !document.hidden;
     const tick = Math.floor(ts / 90);
     if (dirty || (animOn && tick !== lastAnimTick)) {
-      lastAnimTick = tick; dirty = false; bobT = ts / 1000; drawStage(bobT);
+      lastAnimTick = tick; dirty = false; phT = ts / 1000; drawStage(phT);
     }
   }
 
@@ -1025,8 +974,8 @@
       $("#endImg").src = url.url;
       $("#endDl").setAttribute("href", url.url);
       $("#endHint").textContent = url.fallback
-        ? "结算卡用的是程序化简笔猫：本机素材图被浏览器安全策略拦住了（常见于 file:// 打开），文字和分数照常写进图里。"
-        : (location.protocol.startsWith("file:") ? "当前以 file:// 打开，已尽量带上了。" : "600 × 760 · 长按也能保存。");
+        ? "结算卡上那块猫的位置是留白说明：分层图被浏览器安全策略拦住了（常见于 file:// 打开），文字和分数照常写进图里。"
+        : (location.protocol.startsWith("file:") ? "当前以 file:// 打开，已尽量带上了。" : "600 × 760 · 猫是你家猫的实拍布偶，长按也能保存。");
     } else {
       $("#endImg").removeAttribute("src"); $("#endDl").removeAttribute("href");
       $("#endHint").textContent = "这台浏览器不允许把画布导出成 PNG，结算卡生成失败。分数已经记在本机。";
@@ -1059,13 +1008,13 @@
   }
   function showExportOv(r) {
     if (!r.url) {
-      noteMsg("导出失败：这台浏览器把画布锁住了（既带不了素材，也导不出纯自绘）。可以截图，或用本地服务器打开本页。", true);
+      noteMsg("导出失败：这台浏览器把画布锁住了（既带不了真猫分层图，也导不出纯文字卡）。可以截图，或用本地服务器打开本页。", true);
       sound.bad(); return null;
     }
     $("#ovImg").src = r.url;
     $("#ovNote").textContent = r.fallback
-      ? "600 × 760 · 用的是程序化简笔猫：本机素材图被浏览器安全策略拦下（常见于 file:// 打开）。"
-      : "600 × 760 · 与站内导出尺寸一致，手机可长按保存。";
+      ? "600 × 760 · 卡面上是真猫留白说明：分层图被浏览器安全策略拦下（常见于 file:// 打开），文字与分数照常写进图里。"
+      : "600 × 760 · 与站内预览完全一致，猫是你家猫的实拍布偶，手机可长按保存。";
     const name = "momo-meowtalk-" + Date.now() + ".png";
     $("#ovDl").href = r.url; $("#ovDl").download = name;
     $("#ovFav").textContent = "存进收藏";
@@ -1082,7 +1031,7 @@
       const a = document.createElement("a");
       a.href = r.url; a.download = "momo-meowtalk-" + Date.now() + ".png";
       document.body.appendChild(a); a.click(); a.remove();
-      noteMsg(r.fallback ? "已导出 600×760 PNG（自绘简笔猫兜底，素材被浏览器拦了）。" : "已导出 600×760 PNG。", false);
+      noteMsg(r.fallback ? "已导出 600×760 PNG（猫那块是留白说明：分层图被浏览器拦了）。" : "已导出 600×760 PNG，猫是你家猫的实拍布偶。", false);
       sound.good();
     }
     lastExport = r;
@@ -1225,9 +1174,9 @@
   };
   $("#qAgain").onclick = () => { newRound(); sound.tap(); say("新一轮开始，共 " + qz.total + " 题", "yel"); };
   $("#qNext").onclick = () => { nextQuestion(); sound.tap(); };
-  $("#qCard").onclick = () => { if (qz.answered > 0 && !qz.done) finishRound(); else doExport(true); };
-  $("#expBtn").onclick = () => doExport(true);
-  $("#favBtn").onclick = () => saveToFav();
+  $("#qCard").onclick = () => rigReady.then(() => { if (qz.answered > 0 && !qz.done) finishRound(); else doExport(true); });
+  $("#expBtn").onclick = () => rigReady.then(() => doExport(true));
+  $("#favBtn").onclick = () => rigReady.then(() => saveToFav());
   $("#ovDl").onclick = () => { $("#ovExport").classList.add("hide"); };
   $("#ovClose").onclick = () => $("#ovExport").classList.add("hide");
   $("#ovFav").onclick = () => saveToFav();
@@ -1245,54 +1194,46 @@
   };
   $("#inText").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); runTranslate(); } });
 
-  /* ================= 14. 素材装载 ================= */
+  /* ================= 14. 宠物配置（只要名字：形象一律是真猫布偶，表情图一张都不读） ================= */
   ML.pet().then(cfg => {
-    petCfg = cfg;
-    if (cfg.furColor) FUR = cfg.furColor;
-    $("#whoName").textContent = (cfg.petName || "MOMO") + " · " + (cfg.petType === "cat" ? "猫" : cfg.petType || "?");
-    EXPRS = exprList();
-    if (!EXPRS.length) EXPRS = Object.keys(EXP_LABEL);   // 配置里没有可用表情键：全走简笔猫
-    EXPRS.forEach(k => {
-      const s = exprSrc(k);
-      if (!s) { imgState[k] = "fail"; return; }
-      imgState[k] = "load";
-      ML.img(s).then(im => { imgCache[k] = im; imgState[k] = "ok"; dirty = true; }).catch(() => { imgState[k] = "fail"; dirty = true; });
-    });
-    buildExprRow();
-    setExpr("deadpan", { sound: false });
-    updateArtNote();
-    if (qz.cur) ask(qz.cur.bi); else newRound();   // 表情池到位后重算当前题
-    if (state.mode === "tr") runTranslate({ silent: true });   // 翻译模式回到输入句；猜意模式别抢舞台
-  }).catch(() => {
-    $("#artNote").textContent = "表情形象：宠物配置没读进来，用简笔猫兜底（翻译与出题照常工作）。";
-    $("#artNote").classList.add("warn");
-    $("#cArt").textContent = "简笔";
-    EXPRS = ["happy", "angry", "surprised", "innocent", "sleep", "deadpan", "mischief"];
-    buildExprRow();
-    runTranslate({ silent: true });
-    if (!qz.cur) newRound();
-  });
+    petName = cfg.petName || "MOMO";
+    $("#whoName").textContent = petName + " · " + (cfg.petType === "cat" ? "猫" : cfg.petType || "?");
+  }).catch(() => { $("#whoName").textContent = petName; });
 
   window.addEventListener("resize", () => { sizeCanvas(); dirty = true; });
   window.addEventListener("orientationchange", () => { sizeCanvas(); dirty = true; });
   if (window.ResizeObserver) { try { new ResizeObserver(() => { sizeCanvas(); dirty = true; }).observe(stage); } catch (e) {} }
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { dirty = true; updateSoundNote(); } });
 
-  /* ================= 15. 启动 ================= */
+  /* ================= 15. 启动：6 张实拍分层图到位后才画第一帧、才允许导出 ================= */
   sizeCanvas();
   $("#inText").value = PRESETS[0];
+  buildExprRow();
+  setExpr("deadpan", { sound: false });
   newRound();                          // 题库先备好，切到猜意模式直接能答
   runTranslate({ silent: true });      // 启动时不发声：没有用户手势时浏览器本来也拦住
-  drawStage(0);
-  requestAnimationFrame(loop);
+  const rigReady = CatRig.load().then(() => { rigOk = true; }, err => {
+    rigErr = String((err && err.message) || err);
+    noteMsg("你家猫的 6 张分层图没读到：请用本地服务器打开本页，并确认 assets/pets/realcat/ 里的文件都在。", true);
+  }).then(() => { updateArtNote(); drawStage(0); });
+  rigReady.then(() => requestAnimationFrame(loop));
 
   /* ================= 16. 调试钩子 ================= */
   window.__meowtalkDebug = {
+    /* 布偶：姿态是唯一真相，导出用 ph=0 保证同一句话同一张图 */
+    rig: () => ({ ok: rigOk, err: rigErr, ready: !!rigReady, layers: CatRig.masks.head ? "6 层像素蒙版" : "6 层近似" }),
+    pose: (ph, expr) => {
+      const keep = curExpr;
+      if (expr) curExpr = expr;
+      const P = meowPose(state.res, ph || 0);
+      if (expr) curExpr = keep;
+      return P;
+    },
     translate,                                  // 纯函数：任意中文 → { meow, bubble, mood, marks, stats ... }
     rules: { CLS_SYL, TONE_ARROW, MOOD_RULES, MAX_SYL, MAX_SHOW, PY_SIZE: Object.keys(PY).length },
     state: () => ({
       mode: state.mode, expr: curExpr, exprKeys: EXPRS.slice(),
-      artState: state_expr(imgState[curExpr]), res: summarize(state.res),
+      artState: rigOk ? "rig" : (rigErr ? "failed" : "loading"), res: summarize(state.res),
       quiz: { pos: qz.pos, answered: qz.answered, total: qz.total, done: qz.done, bi: qz.cur ? qz.cur.bi : -1 },
       soundOn: !!settings.sound, animOn: !!settings.anim,
       canvas: { w: cv.width, h: cv.height, cssW: cv.clientWidth, cssH: cv.clientHeight, dpr },

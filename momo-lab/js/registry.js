@@ -1,39 +1,25 @@
+/* 游戏清单的唯一数据源。封面一律用真猫照片（assets/covers/*.jpg）：
+ * 按 js/cat-rig.js 那套几何把 assets/pets/realcat/ 的分层照片当场合成，再叠真道具，
+ * 所以列表里的猫和游戏里的猫是同一只。线稿猫和画出来的猫都已经下掉。 */
 window.ML_GAMES = (() => {
-  const S = b => `<svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${b}</svg>`;
-  const CAT = (x, y, s, rot = "") => `<g transform="translate(${x} ${y}) scale(${s}) rotate(${rot})"><ellipse cx="0" cy="6" rx="17" ry="12" fill="#E8A857"/><circle cx="-14" cy="-4" r="10" fill="#E8A857"/><path d="M-21 -11l-1-8 7 4zM-9 -12l2-8 5 6z" fill="#E8A857"/><circle cx="-17" cy="-5" r="1.6" fill="#222" stroke="none"/><path d="M15 2c8-4 10-12 6-16" /><path d="M-9 6l1 10M-1 8l1 9M8 6l1 10" stroke-width="2.5"/></g>`;
-  const SVG = {
-    jump: S(`<rect x="4" y="58" width="30" height="24" rx="4" fill="#DCD2F5"/><rect x="74" y="40" width="40" height="42" rx="4" fill="#BFE4D0"/><path d="M20 50c14-26 44-32 62-8" stroke-dasharray="4 7"/><path d="M0 82h120" stroke-width="4"/>${CAT(48, 26, .78, -12)}`),
-    sneak: S(`<ellipse cx="24" cy="70" rx="20" ry="10" fill="#F5E66B"/><path d="M8 62c8-6 24-6 32 0" stroke-width="2.5"/>${CAT(56, 52, .7, 0)}<circle cx="96" cy="30" r="18" fill="#fff"/><circle cx="96" cy="30" r="7" fill="#222" stroke="none"/><path d="M84 14l-6-6M108 14l6-6M96 10v-8" stroke-width="2.5"/>`),
-    dressup: S(`<circle cx="60" cy="38" r="24" fill="#E8A857"/><path d="M42 20l-4-16 15 8zM78 20l4-16-15 8z" fill="#E8A857"/><circle cx="51" cy="36" r="2.6" fill="#222" stroke="none"/><circle cx="69" cy="36" r="2.6" fill="#222" stroke="none"/><path d="M60 44l-4 3 4 3 4-3z" fill="#fff"/><path d="M48 58l12 10 12-10z" fill="#F16D5B"/><circle cx="60" cy="60" r="4" fill="#F5E66B"/><path d="M36 66l6 18M84 66l-6 18"/>`),
-    meme: S(`<path d="M14 12h92v48H64l-16 16v-16H14z" fill="#fff"/><circle cx="44" cy="30" r="3" fill="#222" stroke="none"/><circle cx="76" cy="30" r="3" fill="#222" stroke="none"/><path d="M52 44c6 5 12 5 18 0" stroke-width="2.5"/><path d="M28 22l4-8 4 8M86 22l4-8 4 8" stroke-width="2.5"/>`),
-    pet: S(`<ellipse cx="60" cy="60" rx="30" ry="24" fill="#E8A857"/><circle cx="60" cy="32" r="21" fill="#E8A857"/><path d="M44 18l-4-14 14 7zM76 18l4-14-14 7z" fill="#E8A857"/><circle cx="52" cy="30" r="2.6" fill="#222" stroke="none"/><circle cx="68" cy="30" r="2.6" fill="#222" stroke="none"/><path d="M88 66c12-4 14-18 8-24" /><path d="M30 74l-8 10M90 74l8 10" stroke-width="2.5"/>`),
-    quiz: S(`<circle cx="60" cy="45" r="30" fill="#F5E66B"/><text x="60" y="58" text-anchor="middle" font-family="Arial" font-size="36" font-weight="900" fill="#222" stroke="none">?</text><path d="M18 20l6-8M102 20l-6-8"/>`),
-    kitten: S(`<ellipse cx="56" cy="60" rx="26" ry="22" fill="#E8A857"/><circle cx="56" cy="30" r="19" fill="#E8A857"/><path d="M42 18l-3-12 12 6zM70 18l3-12-12 6z" fill="#E8A857"/><circle cx="49" cy="29" r="2.4" fill="#222" stroke="none"/><circle cx="63" cy="29" r="2.4" fill="#222" stroke="none"/><path d="M56 35l-3 2 3 2 3-2z" fill="#fff"/><path d="M82 70c12 2 16-8 12-16" stroke-width="5"/><path d="M46 78l1 8M66 78l1 8" stroke-width="2.5"/><path d="M96 14l-2 6 6-2-6-2 2-6z" fill="#F5E66B"/>`),
-    laser: S(`<circle cx="86" cy="52" r="7" fill="#F16D5B"/><circle cx="86" cy="52" r="15" stroke-dasharray="4 6"/><circle cx="86" cy="52" r="24" stroke-dasharray="3 8" stroke-width="2"/><path d="M0 78h120" stroke-width="4"/>${CAT(38, 52, .8, 8)}<path d="M56 44c10-6 18-4 24 2" stroke-dasharray="3 5" stroke-width="2.5"/>`),
-    hidecat: S(`<rect x="12" y="40" width="34" height="30" rx="3" fill="#E8C48A"/><path d="M12 50h34M29 40v30" stroke-width="2.5"/><rect x="70" y="30" width="38" height="40" rx="3" fill="#DCD2F5"/><path d="M70 42h38" stroke-width="2.5"/><circle cx="89" cy="52" r="3" fill="#222" stroke="none"/><path d="M99 52c4 0 6 2 6 4" stroke-width="2.5"/><path d="M50 62c8 6 14 6 20 0" stroke-width="2.5"/><path d="M104 18l4-8M112 22l6-6" stroke-width="2.5"/>`),
-    slingshot: S(`<path d="M30 82V52M30 52l-12-18M30 52l12-18" stroke-width="5"/><path d="M18 34c8 10 16 10 24 0" stroke-width="3"/><circle cx="30" cy="46" r="6" fill="#F5E66B"/><path d="M40 44c14-14 28-14 38-4" stroke-dasharray="4 6" stroke-width="2.5"/><ellipse cx="86" cy="52" rx="18" ry="14" fill="#E8A857"/><circle cx="86" cy="34" r="12" fill="#E8A857"/><path d="M78 26l-2-8 8 4zM94 26l2-8-8 4z" fill="#E8A857"/><path d="M80 40c4 6 10 6 14 0" fill="#fff"/>`),
-    parkour: S(`<path d="M0 74h120" stroke-width="4"/>${CAT(44, 44, .78, -6)}<path d="M8 40h14M4 52h12" stroke-width="2.5" stroke-dasharray="5 4"/><ellipse cx="94" cy="62" rx="9" ry="14" fill="#BFE4D0" transform="rotate(18 94 62)"/><path d="M88 52c4 2 8 2 12 0M88 62c4 2 8 2 12 0" stroke-width="2"/><path d="M104 74h12" stroke-width="3"/>`),
-    static: S(`<rect x="42" y="26" width="34" height="26" rx="6" fill="#DCD2F5"/><path d="M59 52v14" stroke-width="5"/><path d="M59 32l-6 9h6l-2 8 8-11h-6z" fill="#F5E66B"/><circle cx="24" cy="22" r="6" fill="#fff"/><circle cx="96" cy="18" r="5" fill="#fff"/><circle cx="102" cy="36" r="7" fill="#fff"/><circle cx="16" cy="44" r="5" fill="#fff"/><path d="M34 30c-6 4-10 4-16 2M86 30c6 4 12 3 16 0" stroke-width="2" stroke-dasharray="3 4"/>${CAT(60, 74, .72, 0)}`),
-    meowtalk: S(`<path d="M12 14h74v42H48l-14 14V56H12z" fill="#fff"/><text x="49" y="44" text-anchor="middle" font-family="Arial" font-size="24" font-weight="900" fill="#222" stroke="none">喵</text><path d="M96 30c10 0 16 6 16 14 0 8-6 14-16 14" stroke-width="2.5" stroke-dasharray="4 5"/>${CAT(76, 66, .62, 0)}<path d="M22 66l-4 10M40 70l-2 8" stroke-width="2.5"/>`),
-  };
-  window.ML_GAME_ART = SVG;
+  const cover = id => ({ img: "assets/covers/" + id + ".jpg" });
   return [
-    { id: "jump", n: "蓄力跳家具", sub: "按住松手，跳到该跳的地方", href: "game/jump.html", rec: "jump", time: "60 秒", art: { svg: "jump" }, tags: ["蓄力", "落点判定", "连击"] },
-    { id: "sneak", n: "偷吃木头人", sub: "她转身时，一动不动", href: "game/sneak.html", rec: "sneak", time: "60 秒", art: { svg: "sneak" }, tags: ["反应", "静止判定", "心理战"] },
-    { id: "dressup", n: "MOMO 换装室", sub: "给它戴帽子，导出成品图", href: "game/dressup.html", rec: null, time: "自由玩", art: { svg: "dressup" }, tags: ["创作", "PNG 导出", "收藏"] },
-    { id: "kitten", n: "我家猫", sub: "真实猫部件装配，能摸能逗", href: "game/kitten.html", rec: null, time: "自由玩", art: { svg: "kitten" }, tags: ["分层布偶", "分区触摸", "养成"] },
-    { id: "laser", n: "追红点", sub: "按住半秒才算追上", href: "game/laser.html", rec: "laser", time: "60 秒", art: { svg: "laser" }, tags: ["指针追踪", "连击窗口", "轨迹升级"] },
-    { id: "hidecat", n: "猫在哪里", sub: "循着喵声翻箱子", href: "game/hidecat.html", rec: "hidecat", time: "45 秒/关", art: { svg: "hidecat" }, tags: ["听声辨位", "有限翻找", "五关卡"] },
-    { id: "slingshot", n: "弹弓喂猫", sub: "拉开皮兜，等它张嘴", href: "game/slingshot.html", rec: "slingshot", time: "60 秒", art: { svg: "slingshot" }, tags: ["弹道拖拽", "时机判定", "拆家值"] },
-    { id: "parkour", n: "跑酷躲黄瓜", sub: "跳过去，或者低头钻", href: "game/parkour.html", rec: "parkour", time: "能跑多远", art: { svg: "parkour" }, tags: ["横版跑酷", "跳/钻双键", "三格血"] },
-    { id: "static", n: "静电吸毛", sub: "搓满电，抬起来吸，甩手抖落", href: "game/static.html", rec: "static", time: "60 秒", art: { svg: "static" }, tags: ["摩擦充能", "吸附半径", "甩板手势"] },
-    { id: "meowtalk", n: "猫语翻译机", sub: "人话翻成喵语，也能猜", href: "game/meowtalk.html", rec: "meowtalk", time: "自由玩", art: { svg: "meowtalk" }, tags: ["确定性翻译", "猜意题库", "海报导出"] },
-    { id: "meme", n: "表情包制造机", sub: "照片 + 文案 + 贴纸", href: "game/meme-maker.html", rec: null, time: "自由玩", art: { img: "assets/games/meme-cover.png" }, tags: ["图片创作", "PNG 导出"] },
-    { id: "escape", n: "紧急撤离", sub: "主人 45 秒后到家", href: "game/escape.html", rec: "escape", time: "45 秒", art: { img: "assets/games/escape-cover.png" }, tags: ["限时操作", "随机事件"] },
-    { id: "chaos", n: "混乱现场", sub: "越乱越好的 30 秒", href: "game/chaos.html", rec: "chaos", time: "30 秒", art: { img: "assets/games/chaos-cover.png" }, tags: ["自由操作", "连锁反应"] },
-    { id: "boss", n: "谁是老板", sub: "家庭地位争夺战", href: "game/boss.html", rec: "boss", time: "4 个场景", art: { img: "assets/games/boss-cover.png" }, tags: ["剧情选择", "多结局"] },
-    { id: "snack", n: "零食危机", sub: "接住奖励，躲开黄瓜", href: "game/snack-panic.html", rec: "snack", time: "45 秒", art: { img: "assets/games/snack-cover.png" }, tags: ["反应挑战", "收集"] },
-    { id: "world", n: "宠物世界", sub: "实时渲染、能上手摸的角色", href: "game/pet-world.html", rec: null, time: "自由玩", art: { svg: "pet" }, tags: ["实时渲染", "点击互动"] },
-    { id: "mbti", n: "猫咪精神状态测试", sub: "生成可分享的结果卡", href: "../mbti.html", rec: null, time: "2 分钟", art: { svg: "quiz" }, tags: ["测试", "分享卡"] },
+    { id: "jump", n: "蓄力跳家具", sub: "按住松手，落到真家伙上", href: "game/jump.html", rec: "jump", time: "60 秒", art: cover("jump"), tags: ["蓄力", "落点判定", "连击"] },
+    { id: "sneak", n: "偷吃木头人", sub: "她转身时，一动不动", href: "game/sneak.html", rec: "sneak", time: "60 秒", art: cover("sneak"), tags: ["反应", "静止判定", "心理战"] },
+    { id: "dressup", n: "真猫换装室", sub: "6 件真图衣裳，导出成品图", href: "game/dressup.html", rec: null, time: "自由玩", art: cover("dressup"), tags: ["创作", "PNG 导出", "收藏"] },
+    { id: "kitten", n: "我家猫", sub: "真实猫部件装配，能摸能逗", href: "game/kitten.html", rec: null, time: "自由玩", art: cover("kitten"), tags: ["分层布偶", "分区触摸", "养成"] },
+    { id: "laser", n: "追红点", sub: "按住半秒才算追上", href: "game/laser.html", rec: "laser", time: "60 秒", art: cover("laser"), tags: ["指针追踪", "连击窗口", "轨迹升级"] },
+    { id: "hidecat", n: "猫在哪里", sub: "循着喵声挪开真东西", href: "game/hidecat.html", rec: "hidecat", time: "45 秒/关", art: cover("hidecat"), tags: ["听声辨位", "有限翻找", "五关卡"] },
+    { id: "slingshot", n: "弹弓喂猫", sub: "拉开皮兜，等它张嘴", href: "game/slingshot.html", rec: "slingshot", time: "60 秒", art: cover("slingshot"), tags: ["弹道拖拽", "时机判定", "拆家值"] },
+    { id: "parkour", n: "跑酷大扫除", sub: "跳越或低头钻开家务杂物", href: "game/parkour.html", rec: "parkour", time: "能跑多远", art: cover("parkour"), tags: ["横版跑酷", "跳/钻双键", "三格血"] },
+    { id: "static", n: "静电吸毛", sub: "袜子搓满电，抬起来吸，甩手抖落", href: "game/static.html", rec: "static", time: "60 秒", art: cover("static"), tags: ["摩擦充能", "吸附半径", "甩袜手势"] },
+    { id: "meowtalk", n: "猫语翻译机", sub: "人话翻成喵语，也能猜", href: "game/meowtalk.html", rec: "meowtalk", time: "自由玩", art: cover("meowtalk"), tags: ["确定性翻译", "猜意题库", "海报导出"] },
+    { id: "meme", n: "表情包制造机", sub: "照片 + 文案 + 贴纸", href: "game/meme-maker.html", rec: null, time: "自由玩", art: cover("meme"), tags: ["图片创作", "PNG 导出"] },
+    { id: "escape", n: "紧急撤离", sub: "主人 45 秒后到家", href: "game/escape.html", rec: "escape", time: "45 秒", art: cover("escape"), tags: ["限时操作", "随机事件"] },
+    { id: "chaos", n: "混乱现场", sub: "越乱越好的 30 秒", href: "game/chaos.html", rec: "chaos", time: "30 秒", art: cover("chaos"), tags: ["自由操作", "连锁反应"] },
+    { id: "boss", n: "谁是老板", sub: "家庭地位争夺战", href: "game/boss.html", rec: "boss", time: "4 个场景", art: cover("boss"), tags: ["剧情选择", "多结局"] },
+    { id: "snack", n: "零食危机", sub: "接住奖励，躲开砸下来的", href: "game/snack-panic.html", rec: "snack", time: "45 秒", art: cover("snack"), tags: ["反应挑战", "收集"] },
+    { id: "world", n: "宠物世界", sub: "实时渲染、能上手摸的角色", href: "game/pet-world.html", rec: null, time: "自由玩", art: cover("world"), tags: ["实时渲染", "点击互动"] },
+    { id: "mbti", n: "猫咪精神状态测试", sub: "生成可分享的结果卡", href: "../mbti.html", rec: null, time: "2 分钟", art: cover("mbti"), tags: ["测试", "分享卡"] },
   ];
 })();
