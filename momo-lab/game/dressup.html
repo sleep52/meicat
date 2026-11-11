@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#FAF8F3">
 <title>MOMO 换装室 — MOMO 事务所</title>
 <meta name="description" content="给自己家的真猫试穿实物照片服装和道具，导出 1080×1350 的成品 PNG。">
-<link rel="stylesheet" href="../css/base.css">
-<link rel="stylesheet" href="../css/game.css">
+<link rel="stylesheet" href="../css/base.css?v=4">
+<link rel="stylesheet" href="../css/game.css?v=4">
 <style>
   /* 本页专属布局，不动共享 CSS */
   .dz-wrap{max-width:860px}
@@ -97,9 +97,6 @@
         <div class="dz-slider"><span class="k">压扁</span><input type="range" id="sSquash" min="0" max="1" step="0.01" value="0" aria-label="身体压扁"><span class="v" id="vSquash">0.00</span></div>
         <div class="dz-slider"><span class="k">歪身</span><input type="range" id="sLean" min="-0.20" max="0.20" step="0.01" value="0" aria-label="身体倾斜"><span class="v" id="vLean">0.00</span></div>
         <div class="dz-slider"><span class="k">歪头</span><input type="range" id="sTilt" min="-0.25" max="0.25" step="0.01" value="0" aria-label="头部旋转"><span class="v" id="vTilt">0.00</span></div>
-        <div class="dz-slider"><span class="k">炸毛</span><input type="range" id="sPuff" min="0" max="1" step="0.01" value="0" aria-label="尾巴炸毛"><span class="v" id="vPuff">0.00</span></div>
-        <div class="dz-slider"><span class="k">闭眼</span><input type="range" id="sBlink" min="0" max="1" step="0.01" value="0" aria-label="闭眼量"><span class="v" id="vBlink">0.00</span></div>
-        <div class="dz-slider"><span class="k">张嘴</span><input type="range" id="sMouth" min="0" max="1" step="0.01" value="0" aria-label="张嘴量"><span class="v" id="vMouth">0.00</span></div>
         <div class="ed-row" style="margin-top:12px">
           <button class="ed-btn" id="animBtn">待机动画：开</button>
           <button class="ed-btn" id="poseBtn">姿态归零</button>
@@ -135,9 +132,9 @@
   </div>
 </div>
 
-<script src="../js/icons.js"></script>
-<script src="../js/core.js"></script>
-<script src="../js/cat-rig.js"></script>
+<script src="../js/icons.js?v=4"></script>
+<script src="../js/core.js?v=4"></script>
+<script src="../js/cat-rig.js?v=4"></script>
 <script>
 (() => {
   "use strict";
@@ -151,9 +148,9 @@
   const PHOTOS = {};                  // "assets/props/snack-fish.png" -> 已解码的实物照片
   let dpr = 1, scale = 1, tNow = 0;
 
-  const CATS = [["expr", "表情"], ["head", "头饰"], ["cloth", "衣服"], ["neck", "颈部"], ["hand", "道具"], ["sticker", "贴纸"], ["bg", "背景"]];
-  const POSE0 = { scale: 1, squash: 0, lean: 0, tilt: 0, puff: 0, blink: 0, mouth: 0 };
-  const POSE_RANGE = { scale: [.8, 1.2], squash: [0, 1], lean: [-.2, .2], tilt: [-.25, .25], puff: [0, 1], blink: [0, 1], mouth: [0, 1] };
+  const CATS = [["expr", "姿态"], ["head", "头饰"], ["cloth", "衣服"], ["neck", "颈部"], ["hand", "道具"], ["sticker", "贴纸"], ["bg", "背景"]];
+  const POSE0 = { scale: 1, squash: 0, lean: 0, tilt: 0 };
+  const POSE_RANGE = { scale: [.8, 1.2], squash: [0, 1], lean: [-.2, .2], tilt: [-.25, .25] };
   const state = {
     eq: { expr: "plain", head: "", cloth: "", neck: "", hand: "", sticker: "", bg: "studio" },
     pose: Object.assign({}, POSE0), caption: "", cat: "expr", anim: true
@@ -177,29 +174,19 @@
   const PART = { body: CatRig.P_BODY, head: CatRig.P_HEAD, tail: CatRig.P_TAIL };
 
   function rigPose(t) {
-    const a = animOn(), ph = a ? (t % 4300) / 4300 : 0;
-    const autoBlink = a && ph > 0.955 ? Math.abs(Math.cos((ph - 0.955) / 0.045 * Math.PI)) : 0;
-    const ef = (itemById(state.eq.expr) || {}).face || {};
+    const a = animOn(), ef = (itemById(state.eq.expr) || {}).face || {};
     const k = state.pose.scale;
     return CatRig.pose({
       x: 0, y: 244 * (1 - k), scale: k,          // 缩放绕脚底而不是画布中心，脚才不会飘
       breathe: a ? Math.sin(t / 640) : 0,
-      bodyRot: state.pose.lean, bodySquash: state.pose.squash,
+      bodyRot: state.pose.lean + (ef.lean || 0),
+      bodySquash: state.pose.squash + (ef.squash || 0),
       headRot: state.pose.tilt + (ef.tilt || 0),
-      blink: Math.max(state.pose.blink, ef.blink || 0, autoBlink),
-      mouth: Math.max(state.pose.mouth, ef.mouth || 0),
-      tailRot: -.12, tailWag: a ? Math.sin(t / 470) * .16 : 0, tailPuff: state.pose.puff
+      headY: ef.peek || 0
     });
   }
-  /* cat-rig 的 tf() 是内部函数，这里按发布出来的 P_BODY/P_HEAD/P_TAIL 复刻一份，服装才算得出同一个变形 */
-  function rigTf(P) {
-    const br = 1 + .018 * P.breathe;
-    return {
-      body: { sx: PART.body.s * (1 - .012 * P.breathe) * (1 + P.bodySquash * .1), sy: PART.body.s * (1 - P.bodySquash * .12) * br, rot: P.bodyRot, dx: 0, dy: 0 },
-      tail: { sx: PART.tail.s * (1 + P.tailPuff * .35), sy: PART.tail.s * (1 + P.tailPuff * .35), rot: P.tailRot + P.tailWag, dx: 0, dy: 0 },
-      head: { sx: PART.head.s * P.headSquash, sy: PART.head.s * (2 - P.headSquash) * br, rot: P.headRot, dx: P.headX, dy: P.headY }
-    };
-  }
+  /* 一张照片只有一个变形，直接用 cat-rig 发布出来的 tf()，服装和猫才算得出同一个变换 */
+  const rigTf = P => CatRig.tf(P);
   /* 复刻 apply(part,t)：平移到关节 → 旋转 → 非等比缩放 → 退回锚点。
    * stageSpace=true 时改成绕关节按同比例变形，给按舞台坐标画的贴纸用。 */
   function partXf(x, part, t, stageSpace) {
@@ -214,32 +201,37 @@
 
   function drawShadow(x, P) {
     x.save(); x.globalAlpha = .28 * P.shadow; x.fillStyle = "#4a3a22";
-    x.beginPath(); x.ellipse(240, 518, 134 * P.shadow, 21, 0, 0, Math.PI * 2); x.fill(); x.restore();
+    x.beginPath(); x.ellipse(240, 518, 150 * P.shadow, 20, 0, 0, Math.PI * 2); x.fill(); x.restore();
   }
   function drawRigLayer(x, part, t) {
     const im = CatRig.imgs[part.img]; if (!im) return;
     x.save(); partXf(x, part, t); x.drawImage(im, 0, 0, part.size[0], part.size[1]); x.restore();
   }
-  function drawFacePatch(x, name, alpha) {
-    const f = CatRig.P_FACE[name], im = CatRig.imgs[name]; if (!im) return;
-    if (alpha !== undefined) x.globalAlpha = alpha;
-    x.drawImage(im, f.at[0] - f.anchor[0], f.at[1] - f.anchor[1], f.size[0] * f.f, f.size[1] * f.f);
-    if (alpha !== undefined) x.globalAlpha = 1;
+  /* 照片最下沿是两只前爪。衣服围巾盖完再把爪子补回来，不然爪子会消失在毛衣里。
+   * 直接补一个矩形会留下直线接缝，所以先用两个径向渐变把爪子羽化成两团圆毛。 */
+  let pawLayer = null;
+  const PAWS = [[148, 445, 60], [274, 445, 62]];   // 照片坐标：左爪、右爪
+  function buildPaws() {
+    const S = CatRig.SPRITE, im = CatRig.imgs.body;
+    if (!im) return;
+    const c = document.createElement("canvas");
+    c.width = S.size[0]; c.height = S.size[1];
+    const x = c.getContext("2d");
+    x.drawImage(im, 0, 0, S.size[0], S.size[1]);
+    x.globalCompositeOperation = "destination-in";
+    PAWS.forEach(p => {
+      x.save(); x.translate(p[0], p[1]); x.scale(1, .74);
+      const g = x.createRadialGradient(0, 0, p[2] * .52, 0, 0, p[2]);
+      g.addColorStop(0, "#fff"); g.addColorStop(1, "rgba(255,255,255,0)");
+      x.fillStyle = g; x.beginPath(); x.arc(0, 0, p[2], 0, Math.PI * 2); x.fill(); x.restore();
+    });
+    pawLayer = c;
   }
-  function drawHeadLayer(x, P, t) {
-    const im = CatRig.imgs.head; if (!im) return;
-    x.save(); partXf(x, PART.head, t);
-    x.drawImage(im, 0, 0, PART.head.size[0], PART.head.size[1]);
-    drawFacePatch(x, "eyes-open");
-    if (P.blink > .01) drawFacePatch(x, "eyes-closed", P.blink);
-    if (P.mouth > .01) drawFacePatch(x, "mouth-open", P.mouth);
-    x.restore();
-  }
-  /* body 图下半截是两只前爪；衣服围巾盖完再补画一次，爪子才不会消失在毛衣里 */
   function drawPaws(x, t) {
-    const im = CatRig.imgs.body; if (!im) return;
+    if (!pawLayer) return;
+    const S = CatRig.SPRITE;
     x.save(); partXf(x, PART.body, t);
-    x.drawImage(im, 100, 440, 250, 88, 100, 440, 250, 88);
+    x.drawImage(pawLayer, 0, 0, S.size[0], S.size[1]);
     x.restore();
   }
   function drawWear(x, it, T) {
@@ -281,8 +273,6 @@
     drawRigLayer(x, PART.body, T.body);
     wear("cloth"); wear("neck");
     drawPaws(x, T.body);
-    drawRigLayer(x, PART.tail, T.tail);
-    drawHeadLayer(x, P, T.head);
     wear("head"); wear("hand"); wear("sticker");
     x.restore();
     x.restore();
@@ -307,18 +297,18 @@
   const SV = b => `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">${b}</svg>`;
   const PH_SVG = SV('<rect x="7" y="11" width="34" height="26" rx="4"/><circle cx="17" cy="20" r="3"/><path d="M9 33l10-8 7 6 5-4 8 6"/>');
   ITEMS = [
-    /* ---- 表情：照片猫只能切五官贴片和头姿，所以这一栏是姿态预设而不是画脸 ---- */
-    { id: "plain", cat: "expr", name: "默认脸", face: {},
+    /* ---- 姿态：一张照片切不了五官贴片，这一栏给的是整只猫的姿势预设 ---- */
+    { id: "plain", cat: "expr", name: "自然站姿", face: {},
       svg: SV('<circle cx="17" cy="21" r="2.6" fill="#222"/><circle cx="31" cy="21" r="2.6" fill="#222"/><path d="M20 31c3 2.5 6 2.5 8 0"/>') },
-    { id: "part", cat: "expr", name: "轻声喵", face: { mouth: .35 },
-      svg: SV('<circle cx="17" cy="21" r="2.6" fill="#222"/><circle cx="31" cy="21" r="2.6" fill="#222"/><ellipse cx="24" cy="31" rx="3.5" ry="2.6" fill="#222"/>') },
-    { id: "open", cat: "expr", name: "大声喵", face: { mouth: 1 },
-      svg: SV('<path d="M13 19c2-3 6-3 8 0M27 19c2-3 6-3 8 0"/><ellipse cx="24" cy="31" rx="6" ry="6.5" fill="#222"/>') },
-    { id: "shut", cat: "expr", name: "闭眼", face: { blink: 1 },
-      svg: SV('<path d="M13 22c2 4 6 4 8 0M27 22c2 4 6 4 8 0"/><path d="M20 32c3 2 6 2 8 0"/>') },
-    { id: "half", cat: "expr", name: "半眯眼", face: { blink: .55 },
-      svg: SV('<path d="M13 20c2 3.5 6 3.5 8 0M27 20c2 3.5 6 3.5 8 0"/><path d="M20 32h8"/>') },
-    { id: "tilt", cat: "expr", name: "歪头杀", face: { tilt: .22, mouth: .2 },
+    { id: "part", cat: "expr", name: "探头看", face: { peek: -16, tilt: -.08 },
+      svg: SV('<ellipse cx="26" cy="20" rx="11" ry="10"/><circle cx="23" cy="19" r="2.2" fill="#222"/><circle cx="30" cy="19" r="2.2" fill="#222"/><path d="M10 34c8-5 24-5 30 0"/>') },
+    { id: "open", cat: "expr", name: "缩成一团", face: { squash: .55 },
+      svg: SV('<ellipse cx="24" cy="30" rx="16" ry="10"/><ellipse cx="24" cy="20" rx="10" ry="8"/><circle cx="20" cy="20" r="2" fill="#222"/><circle cx="28" cy="20" r="2" fill="#222"/>') },
+    { id: "shut", cat: "expr", name: "站直了", face: { squash: -.55 },
+      svg: SV('<ellipse cx="24" cy="32" rx="11" ry="12"/><ellipse cx="24" cy="16" rx="9" ry="8"/><circle cx="21" cy="16" r="2" fill="#222"/><circle cx="27" cy="16" r="2" fill="#222"/>') },
+    { id: "half", cat: "expr", name: "侧身瞄", face: { lean: .16, tilt: -.14 },
+      svg: SV('<ellipse cx="26" cy="28" rx="13" ry="14" transform="rotate(12 26 28)"/><circle cx="24" cy="22" r="2" fill="#222"/><circle cx="31" cy="21" r="2" fill="#222"/>') },
+    { id: "tilt", cat: "expr", name: "歪头杀", face: { tilt: .22 },
       svg: SV('<ellipse cx="24" cy="26" rx="14" ry="12" transform="rotate(-14 24 26)"/><circle cx="18" cy="23" r="2.2" fill="#222"/><circle cx="29" cy="21" r="2.2" fill="#222"/><path d="M22 31c3 2 5 1.5 6-.5"/>') },
 
     /* ---- 背景：程序画的摄影棚景，不是家里的实物 ---- */
@@ -392,45 +382,51 @@
         x.strokeStyle = "rgba(34,34,34,.3)"; x.lineWidth = 4; x.beginPath(); x.moveTo(0, 400); x.lineTo(LOGICAL, 400); x.stroke();
       }
     },
-    /* ---- 头饰：宿主是头，跟着歪头一起转；裁掉照片里缝死的布耳朵，露出真耳朵 ---- */
+    /* ---- 头饰：宿主是头，跟着歪头一起转。
+     * 原图上半截是缝死的两只布耳朵（v .23~.47），真猫自己的耳朵不能被它们盖住，
+     * 所以 crop 从 .48 起只取帽顶+帽檐，帽檐下沿压在照片 y≈150（耳朵根和眼睛之间）。 ---- */
     {
       id: "beret", cat: "head", name: "猫耳贝雷帽", file: "assets/dressup/beret.png",
-      host: "head", at: [240, 112], u: .50, v: 1.0, w: 190, crop: [.0996, .3223, .9023, .7979]
+      host: "head", at: [249, 246], u: .50, v: 1.0, w: 220, crop: [.10, .48, .90, .80]
     },
 
-    /* ---- 衣服：钉在身体上，v 是照片里领口所在的行 ---- */
-    { id: "sweater", cat: "cloth", name: "针织毛衣", file: "assets/dressup/sweater.png", host: "body", at: [240, 250], u: .503, v: .142, w: 350 },
-    { id: "hoodie", cat: "cloth", name: "连帽卫衣", file: "assets/dressup/hoodie.png", host: "body", at: [240, 250], u: .488, v: .186, w: 350 },
-    { id: "tater", cat: "cloth", name: "薯饼连帽衫", file: "assets/dressup/tater.png", host: "body", at: [240, 252], u: .50, v: .39, w: 410 },
+    /* ---- 衣服：钉在胸口。正脸坐姿能露出的胸口只有照片 y 290~468 这 178px，
+     * 服装原图接近正方形，按高度放进去就只能 190 来宽，比猫的身体窄一圈——
+     * 这是「站姿宠物服」的产品图和坐姿猫的天然冲突，不是缩放能解决的。 ---- */
+    { id: "sweater", cat: "cloth", name: "针织毛衣", file: "assets/dressup/sweater.png", host: "body", at: [249, 364], u: .503, v: .13, w: 195 },
+    { id: "hoodie", cat: "cloth", name: "连帽卫衣", file: "assets/dressup/hoodie.png", host: "body", at: [249, 369], u: .488, v: .19, w: 200 },
+    { id: "tater", cat: "cloth", name: "薯饼连帽衫", file: "assets/dressup/tater.png", host: "body", at: [249, 380], u: .50, v: .30, w: 195 },
 
-    /* ---- 颈部：跟着头转（宿主 head），但画在头之前，围巾上沿被下巴毛压住 ---- */
-    { id: "scarf", cat: "neck", name: "格纹围巾", file: "assets/dressup/scarf.png", host: "head", at: [240, 258], u: .488, v: .161, w: 300 },
-    { id: "bowtie", cat: "neck", name: "缎面领结", file: "assets/dressup/bowtie.png", host: "head", at: [240, 262], u: .484, v: .492, w: 270 },
+    /* ---- 颈部：围巾/领结钉在喉位。围巾原图是「一圈 + 两截长飘带」，
+     * 正脸坐姿的脖子很短，飘带会甩到框外，所以 crop 只留围住脖子的那一道横带。 ---- */
+    { id: "scarf", cat: "neck", name: "格纹围巾", file: "assets/dressup/scarf.png", host: "head",
+      at: [258, 365], u: .50, v: .10, w: 230, crop: [.27, .30, .74, .42] },
+    { id: "bowtie", cat: "neck", name: "缎面领结", file: "assets/dressup/bowtie.png", host: "head", at: [262, 372], u: .484, v: .492, w: 200 },
 
-    /* ---- 道具：实物照片，摆在胸前和爪边 ---- */
-    { id: "p-fish", cat: "hand", name: "小鱼干", file: "assets/props/snack-fish.png", host: "body", at: [250, 432], w: 150, rot: -.2 },
-    { id: "p-toyfish", cat: "hand", name: "逗猫鱼", file: "assets/props/snack-toyfish.png", host: "body", at: [250, 438], w: 135, rot: .14 },
-    { id: "p-ball", cat: "hand", name: "毛线球", file: "assets/props/snack-ball.png", host: "body", at: [250, 452], w: 112 },
-    { id: "p-dropball", cat: "hand", name: "跳跳球", file: "assets/props/snack-dropball.png", host: "body", at: [250, 452], w: 106 },
-    { id: "p-cookie", cat: "hand", name: "大饼干", file: "assets/props/snack-cookie.png", host: "body", at: [250, 444], w: 132, rot: -.1 },
-    { id: "p-kibble", cat: "hand", name: "一口猫粮", file: "assets/props/snack-kibble.png", host: "body", at: [250, 448], w: 126 },
-    { id: "p-platter", cat: "hand", name: "餐盘", file: "assets/props/snack-platter.png", host: "body", at: [250, 440], w: 152 },
-    { id: "p-strips", cat: "hand", name: "鸡肉条", file: "assets/props/snack-strips.png", host: "body", at: [250, 442], w: 130, rot: .12 },
-    { id: "p-socks", cat: "hand", name: "袜子团", file: "assets/props/prop-socks.png", host: "body", at: [250, 440], w: 112, rot: -.12 },
-    { id: "p-gift", cat: "hand", name: "礼物盒", file: "assets/props/prop-gift.png", host: "body", at: [250, 436], w: 142 },
-    { id: "p-pillow", cat: "hand", name: "零食袋", file: "assets/props/prop-pillow.png", host: "body", at: [250, 444], w: 152 },
-    { id: "p-trashbin", cat: "hand", name: "垃圾桶", file: "assets/props/prop-trashbin.png", host: "body", at: [250, 438], w: 122 },
-    { id: "p-detergent", cat: "hand", name: "洗衣液", file: "assets/props/prop-detergent.png", host: "body", at: [250, 428], w: 112 },
-    { id: "p-vacuum", cat: "hand", name: "吸尘器", file: "assets/props/prop-vacuum.png", host: "body", at: [250, 434], w: 152 },
-    { id: "p-hairdryer", cat: "hand", name: "吹风机", file: "assets/props/prop-hairdryer.png", host: "body", at: [252, 424], w: 122, rot: -.16 },
-    { id: "p-broom", cat: "hand", name: "小扫帚", file: "assets/props/prop-broom.png", host: "body", at: [296, 396], w: 96, rot: -.26 },
+    /* ---- 道具：实物照片，摆在胸前和爪边（爪尖在照片 y≈450，即舞台 500） ---- */
+    { id: "p-fish", cat: "hand", name: "小鱼干", file: "assets/props/snack-fish.png", host: "body", at: [250, 468], w: 125, rot: -.2 },
+    { id: "p-toyfish", cat: "hand", name: "逗猫鱼", file: "assets/props/snack-toyfish.png", host: "body", at: [250, 470], w: 120, rot: .14 },
+    { id: "p-ball", cat: "hand", name: "毛线球", file: "assets/props/snack-ball.png", host: "body", at: [250, 474], w: 100 },
+    { id: "p-dropball", cat: "hand", name: "跳跳球", file: "assets/props/snack-dropball.png", host: "body", at: [250, 474], w: 100 },
+    { id: "p-cookie", cat: "hand", name: "大饼干", file: "assets/props/snack-cookie.png", host: "body", at: [250, 472], w: 115, rot: -.1 },
+    { id: "p-kibble", cat: "hand", name: "一口猫粮", file: "assets/props/snack-kibble.png", host: "body", at: [250, 474], w: 110 },
+    { id: "p-platter", cat: "hand", name: "餐盘", file: "assets/props/snack-platter.png", host: "body", at: [250, 470], w: 130 },
+    { id: "p-strips", cat: "hand", name: "鸡肉条", file: "assets/props/snack-strips.png", host: "body", at: [250, 470], w: 115, rot: .12 },
+    { id: "p-socks", cat: "hand", name: "袜子团", file: "assets/props/prop-socks.png", host: "body", at: [250, 472], w: 105, rot: -.12 },
+    { id: "p-gift", cat: "hand", name: "礼物盒", file: "assets/props/prop-gift.png", host: "body", at: [250, 470], w: 115 },
+    { id: "p-pillow", cat: "hand", name: "零食袋", file: "assets/props/prop-pillow.png", host: "body", at: [250, 468], w: 130 },
+    { id: "p-trashbin", cat: "hand", name: "垃圾桶", file: "assets/props/prop-trashbin.png", host: "body", at: [250, 470], w: 110 },
+    { id: "p-detergent", cat: "hand", name: "洗衣液", file: "assets/props/prop-detergent.png", host: "body", at: [250, 466], w: 100 },
+    { id: "p-vacuum", cat: "hand", name: "吸尘器", file: "assets/props/prop-vacuum.png", host: "body", at: [250, 466], w: 130 },
+    { id: "p-hairdryer", cat: "hand", name: "吹风机", file: "assets/props/prop-hairdryer.png", host: "body", at: [252, 466], w: 110, rot: -.16 },
+    { id: "p-broom", cat: "hand", name: "小扫帚", file: "assets/props/prop-broom.png", host: "body", at: [330, 462], w: 96, rot: -.26 },
 
-    /* ---- 贴纸：压在对应部件上，歪头时腮红跟着走 ---- */
+    /* ---- 贴纸：压在照片对应的脸上/胸口位置（照片里的腮帮在舞台 y≈320） ---- */
     {
       id: "blush", cat: "sticker", name: "腮红", host: "head",
       svg: SV('<ellipse cx="15" cy="27" rx="6" ry="4" fill="#F16D5B"/><ellipse cx="33" cy="27" rx="6" ry="4" fill="#F16D5B"/><path d="M13 15c3-3 8-3 10 0"/>'),
       draw(x) {
-        [[176, 196, .5], [304, 196, .3]].forEach(p => {
+        [[214, 320, .5], [319, 320, .3]].forEach(p => {
           x.save(); x.globalAlpha = p[2]; x.fillStyle = "#F16D5B"; ell(x, p[0], p[1], 26, 15); x.fill(); x.restore();
         });
       }
@@ -439,7 +435,7 @@
       id: "star", cat: "sticker", name: "星星贴", host: "body",
       svg: SV('<path d="M24 6l5 12 13 1-10 9 3 13-11-7-11 7 3-13-10-9 13-1z" fill="#F5E66B"/>'),
       draw(x) {
-        x.save(); x.translate(190, 345); x.rotate(-.22);
+        x.save(); x.translate(196, 430); x.rotate(-.22);
         ink(x, 4.5); x.fillStyle = "#F5E66B"; starPath(x, 0, 0, 30, 5, .45); x.fill(); x.stroke();
         x.fillStyle = "#fff"; ell(x, -8, -9, 5, 3.8); x.fill(); x.restore();
       }
@@ -449,7 +445,7 @@
       id: "nameplate", cat: "sticker", name: "名牌", host: "body",
       svg: SV('<rect x="8" y="18" width="32" height="14" rx="5" fill="#fff"/><path d="M24 18v-6"/><circle cx="24" cy="10" r="3"/>'),
       draw(x) {
-        const w = 152, h = 36, cx = 240, cy = 344;
+        const w = 152, h = 36, cx = 250, cy = 402;
         x.save(); ink(x, 3);
         x.fillStyle = "#fff"; ML.rr(x, cx - w / 2, cy - h / 2, w, h, 10); x.fill(); x.stroke();
         x.fillStyle = INK; x.textAlign = "center"; x.textBaseline = "middle";
@@ -470,7 +466,7 @@
     whoName: $("#whoName")
   };
   const SLIDERS = [["scale", "sScale", "vScale"], ["squash", "sSquash", "vSquash"], ["lean", "sLean", "vLean"],
-    ["tilt", "sTilt", "vTilt"], ["puff", "sPuff", "vPuff"], ["blink", "sBlink", "vBlink"], ["mouth", "sMouth", "vMouth"]];
+    ["tilt", "sTilt", "vTilt"]];
   const DEFAULT_NOTE = "点下面的卡片给真猫穿戴：服装和道具都是实物照片，直接贴在家猫的分层照片上。";
   const CAPS = ["职业拆家", "一级拆迁户", "零食黑洞", "装睡专家", "深夜跑酷选手", "本届最可爱"];
   let noteT = 0, pendingI = 0, iTimer = 0;
@@ -501,7 +497,7 @@
     els.chips.innerHTML = CATS.map(([k, cn]) => {
       const cur = state.eq[k], it = itemById(cur);
       const on = cur && cur !== "plain";
-      return `<button class="chip-btn${state.cat === k ? " sel" : ""}" data-cat="${k}">${cn}<i>${on ? (it ? it.name : "已穿") : (k === "expr" ? "默认脸" : "—")}</i></button>`;
+      return `<button class="chip-btn${state.cat === k ? " sel" : ""}" data-cat="${k}">${cn}<i>${on ? (it ? it.name : "已穿") : (k === "expr" ? "自然站姿" : "—")}</i></button>`;
     }).join("");
     $$("#chips .chip-btn").forEach(b => b.onclick = () => {
       state.cat = b.dataset.cat; sound.tap(); buildChips(); buildItems();
@@ -534,7 +530,7 @@
     const next = already ? (cat === "expr" ? "plain" : "") : want;
     state.eq[cat] = next;
     let msg;
-    if (!id) msg = cat === "expr" ? "回到真猫的默认脸" : (prev ? "卸下 " + prev.name : "这一栏本来就空着");
+    if (!id) msg = cat === "expr" ? "回到自然站姿" : (prev ? "卸下 " + prev.name : "这一栏本来就空着");
     else if (already) msg = "卸下 " + (prev ? prev.name : id);
     else msg = (it && it.file ? "贴上实物 " : "换上 ") + (it ? it.name : id);
     (already || !next) ? sound.tick() : sound.tap();
@@ -758,10 +754,11 @@
   async function boot() {
     try { await CatRig.load(); }
     catch (e) {
-      setNote("真猫分层素材（assets/pets/realcat/*.webp）没能加载。这页不画假猫，素材修好之前只有背景可用。", true);
+      setNote("真猫实拍抠图（assets/pets/realcat/body.webp）没能加载。这页不画假猫，素材修好之前只有背景可用。", true);
       sound.bad(); render(); return;
     }
     rigReady = true;
+    buildPaws();
     const files = [];
     ITEMS.forEach(it => { if (it.file && files.indexOf(it.file) < 0) files.push(it.file); });
     const rs = await Promise.all(files.map(f => ML.img(ML.asset(f)).then(im => { PHOTOS[f] = im; return 1; }).catch(() => 0)));
@@ -816,14 +813,12 @@
         photo: it.file || null, loaded: !!im, w: it.w, crop: it.crop || [0, 0, 1, 1]
       };
     },
-    /* 眼睛中心的实时落点：帽子围巾都不该盖过它。
-     * 五官贴片画在 head 图坐标的 (at-anchor) 处、尺寸是 size*f，所以眼心还要再加半张贴片。 */
+    /* 眼睛中心的实时落点：帽子围巾都不该盖过它。照片里两眼之间大约在 (195,178)。 */
     eyePoint() {
-      const f = CatRig.P_FACE["eyes-open"], PH = PART.head, P = curP || rigPose(0), t = rigTf(P).head;
-      const qx = f.at[0] - f.anchor[0] + f.size[0] * f.f / 2, qy = f.at[1] - f.anchor[1] + f.size[1] * f.f / 2;
-      const dx = (qx - PH.anchor[0]) * t.sx, dy = (qy - PH.anchor[1]) * t.sy;
+      const S = CatRig.SPRITE, P = curP || rigPose(0), t = rigTf(P).body;
+      const dx = (195 - S.anchor[0]) * t.sx, dy = (178 - S.anchor[1]) * t.sy;
       const c = Math.cos(t.rot), s = Math.sin(t.rot);
-      const st = [PH.at[0] + t.dx + dx * c - dy * s, PH.at[1] + t.dy + dx * s + dy * c];
+      const st = [S.at[0] + t.dx + dx * c - dy * s, S.at[1] + t.dy + dx * s + dy * c];
       return { stage: st, page: BOX.p(st[0], st[1], P), blink: P.blink, mouth: P.mouth };
     }
   };

@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#FAF8F3">
 <title>找猫躲猫猫 — MOMO 事务所</title>
 <meta name="description" content="一屏房间，猫藏在垃圾桶、礼物盒、零食袋、袜子、洗衣液、扫地机器人其中之一。拖动或点按翻开遮蔽物，靠冷热线索在限时与有限次数内把它找出来。5 关递增，猫是六层真猫照片布偶，遮蔽物是真物照片。">
-<link rel="stylesheet" href="../css/base.css">
-<link rel="stylesheet" href="../css/game.css">
+<link rel="stylesheet" href="../css/base.css?v=4">
+<link rel="stylesheet" href="../css/game.css?v=4">
 <style>
   /* 本页专属：不动共享 CSS */
   .hc-wrap{max-width:560px}
@@ -137,9 +137,9 @@
   <div class="g-actions"><span class="label">点一下 = 翻开 · 按住拖 = 掀条缝 · 空处拖动 = 循声 · 1-9 快翻</span></div>
 </div>
 
-<script src="../js/icons.js"></script>
-<script src="../js/core.js"></script>
-<script src="../js/cat-rig.js"></script>
+<script src="../js/icons.js?v=4"></script>
+<script src="../js/core.js?v=4"></script>
+<script src="../js/cat-rig.js?v=4"></script>
 <script>
 (async () => {
   "use strict";
@@ -196,40 +196,22 @@
     return Promise.all(PROPS.map(k =>
       ML.img(ML.asset("assets/props/" + k + ".png")).then(im => { IMG[k] = im; })));
   }
-  /* 一张照片里塞了两样东西（扫把边上躺着吹风机）：CROP 只留下属于它的那几块 */
-  const CROP = {
-    "prop-broom": [[85, 0, 33, 45], [62, 45, 56, 105], [0, 150, 118, 81]],
-    "prop-hairdryer": [[0, 0, 97, 88]]
-  };
-  // 裁剪块的整体外接框；没配 CROP 就是整张图
-  function pbox(im, key) {
-    const ps = CROP[key];
-    if (!ps) return [0, 0, im.width, im.height];
-    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-    for (const p of ps) {
-      x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]);
-      x1 = Math.max(x1, p[0] + p[2]); y1 = Math.max(y1, p[1] + p[3]);
-    }
-    return [x0, y0, x1 - x0, y1 - y0];
-  }
   // 等比塞进 maxW×maxH 的盒子，外接框中心对齐 (cx, cy)；缺图返回 false 让调用方兜底
   function photo(key, cx, cy, maxW, maxH, rot) {
     const im = IMG[key];
     if (!im) return false;
-    const b = pbox(im, key), r = Math.min(maxW / b[2], maxH / b[3]);
+    const r = Math.min(maxW / im.width, maxH / im.height);
     x.save(); x.translate(cx, cy); if (rot) x.rotate(rot);
-    for (const p of CROP[key] || [b])
-      x.drawImage(im, p[0], p[1], p[2], p[3],
-        (p[0] - b[0] - b[2] / 2) * r, (p[1] - b[1] - b[3] / 2) * r, p[2] * r, p[3] * r);
+    x.drawImage(im, -im.width * r / 2, -im.height * r / 2, im.width * r, im.height * r);
     x.restore();
     return true;
   }
-  // 站在地上的东西：照片 contain 之后高度可能矮于盒子，得按实际高度把底边压到 baseY
+  // 站在地上的东西：照片等比缩放后高度可能矮于盒子，得按实际高度把底边压到 baseY
   function photoStand(key, cx, baseY, maxW, maxH, rot) {
     const im = IMG[key];
     if (!im) return false;
-    const b = pbox(im, key);
-    return photo(key, cx, baseY - b[3] * Math.min(maxW / b[2], maxH / b[3]) / 2, maxW, maxH, rot);
+    return photo(key, cx, baseY - im.height * Math.min(maxW / im.width, maxH / im.height) / 2,
+      maxW, maxH, rot);
   }
   // 干扰物的取景框（单位 u）：扫把细长、零食球方正，全都贴着照片自己的比例
   const DECOY_BOX = { broom: [30, 62], hairdryer: [44, 40], toyfish: [46, 34], snackball: [34, 34] };
@@ -701,10 +683,10 @@
   }
 
   /* ---------------- 绘制：猫 / 干扰物 ---------------- */
-  // 舞台 480×560 里猫身约占 512 高；66 倍 u 的盒宽 ≈ 旧手绘猫 68u 的身高
+  /* 舞台 480×560 里照片猫占 y=105..520；66 倍 u 的盒宽 ≈ 旧手绘猫 68u 的身高 */
   const CAT_GW = 66;
-  const CAT_PAW = CatRig.P_BODY.anchor[1];              // 爪线在舞台里的 y
-  const CAT_EYE = CatRig.P_FACE["eyes-open"].at[1];     // 眼睛层在舞台里的 y
+  const CAT_PAW = CatRig.SPRITE.at[1];              // 爪线在舞台里的 y
+  const CAT_EYE = CatRig.P_FACE["eyes-open"].at[1];     // 眼线在舞台里的 y
   function drawCat(cx, baseY, u, mood) {
     if (!rigOk) return;
     const gw = CAT_GW * u, s = gw / CatRig.STAGE_W;

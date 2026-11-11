@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FAF8F3">
 <title>蓄力跳家具 — MOMO 事务所</title>
-<link rel="stylesheet" href="../css/base.css">
-<link rel="stylesheet" href="../css/game.css">
+<link rel="stylesheet" href="../css/base.css?v=4">
+<link rel="stylesheet" href="../css/game.css?v=4">
 <style>
   /* 本页专属：只在游戏外壳之上补少量样式，不动共享 CSS */
   #wrap{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;background:linear-gradient(#F6F1E7 0 62%,#E3D6BE 62% 100%)}
@@ -97,9 +97,9 @@
   <div class="g-actions"><span class="label">长按屏幕蓄力 · 松手起跳 · P / Esc 暂停</span></div>
 </div>
 
-<script src="../js/icons.js"></script>
-<script src="../js/core.js"></script>
-<script src="../js/cat-rig.js"></script>
+<script src="../js/icons.js?v=4"></script>
+<script src="../js/core.js?v=4"></script>
+<script src="../js/cat-rig.js?v=4"></script>
 <script>
 (() => {
   const { $, clamp, rand, irand, pick, sound } = ML;
@@ -145,8 +145,8 @@
   const loadProps = () => Promise.all(PROPS.map(k =>
     ML.img(ML.asset("assets/props/" + k + ".png")).then(im => { PHOTO[k] = im; }, () => {})));
 
-  /* 布偶舞台 480×560，爪底约在 y=528：用它把盒子的脚钉在落点上 */
-  const RIG_W = 58, RIG_FOOT = 528, RIG_S = RIG_W / CatRig.STAGE_W;
+  /* 布偶舞台 480×560，照片爪底在 y=520：用它把盒子的脚钉在落点上 */
+  const RIG_W = 58, RIG_FOOT = CatRig.SPRITE.at[1], RIG_S = RIG_W / CatRig.STAGE_W;
 
   /* ---------------- 运行时状态 ---------------- */
   let W = 0, H = 0, dpr = 1, unit = 1, shX = 0, shY = 0;

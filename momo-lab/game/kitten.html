@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#FAF8F3">
 <title>我家猫 — MOMO 事务所</title>
 <meta name="description" content="用真实猫咪拆解部件装配成的可互动布偶：摸头、逗它、喂零食、让它睡，心情与饱食会随时间变化。">
-<link rel="stylesheet" href="../css/base.css">
-<link rel="stylesheet" href="../css/game.css">
+<link rel="stylesheet" href="../css/base.css?v=4">
+<link rel="stylesheet" href="../css/game.css?v=4">
 <style>
   /* 本页专属，不动共享 CSS */
   .kt-wrap{max-width:560px}
@@ -57,7 +57,7 @@
   <div class="kt-stage" id="stage">
     <canvas id="cv" width="480" height="560" aria-label="可以摸、逗、喂的猫"></canvas>
     <span class="kt-state" id="stateTag">待机</span>
-    <span class="kt-corner" id="rigTag">6 层布偶</span>
+    <span class="kt-corner" id="rigTag">实拍布偶</span>
   </div>
 
   <div class="banner" id="banner"></div>
@@ -98,9 +98,9 @@
   </div>
 </div>
 
-<script src="../js/icons.js"></script>
-<script src="../js/core.js"></script>
-<script src="../js/cat-rig.js"></script>
+<script src="../js/icons.js?v=4"></script>
+<script src="../js/core.js?v=4"></script>
+<script src="../js/cat-rig.js?v=4"></script>
 <script>
 (() => {
   const { $, clamp, rand, settings } = ML;
@@ -711,7 +711,7 @@
   size();
   CatRig.load().then(() => {
     loaded = true;
-    $("#rigTag").textContent = CatRig.masks.head ? "6 层 · 像素命中" : "6 层 · 近似命中";
+    $("#rigTag").textContent = CatRig.masks.body ? "实拍剪影 · 像素命中" : "实拍剪影 · 近似命中";
     size();
     if (away) msg(away, "yel");
     requestAnimationFrame(ts => { last = ts; loop(ts); });

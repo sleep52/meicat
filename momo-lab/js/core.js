@@ -7,8 +7,13 @@ window.ML = (() => {
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const script = $('script[src*="js/core.js"]');
-  const base = script ? script.src.slice(0, script.src.length - "js/core.js".length) : "";
-  const asset = p => base + p;
+  const src = script ? script.src : "";
+  const pos = src.indexOf("js/core.js");
+  const base = pos < 0 ? "" : src.slice(0, pos);
+  /* 素材路径统一过 asset()，并跟着 core.js 的 ?v= 一起换版本。
+   * 不加这一层，换图后老访客（和我自己的测试页）会继续吃缓存里的旧图。 */
+  const ver = (src.split("?")[1] || "").split("&").filter(s => s.indexOf("v=") === 0)[0];
+  const asset = p => base + p + (ver && p.indexOf("?") < 0 ? "?" + ver : "");
 
   const settings = Object.assign({ sound: true, anim: true }, JSON.parse(localStorage.getItem("ml-settings") || "{}"));
   const saveSettings = () => { localStorage.setItem("ml-settings", JSON.stringify(settings)); document.documentElement.classList.toggle("no-anim", !settings.anim); };
@@ -79,6 +84,11 @@ window.ML = (() => {
     const N = 480, c = document.createElement("canvas"); c.width = c.height = N;
     const x = c.getContext("2d"); x.drawImage(imgEl, 0, 0, N, N);
     const d = x.getImageData(0, 0, N, N), p = d.data;
+    // 真猫素材是 CatRig 离线渲染的透明 PNG，白胸毛会被下面的「近白→半透明」规则啃掉，
+    // 所以四角已经透明就直接原样返回，不再抠图。
+    let holes = 0;
+    for (let i = 3; i < p.length; i += 4) if (p[i] < 20) holes++;
+    if (holes > N * N * 0.02) return c;
     const bg = new Uint8Array(N * N), q = [];
     const isBg = i => { const r = p[i], g = p[i + 1], b = p[i + 2], mn = Math.min(r, g, b), mx = Math.max(r, g, b), y = (i / 4 / N) | 0; return (mn > 175 && mx - mn < 14) || (y > N * .86 && mn > 140 && mx - mn < 14); };
     for (let i = 0; i < N * N; i++) if (isBg(i * 4)) { bg[i] = 1; q.push(i); }

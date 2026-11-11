@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#FAF8F3">
 <title>猫语翻译机 — MOMO 事务所</title>
 <meta name="description" content="人话转喵语、喵语猜意：确定可复现的翻译规则 + 16 条题库 + WebAudio 合成喵叫 + 真实 PNG 导出。">
-<link rel="stylesheet" href="../css/base.css">
-<link rel="stylesheet" href="../css/game.css">
+<link rel="stylesheet" href="../css/base.css?v=4">
+<link rel="stylesheet" href="../css/game.css?v=4">
 <style>
   /* 本页专属：全部 mt- 前缀，不动共享 CSS */
   [hidden]{display:none!important}
@@ -233,9 +233,9 @@
   </div>
 </div>
 
-<script src="../js/icons.js"></script>
-<script src="../js/core.js"></script>
-<script src="../js/cat-rig.js"></script>
+<script src="../js/icons.js?v=4"></script>
+<script src="../js/core.js?v=4"></script>
+<script src="../js/cat-rig.js?v=4"></script>
 <script>
 (() => {
   const { $, $$, clamp, settings, sound } = ML;
@@ -576,8 +576,8 @@
     return out.length ? out : [""];
   }
 
-  /* 布偶 6 层真图在 480×560 舞台上的可见范围：尾巴尖到脚。导出按这个盒子等比塞进卡面 */
-  const RIG_CONTENT = { x0: 96, y0: 10, x1: 472, y1: 534 };
+  /* 真猫照片在 480×560 舞台上的可见范围（由 cat-rig 自己算），导出按这个盒子等比塞进卡面 */
+  const RIG_CONTENT = CatRig.CONTENT;
 
   function drawArtBox(x, o) {
     const bx = 150, by = 122, bs = 300;
@@ -746,7 +746,7 @@
     x.fillStyle = MUT; x.font = FONT("700", 13);
     x.fillText((o.date || "") + " · 为它做一个小世界", 300, 742);
     x.fillStyle = MUT; x.font = FONT("700", 12); x.textAlign = "left";
-    x.fillText(used === "布偶" ? "形象：你家猫实拍布偶（6 层真图）" : "形象：真图未到位，留白说明", 46, 742);
+    x.fillText(used === "布偶" ? "形象：你家猫实拍照片抠图" : "形象：真图未到位，留白说明", 46, 742);
   }
 
   /* ================= 8. 现场画布（同一张卡，实时预览） ================= */
@@ -1221,7 +1221,7 @@
   /* ================= 16. 调试钩子 ================= */
   window.__meowtalkDebug = {
     /* 布偶：姿态是唯一真相，导出用 ph=0 保证同一句话同一张图 */
-    rig: () => ({ ok: rigOk, err: rigErr, ready: !!rigReady, layers: CatRig.masks.head ? "6 层像素蒙版" : "6 层近似" }),
+    rig: () => ({ ok: rigOk, err: rigErr, ready: !!rigReady, layers: CatRig.masks.body ? "照片剪影蒙版" : "照片剪影近似" }),
     pose: (ph, expr) => {
       const keep = curExpr;
       if (expr) curExpr = expr;

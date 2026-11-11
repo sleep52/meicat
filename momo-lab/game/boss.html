@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FAF8F3">
 <title>谁是老板 — MOMO 事务所</title>
-<link rel="stylesheet" href="../css/base.css">
-<link rel="stylesheet" href="../css/game.css">
+<link rel="stylesheet" href="../css/base.css?v=4">
+<link rel="stylesheet" href="../css/game.css?v=4">
 </head>
 <body data-page="play" data-base="../">
 
@@ -23,7 +23,7 @@
   <div class="banner" id="banner"></div>
 
   <div class="boss-scene" id="sceneCard">
-    <div class="thumb wm"><img id="sceneImg" src="../assets/games/snack-cover.png" alt=""></div>
+    <div class="thumb wm"><img id="sceneImg" src="../assets/covers/snack.jpg" alt=""></div>
     <div class="body">
       <span class="label" id="sceneNo">场景 01 / 04</span>
       <h2 class="h3" id="sceneTitle" style="margin:8px 0">主人正在吃饭。</h2>
@@ -62,13 +62,13 @@
   </div>
 </div>
 
-<script src="../js/icons.js"></script>
-<script src="../js/core.js"></script>
+<script src="../js/icons.js?v=4"></script>
+<script src="../js/core.js?v=4"></script>
 <script>
 (() => {
   const { $, $$, sound } = ML;
   const SCENES = [
-    { img: "../assets/games/snack-cover.png", title: "主人正在吃饭。", desc: "碗里的味道飘过来了。这是一个确立地位的好机会。",
+    { img: "../assets/covers/snack.jpg", title: "主人正在吃饭。", desc: "碗里的味道飘过来了。这是一个确立地位的好机会。",
       opts: [
         { t: "盯着主人。", d: [5, -5, 0], r: "主人在你的注视下加快了吃饭速度，地位 +5。" },
         { t: "假装没兴趣。", d: [0, 5, 5], r: "主人放松了警惕，零食防线出现松动。" },
