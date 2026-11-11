@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F3">
+<title>追红点 — MOMO 事务所</title>
+<meta name="description" content="激光笔红点：它会逃，你按住它。60 秒里追上多少段，就算多少分。全程 Canvas 程序化绘制。">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/game.css">
+<style>
+  /* 本页专属补丁：不动共享 CSS，自定义类统一 ls- 前缀 */
+  .ls-wrap{max-width:560px}
+  /* 开局/暂停时允许竖向滚动（说明面板可能超高），开打后才锁死成纯手势舞台 */
+  .ls-stage{position:relative;width:100%;max-width:430px;margin:0 auto;border:var(--bd);border-radius:16px;
+    box-shadow:var(--sh);overflow:hidden;background:#F5F0E6;
+    touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+  .ls-stage.ls-live{touch-action:none}
+  .ls-stage *{-webkit-tap-highlight-color:transparent}
+  #cv{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:480/600;touch-action:none}
+  .ov{touch-action:pan-y}
+  .ov .panel{max-height:100%;overflow:auto;touch-action:pan-y}
+  .ls-status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px auto 0;max-width:430px}
+  .ls-cell{min-width:0;background:var(--card);border:var(--bd);border-radius:12px;padding:6px 8px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:2px 2px 0 rgba(34,34,34,.15)}
+  .ls-cell .k{font-size:9px;font-weight:800;letter-spacing:.14em;color:var(--mut);white-space:nowrap}
+  .ls-cell .v{font-size:13px;font-weight:900;max-width:100%;overflow:hidden}
+  .ls-badge{border:1.5px solid var(--ink);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:900;
+    background:var(--mint);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ls-badge.poly{background:var(--yel)}
+  .ls-badge.jit{background:var(--pur)}
+  .ls-badge.tp{background:var(--red);color:#fff}
+  .ls-badge.hot{background:var(--red);color:#fff}
+  .ls-badge.warn{background:#fff}
+  .ls-track{display:flex;align-items:center;gap:8px;margin:10px auto 0;max-width:430px}
+  .ls-track .progress{flex:1;min-width:0}
+  .ls-track .progress i{transition:none}
+  .ls-note{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--mut);white-space:nowrap}
+  .ls-note b{font-variant-numeric:tabular-nums}
+  .ls-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 4px}
+  .ls-stats div{min-width:0;border:var(--bd);border-radius:12px;background:var(--bg);padding:8px 6px;display:flex;flex-direction:column;gap:2px}
+  .ls-stats b{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1;overflow-wrap:anywhere}
+  .ls-stats span{font-size:10px;letter-spacing:.06em;color:var(--mut);font-weight:700;white-space:nowrap}
+  .ls-rec{display:inline-block;background:var(--red);color:#fff;border:var(--bd);border-radius:999px;padding:2px 12px;
+    font-size:11px;font-weight:900;letter-spacing:.1em;margin-bottom:6px}
+  .ls-hint{font-size:11px;line-height:1.5;margin-top:6px}
+  .ls-acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+  .ls-acts .btn{flex:1 1 auto;min-width:0}
+  .ls-legend{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+  .ls-legend span{font-size:10px;font-weight:800;letter-spacing:.06em;border:var(--bd);border-radius:999px;padding:2px 9px;background:var(--card)}
+  #endImg:not([src]){display:none}
+  @media(max-width:520px){
+    .ls-cell .k{letter-spacing:.04em}
+    .ls-stats b{font-size:16px}
+  }
+  /* 矮屏（横屏手机）：收窄舞台宽度，高度由 aspect-ratio 等比跟着缩，绝不横向溢出 */
+  @media(max-height:640px){
+    .ls-stage{max-width:min(430px,calc(54svh * .8))}
+    .ls-status,.ls-track{margin-top:6px}
+  }
+</style>
+</head>
+<body data-page="laser" data-base="../">
+
+<div class="g-wrap ls-wrap">
+  <div class="g-top">
+    <a class="icon-btn" href="../games.html" aria-label="返回"><span data-icon="back"></span></a>
+    <div class="title">追红点<small>游戏 10 · 激光笔红点</small></div>
+    <button class="icon-btn" id="pauseBtn" aria-label="暂停"><span data-icon="pause"></span></button>
+  </div>
+
+  <div class="hud">
+    <div class="chip hot"><div class="k">时间</div><div class="v" id="hTime">60</div></div>
+    <div class="chip yel"><div class="k">得分</div><div class="v" id="hScore">0</div></div>
+    <div class="chip"><div class="k">连击</div><div class="v" id="hCombo">×0</div></div>
+    <div class="chip"><div class="k">追上(秒)</div><div class="v" id="hCatch">0.0</div></div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="ls-stage" id="stage">
+    <canvas id="cv" width="480" height="600" aria-label="地板上的激光红点：用手指或鼠标按住它"></canvas>
+
+    <div class="ov" id="startOv">
+      <div class="panel">
+        <span class="tag red">激光笔红点</span>
+        <h2 class="h2">追红点</h2>
+        <ul class="desc">
+          <li>红点会自己在地板上乱窜。<b>按住它</b>（手指压在红点上，或鼠标拖着它走）。</li>
+          <li>指针一靠近，它就朝<b>反方向加速躲开</b>；贴得足够近时它会迟疑一下——那是唯一的机会。</li>
+          <li>累计按住 <b>0.5 秒</b>算追上 1 段：<b>+1 分</b>，红点立刻跳到新位置。</li>
+          <li>每次追上后<b>连击窗口</b>开始倒计时（红点外圈那道红弧）：窗口内再追上就连击 +1，窗口走完算<b>一次失误</b>，连击清零。</li>
+          <li>连击越高它越敏捷，轨迹越来越怪：<b>直线 → 折线 → 抖动 → 瞬移</b>，迟疑圈也会越来越小。</li>
+          <li>60 秒倒计时，结算看<b>得分 / 最长连击 / 总追上时长</b>，按得分评 S / A / B / C，最高分存本机。</li>
+          <li>关掉顶部「动画」开关后红点不躲、不跳（无障碍模式），照常计时与结算。</li>
+        </ul>
+        <div class="row"><button class="btn yel big" id="startBtn">开始追红点</button></div>
+        <div class="ls-legend">
+          <span>P / Esc 暂停</span><span>虚线圈 = 它开始警觉</span><span>实线圈 = 判定范围</span><span id="lsName">MOMO 主演</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ov hide" id="pauseOv">
+      <div class="panel">
+        <h2 class="h2">已暂停</h2>
+        <p class="mut" style="font-size:13px">红点也停下了，就在原地喘气。计时已停表。</p>
+        <div class="row"><button class="btn yel" id="resumeBtn">继续</button><a class="btn" href="../games.html">离开</a></div>
+      </div>
+    </div>
+
+    <div class="ov hide" id="endOv">
+      <div class="panel">
+        <div id="endNew"></div>
+        <span class="rating" id="endRating">C</span>
+        <h2 class="h2" id="endTitle" style="font-size:22px"></h2>
+        <p class="mut" style="font-size:13px" id="endDesc"></p>
+        <div class="ls-stats">
+          <div><b id="stScore">0</b><span>得分(段)</span></div>
+          <div><b id="stCombo">×0</b><span>最长连击</span></div>
+          <div><b id="stTime">0.0s</b><span>追上时长</span></div>
+          <div><b id="stBest">0</b><span>历史最佳</span></div>
+          <div><b id="stMiss">0</b><span>失误次数</span></div>
+          <div><b id="stPlays">1</b><span>累计局数</span></div>
+        </div>
+        <img class="result-img" id="endImg" alt="追红点分享卡">
+        <p class="mut ls-hint" id="endHint"></p>
+        <div class="row">
+          <a class="btn yel small" id="saveBtn" download="momo-laser.png"><span data-icon="download"></span>保存卡片</a>
+          <button class="btn mint small" id="favBtn">保存到收藏</button>
+          <button class="btn small" id="retryBtn">再来一次</button>
+          <a class="btn small" href="../games.html">游戏清单</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ls-status">
+    <div class="ls-cell"><span class="k">轨迹</span><span class="v"><span class="ls-badge" id="hPat">直线</span></span></div>
+    <div class="ls-cell"><span class="k">敏捷</span><span class="v" id="hAgi">58</span></div>
+    <div class="ls-cell"><span class="k">手感</span><span class="v"><span class="ls-badge warn" id="hFeel">待命</span></span></div>
+  </div>
+  <div class="ls-track">
+    <span class="ls-note">连击窗口</span>
+    <div class="progress"><i id="hProg"></i></div>
+    <span class="ls-note">最高 <b id="hBest">0</b></span>
+  </div>
+
+  <div class="ls-acts">
+    <button class="btn small" id="againBtn">重开一局</button>
+    <button class="btn small" id="pauseBtn2">暂停 / 继续</button>
+    <a class="btn small" href="../games.html">返回清单</a>
+  </div>
+  <div class="g-actions"><span class="label">按住红点 = 追上 · 松手或跟丢 = 连击断 · P 暂停</span></div>
+</div>
+
+<script src="../js/icons.js"></script>
+<script src="../js/core.js"></script>
+<script>
+(() => {
+  const { $, clamp, rand, sound, rr, settings } = ML;
+  const stage = $("#stage"), cv = $("#cv"), x = cv.getContext("2d");
+  const bannerEl = $("#banner");
+  const mac = ML.machine();
+
+  const r1 = v => Math.round(v * 10) / 10;
+  const r2 = v => Math.round(v * 100) / 100;
+
+  /* ---------------- 规则数值 ---------------- */
+  const DW = 480, DH = 600;                 // 设计坐标系，与 canvas 的 aspect-ratio 一致
+  const ROUND_TIME = 60;
+  const SEG_NEED = 0.5;                     // 累计按住 0.5 秒 = 追上 1 段 = +1 分
+  const CATCH_R = 26;                       // 判定半径（设计单位，随画布等比缩放）
+  const DRAIN = 0.75;                       // 脱离接触时本段进度回落速度
+  const BND = { x0: 26, x1: DW - 26, y0: 116, y1: DH - 28 };
+  const PAT_NAME = { LINE: "直线", POLY: "折线", JIT: "抖动", TP: "瞬移" };
+  const PAT_CLS = { LINE: "", POLY: "poly", JIT: "jit", TP: "tp" };
+
+  const agility = () => Math.min(combo, 9);
+  const patternNow = () => combo >= 6 ? "TP" : combo >= 4 ? "JIT" : combo >= 2 ? "POLY" : "LINE";
+  const speedNow = () => 58 + agility() * 26;                         // 巡航速度：越连击越快
+  const fleeR = () => Math.min(150, 96 + agility() * 4);             // 感应半径：进来就会逃
+  const hesR = () => Math.max(CATCH_R + 10, 62 - agility() * 2.6);    // 迟疑半径：贴这么近它卡壳
+  const winLen = () => Math.max(2.0, 3.9 - Math.min(combo, 8) * 0.19); // 连击窗口时长
+  const ratingFor = s => s >= 18 ? "S" : s >= 12 ? "A" : s >= 7 ? "B" : "C";
+
+  /* ---------------- 运行时 ---------------- */
+  let W = 0, H = 0, dpr = 1, fit = 1, shX = 0, shY = 0;
+  let tNow = 0, last = 0, elapsed = 0, timeLeft = ROUND_TIME;
+  let score = 0, combo = 0, maxCombo = 0, misses = 0, catchTime = 0, segT = 0, comboT = 0, comboMax = 0;
+  let contact = false, pressing = false, catR = 0, bestCache = 0;
+  let shake = 0, redFlash = 0, goldFlash = 0, bannerT = 0, patShown = "LINE";
+  const parts = [], floats = [], trail = [];
+  const ptr = { x: DW / 2, y: DH * .7, active: false, type: "" };
+  const dot = { x: DW / 2, y: DH * .68, vx: 0, vy: 0, head: -0.7, turnT: .6, tpT: 1, seed: rand(0, 6.28), slow: 0 };
+  const hudCache = {};
+  let petName = "MOMO", FUR = "#E8A857", cardUrl = "";
+
+  try { bestCache = ML.best("laser") || 0; } catch (e) { bestCache = 0; }
+
+  /* ---------------- 尺寸：只在容器宽度变化时重排 ---------------- */
+  function size() {
+    const w = Math.max(240, Math.round(stage.clientWidth || DW));
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = w; H = Math.round(w * DH / DW); fit = W / DW;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    render();
+  }
+  function toWorld(e) {
+    const r = cv.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    return {
+      x: clamp((e.clientX - r.left) / r.width * DW, 0, DW),
+      y: clamp((e.clientY - r.top) / r.height * DH, 0, DH),
+      inside: e.clientX >= r.left - 2 && e.clientX <= r.right + 2 && e.clientY >= r.top - 2 && e.clientY <= r.bottom + 2
+    };
+  }
+
+  /* ---------------- 主循环 ---------------- */
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (stage.clientWidth !== W) size();
+    const dt = clamp((ts - last) / 1000, 0, .05); last = ts; tNow += dt;
+    if (mac.get() === "PLAYING") solve(dt);
+    else { contact = false; hud(); }
+    if (bannerT && tNow > bannerT) { bannerEl.innerHTML = ""; bannerT = 0; }
+    render();
+  }
+
+  /* ---------------- 一帧模拟 ---------------- */
+  function solve(dt) {
+    const anim = settings.anim;
+    elapsed += dt; timeLeft -= dt;
+    if (anim) moveDot(dt);
+
+    // 接触判定：按住 + 指针落在判定圈内
+    const d = ptr.active ? Math.hypot(dot.x - ptr.x, dot.y - ptr.y) : 99999;
+    const wasContact = contact;
+    contact = pressing && d <= CATCH_R;
+    if (contact) {
+      segT += dt; catchTime += dt;
+      if (segT >= SEG_NEED) hit();
+    } else if (segT > 0) {
+      segT = Math.max(0, segT - dt * DRAIN);
+    }
+
+    // 连击窗口
+    if (combo > 0) {
+      comboT -= dt;
+      if (comboT <= 0) { comboT = 0; miss(); }
+    }
+
+    const pn = patternNow();
+    if (pn !== patShown) {
+      patShown = pn;
+      if (anim) say("轨迹变了：" + PAT_NAME[pn] + " · 敏捷 " + Math.round(speedNow()), pn === "TP" ? "red" : "yel");
+    }
+
+    if (anim) stepFx(dt);
+    if (contact && !wasContact) sound.tap();
+
+    const secBefore = Math.ceil(timeLeft + dt), secNow = Math.ceil(timeLeft);
+    if (anim && timeLeft <= 10 && secNow !== secBefore && secNow >= 0) { sound.tick(); if (secNow > 0) say("最后 " + secNow + " 秒", "red"); }
+    if (timeLeft <= 0) { timeLeft = 0; hud(); finish(); return; }
+    hud();
+  }
+
+  function moveDot(dt) {
+    const ag = agility(), pat = patternNow();
+    // 1) 巡航方向：直线档慢慢偏，高档位按 45° 折线硬转
+    if (pat === "LINE") {
+      dot.head += Math.sin(tNow * 1.1 + dot.seed) * 1.3 * dt;
+    } else {
+      dot.turnT -= dt;
+      if (dot.turnT <= 0) {
+        dot.head = Math.round(dot.head / (Math.PI / 4)) * (Math.PI / 4) + rand(-.35, .35);
+        dot.turnT = Math.max(.22, rand(.42, .82) - ag * .025);
+      }
+    }
+    const sp = speedNow();
+    let ax = Math.cos(dot.head) * sp, ay = Math.sin(dot.head) * sp;
+    dot.slow = 0;
+
+    // 2) 逃 / 迟疑
+    if (ptr.active) {
+      const dx = dot.x - ptr.x, dy = dot.y - ptr.y, dd = Math.hypot(dx, dy) || 1;
+      const nx = dx / dd, ny = dy / dd;
+      const hr = hesR(), fr = fleeR();
+      if (dd < hr) {
+        const creep = pressing ? 40 : 96;      // 按住时它只是慢慢从指下溜走
+        ax = nx * creep; ay = ny * creep;
+        dot.slow = 1;
+      } else if (dd < fr) {
+        const k = clamp(1 - (dd - hr) / Math.max(1, fr - hr), 0, 1);
+        const boost = (180 + ag * 130) * k;    // 越靠近逃得越猛
+        ax += nx * boost; ay += ny * boost;
+      }
+    }
+
+    // 3) 抖动档：高频加速度噪声
+    if (pat === "JIT" || pat === "TP") {
+      const j = 520 + ag * 90;
+      ax += Math.sin(tNow * 21 + dot.seed) * j;
+      ay += Math.cos(tNow * 17 + dot.seed * 1.7) * j;
+    }
+
+    // 4) 积分 + 限速
+    const m = 1 - Math.exp(-(dot.slow ? 10 : 5) * dt);
+    dot.vx += (ax - dot.vx) * m;
+    dot.vy += (ay - dot.vy) * m;
+    const maxV = dot.slow ? 92 : 150 + ag * 30;
+    const v = Math.hypot(dot.vx, dot.vy);
+    if (v > maxV) { dot.vx *= maxV / v; dot.vy *= maxV / v; }
+    dot.x += dot.vx * dt; dot.y += dot.vy * dt;
+
+    // 5) 边界反弹
+    let bounced = false;
+    if (dot.x < BND.x0) { dot.x = BND.x0; dot.vx = Math.abs(dot.vx) * .8; dot.head = Math.PI - dot.head; bounced = true; }
+    else if (dot.x > BND.x1) { dot.x = BND.x1; dot.vx = -Math.abs(dot.vx) * .8; dot.head = Math.PI - dot.head; bounced = true; }
+    if (dot.y < BND.y0) { dot.y = BND.y0; dot.vy = Math.abs(dot.vy) * .8; dot.head = -dot.head; bounced = true; }
+    else if (dot.y > BND.y1) { dot.y = BND.y1; dot.vy = -Math.abs(dot.vy) * .8; dot.head = -dot.head; bounced = true; }
+    if (bounced) {
+      dot.head = Math.atan2(Math.sin(dot.head), Math.cos(dot.head));
+      dot.turnT = Math.max(dot.turnT, .18);
+    }
+
+    // 6) 瞬移档：只有在没被按住时才会跳
+    if (pat === "TP" && !contact) {
+      dot.tpT -= dt;
+      if (dot.tpT <= 0) { dot.tpT = rand(.75, 1.35); teleport(false); if (settings.anim) say("它瞬移了！", "red"); }
+    }
+
+    trail.push({ x: dot.x, y: dot.y });
+    while (trail.length > 18) trail.shift();
+  }
+
+  // 挑一个离指针最远、又不贴墙的位置
+  function farSpot() {
+    let bx = dot.x, by = dot.y, best = -1;
+    for (let i = 0; i < 16; i++) {
+      const nx = rand(BND.x0 + 12, BND.x1 - 12), ny = rand(BND.y0 + 12, BND.y1 - 12);
+      const d = Math.min(ptr.active ? Math.hypot(nx - ptr.x, ny - ptr.y) : Math.hypot(nx - dot.x, ny - dot.y), 200);
+      const edge = Math.min(nx - BND.x0, BND.x1 - nx, ny - BND.y0, BND.y1 - ny);
+      const s = d + Math.min(edge, 60) * .35;
+      if (s > best) { best = s; bx = nx; by = ny; }
+    }
+    return { x: bx, y: by };
+  }
+  function teleport(isCatch) {
+    const old = { x: dot.x, y: dot.y };
+    const s = farSpot();
+    dot.x = s.x; dot.y = s.y; dot.vx *= .25; dot.vy *= .25;
+    dot.head = rand(0, 6.283); dot.turnT = rand(.3, .7); dot.tpT = rand(.8, 1.4); dot.slow = 0;
+    trail.length = 0;
+    if (settings.anim) {
+      spawnParts(old.x, old.y, "#8A8378", 5);
+      spawnParts(dot.x, dot.y, isCatch ? "#F5E66B" : "#FF4A32", isCatch ? 14 : 8);
+    }
+  }
+
+  /* ---------------- 得分 / 失误 ---------------- */
+  function hit() {
+    if (mac.get() !== "PLAYING") return;
+    score++; combo++;
+    if (combo > maxCombo) maxCombo = combo;
+    segT = 0; comboMax = winLen(); comboT = comboMax;
+    shake = Math.min(.45, .18 + combo * .01); goldFlash = .35;
+    sound.combo(combo);
+    if (settings.anim) {
+      floats.push({ t: "+1", x: dot.x, y: dot.y - 32, life: 1 });
+      if (combo > 1) floats.push({ t: "连击 ×" + combo, x: dot.x, y: dot.y - 56, life: 1, c: "#F16D5B" });
+    }
+    if (combo % 5 === 0) {
+      const r = stage.getBoundingClientRect();
+      ML.floatSticker(stage, "×" + combo + " 连击", Math.max(8, r.width * .5 - 44), r.height * .18);
+      sound.bonus();
+    }
+    if (combo === 2 || combo === 4 || combo === 6) say("它开始" + PAT_NAME[patternNow()] + "了！手别停", "yel");
+    else if (combo % 4 === 0) say("连击 ×" + combo + " · 敏捷 " + Math.round(speedNow()), "mint");
+    if (settings.anim) teleport(true);      // 无障碍模式下红点保持静止
+    hud();
+  }
+
+  function miss() {
+    if (mac.get() !== "PLAYING" || combo <= 0) return;
+    combo = 0; comboT = 0; comboMax = 0; segT = 0;
+    misses++;
+    sound.bad(); redFlash = .5; shake = .5;
+    if (settings.anim) {
+      spawnParts(dot.x, dot.y, "#8A8378", 9);
+      floats.push({ t: "跟丢了", x: dot.x, y: dot.y - 32, life: 1, c: "#F16D5B" });
+    }
+    say("跟丢了！连击清零，敏捷掉回直线", "red");
+    hud();
+  }
+
+  /* ---------------- 特效 ---------------- */
+  function spawnParts(wx, wy, c, n) {
+    for (let i = 0; i < n; i++) {
+      parts.push({ x: wx + rand(-8, 8), y: wy + rand(-8, 8), vx: rand(-130, 130), vy: rand(-190, -40), life: rand(.3, .75), r: rand(1.6, 3.8), c });
+    }
+    while (parts.length > 200) parts.shift();
+  }
+  function stepFx(dt) {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const q = parts[i]; q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 620 * dt;
+      if (q.life <= 0) parts.splice(i, 1);
+    }
+    for (let i = floats.length - 1; i >= 0; i--) {
+      const f = floats[i]; f.life -= dt; f.y -= 30 * dt;
+      if (f.life <= 0) floats.splice(i, 1);
+    }
+    if (shake > 0) shake = Math.max(0, shake - dt * 2.4);
+    if (redFlash > 0) redFlash = Math.max(0, redFlash - dt * 1.9);
+    if (goldFlash > 0) goldFlash = Math.max(0, goldFlash - dt * 2.6);
+    catR += ((contact ? 1 : 0) - catR) * (1 - Math.exp(-9 * dt));
+  }
+
+  /* ---------------- 绘制（全部程序化，不加载任何图片） ---------------- */
+  function render() {
+    const anim = settings.anim;
+    shX = anim && shake > 0 ? rand(-3, 3) * shake : 0;
+    shY = anim && shake > 0 ? rand(-3, 3) * shake : 0;
+    x.setTransform(dpr * fit, 0, 0, dpr * fit, dpr * fit * shX, dpr * fit * shY);
+    drawRoom();
+    drawProps();
+    drawCat();
+    if (anim) drawTrail();
+    drawZone();
+    drawDot();
+    if (anim) { drawParts(); drawFloats(); }
+    drawHud();
+    if (anim) {
+      if (redFlash > 0) { x.fillStyle = "rgba(241,109,91," + (.28 * redFlash) + ")"; x.fillRect(-8, -8, DW + 16, DH + 16); }
+      if (goldFlash > 0) { x.fillStyle = "rgba(245,230,107," + (.2 * goldFlash) + ")"; x.fillRect(-8, -8, DW + 16, DH + 16); }
+    }
+  }
+  function drawRoom() {
+    const g = x.createLinearGradient(0, 0, 0, 150);
+    g.addColorStop(0, "#F8F4EC"); g.addColorStop(1, "#F1E9DA");
+    x.fillStyle = g; x.fillRect(-12, -12, DW + 24, 164);
+    // 墙上的画框
+    x.fillStyle = "#EAF1F5"; x.strokeStyle = "#222"; x.lineWidth = 3;
+    rr(x, 296, 44, 108, 66, 6); x.fill(); x.stroke();
+    x.fillStyle = "#DCD2F5"; rr(x, 308, 58, 84, 38, 4); x.fill();
+    x.fillStyle = "#BFE4D0"; x.beginPath(); x.arc(330, 82, 9, 0, 6.3); x.fill();
+    x.strokeStyle = "rgba(34,34,34,.45)"; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(352, 92); x.lineTo(384, 66); x.stroke();
+    // 猫抓板
+    x.save(); x.translate(206, 58);
+    x.fillStyle = "#E9D8B8"; x.strokeStyle = "#222"; x.lineWidth = 2.6;
+    rr(x, 0, 0, 54, 56, 6); x.fill(); x.stroke();
+    x.strokeStyle = "rgba(34,34,34,.3)"; x.lineWidth = 2;
+    for (let i = 1; i < 6; i++) { x.beginPath(); x.moveTo(i * 9, 7); x.lineTo(i * 9, 49); x.stroke(); }
+    x.restore();
+    // 踢脚线
+    x.fillStyle = "#E2D4BA"; x.fillRect(-12, 138, DW + 24, 16);
+    x.strokeStyle = "rgba(34,34,34,.5)"; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(-12, 138); x.lineTo(DW + 12, 138); x.stroke();
+    // 地板
+    const fg = x.createLinearGradient(0, 154, 0, DH);
+    fg.addColorStop(0, "#E9DAC0"); fg.addColorStop(1, "#D2BB94");
+    x.fillStyle = fg; x.fillRect(-12, 154, DW + 24, DH - 154 + 12);
+    x.strokeStyle = "rgba(34,34,34,.15)"; x.lineWidth = 1.8;
+    for (let row = 0; row < 7; row++) {
+      const yy = 154 + row * 68;
+      x.beginPath(); x.moveTo(-12, yy); x.lineTo(DW + 12, yy); x.stroke();
+      for (let c = 0; c < 5; c++) {
+        const sx = ((c * 137) + (row % 2 ? 68 : 0)) % (DW + 40) - 20;
+        x.beginPath(); x.moveTo(sx, yy); x.lineTo(sx, Math.min(DH + 12, yy + 68)); x.stroke();
+      }
+    }
+    // 地毯
+    x.save();
+    x.fillStyle = "#BFE4D0"; rr(x, 54, 306, 372, 246, 30); x.fill();
+    x.clip();
+    x.fillStyle = "rgba(255,255,255,.34)";
+    for (let i = 0; i < 9; i++) x.fillRect(54, 306 + i * 31, 372, 12);
+    x.restore();
+    x.strokeStyle = "#222"; x.lineWidth = 3; rr(x, 54, 306, 372, 246, 30); x.stroke();
+    x.strokeStyle = "rgba(34,34,34,.45)"; x.lineWidth = 2.4;
+    for (let i = 0; i <= 12; i++) {
+      const fx = 60 + i * 30;
+      x.beginPath(); x.moveTo(fx, 306); x.lineTo(fx, 299); x.stroke();
+      x.beginPath(); x.moveTo(fx, 552); x.lineTo(fx, 559); x.stroke();
+    }
+  }
+  function drawProps() {
+    // 食盆
+    x.save(); x.translate(424, 208);
+    x.fillStyle = "rgba(34,34,34,.13)"; x.beginPath(); x.ellipse(0, 14, 30, 8, 0, 0, 6.3); x.fill();
+    x.fillStyle = "#F5E66B"; x.strokeStyle = "#222"; x.lineWidth = 2.6;
+    x.beginPath(); x.moveTo(-26, -2); x.quadraticCurveTo(0, 22, 26, -2); x.closePath(); x.fill(); x.stroke();
+    x.beginPath(); x.ellipse(0, -2, 26, 8, 0, 0, 6.3); x.fill(); x.stroke();
+    x.restore();
+    // 拖鞋
+    x.save(); x.translate(438, 508); x.rotate(-.22);
+    x.fillStyle = "#F16D5B"; x.strokeStyle = "#222"; x.lineWidth = 2.6;
+    rr(x, -22, -36, 44, 72, 20); x.fill(); x.stroke();
+    x.fillStyle = "#FFF6E6"; rr(x, -19, -32, 38, 18, 9); x.fill(); x.stroke();
+    x.restore();
+  }
+  function drawCat() {
+    const anim = settings.anim;
+    const CX = 92, CY = 508, HY = CY - 92;
+    const lookX = clamp((dot.x - CX) / 260, -1, 1);
+    const lookY = clamp((dot.y - HY) / 260, -1, 1);
+    const tw = anim ? Math.sin(tNow * (2 + agility() * .45)) * 16 : 0;
+    const paw = catR;
+    x.save(); x.translate(CX, CY);
+    x.lineJoin = "round"; x.lineCap = "round";
+    x.fillStyle = "rgba(34,34,34,.14)"; x.beginPath(); x.ellipse(0, 6, 52, 11, 0, 0, 6.3); x.fill();
+    // 尾巴（连击越高甩得越快）
+    x.strokeStyle = "#222"; x.lineWidth = 12;
+    x.beginPath(); x.moveTo(32, -6); x.quadraticCurveTo(66, -16 + tw, 58, -50 + tw); x.stroke();
+    x.strokeStyle = FUR; x.lineWidth = 8; x.stroke();
+    // 身体
+    x.fillStyle = FUR; x.strokeStyle = "#222"; x.lineWidth = 3;
+    x.beginPath(); x.moveTo(-34, 0); x.quadraticCurveTo(-32, -74, 0, -80); x.quadraticCurveTo(32, -74, 34, 0); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(0, -26, 16, 24, 0, 0, 6.3); x.fill();
+    // 左前爪
+    x.fillStyle = FUR; x.strokeStyle = "#222"; x.lineWidth = 2.8;
+    rr(x, -32, -16, 22, 32, 10); x.fill(); x.stroke();
+    // 右前爪：跟住红点时拍出去
+    x.save(); x.translate(8, -20); x.rotate(-.45 * paw); x.translate(paw * 30, -paw * 26);
+    rr(x, 0, 0, 22, 32, 10); x.fill(); x.stroke();
+    x.fillStyle = "#FBD9CF"; x.beginPath(); x.arc(11, 27, 5, 0, 6.3); x.fill(); x.stroke();
+    x.restore();
+    // 头：朝红点偏，瞳孔跟着红点
+    x.save(); x.translate(clamp((dot.x - CX) / 30, -7, 7), -92 + clamp((dot.y - HY) / 40, -5, 7)); x.rotate(lookX * .1);
+    x.fillStyle = FUR; x.strokeStyle = "#222"; x.lineWidth = 3;
+    x.beginPath(); x.arc(0, 0, 32, 0, 6.3); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(-26, -14); x.lineTo(-32, -40); x.lineTo(-8, -28); x.closePath(); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(26, -14); x.lineTo(32, -40); x.lineTo(8, -28); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = "#FBD9CF";
+    x.beginPath(); x.moveTo(-24, -18); x.lineTo(-28, -34); x.lineTo(-13, -24); x.closePath(); x.fill();
+    x.beginPath(); x.moveTo(24, -18); x.lineTo(28, -34); x.lineTo(13, -24); x.closePath(); x.fill();
+    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(0, 8, 19, 14, 0, 0, 6.3); x.fill();
+    const px = lookX * 4, py = lookY * 3, ew = contact ? 5.2 : 4, eh = contact ? 7 : 5;
+    x.fillStyle = "#222";
+    x.beginPath(); x.ellipse(-11 + px, -4 + py, ew, eh, 0, 0, 6.3); x.fill();
+    x.beginPath(); x.ellipse(11 + px, -4 + py, ew, eh, 0, 0, 6.3); x.fill();
+    x.fillStyle = "#fff";
+    x.beginPath(); x.arc(-13 + px, -6 + py, 1.6, 0, 6.3); x.fill();
+    x.beginPath(); x.arc(9 + px, -6 + py, 1.6, 0, 6.3); x.fill();
+    x.fillStyle = "#F16D5B"; x.beginPath(); x.moveTo(0, 6); x.lineTo(4.5, 10.5); x.lineTo(-4.5, 10.5); x.closePath(); x.fill();
+    x.strokeStyle = "rgba(34,34,34,.7)"; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(0, 11); x.quadraticCurveTo(contact ? 6 : 3, contact ? 19 : 14, 8, 13); x.stroke();
+    x.strokeStyle = "rgba(34,34,34,.4)"; x.lineWidth = 1.6;
+    x.beginPath();
+    x.moveTo(-15, 9); x.lineTo(-31, 5); x.moveTo(-15, 13); x.lineTo(-31, 16);
+    x.moveTo(15, 9); x.lineTo(31, 5); x.moveTo(15, 13); x.lineTo(31, 16);
+    x.stroke();
+    x.restore();
+    x.restore();
+  }
+  function drawTrail() {
+    for (let i = 0; i < trail.length; i++) {
+      const q = trail[i], a = (i + 1) / trail.length;
+      x.fillStyle = "rgba(255,70,50," + (.16 * a * a).toFixed(3) + ")";
+      x.beginPath(); x.arc(q.x, q.y, 2 + 7 * a, 0, 6.3); x.fill();
+    }
+  }
+  function drawZone() {
+    if (!ptr.active) return;
+    x.save();
+    x.setLineDash([7, 9]); x.lineWidth = 2;
+    x.strokeStyle = contact ? "rgba(241,109,91,.55)" : "rgba(34,34,34,.26)";
+    x.beginPath(); x.arc(ptr.x, ptr.y, fleeR(), 0, 6.3); x.stroke();
+    x.setLineDash([]);
+    x.strokeStyle = "rgba(34,34,34,.2)";
+    x.beginPath(); x.arc(ptr.x, ptr.y, hesR(), 0, 6.3); x.stroke();
+    x.strokeStyle = contact ? "#F5E66B" : "rgba(34,34,34,.6)"; x.lineWidth = 3;
+    x.beginPath(); x.arc(ptr.x, ptr.y, CATCH_R, 0, 6.3); x.stroke();
+    if (pressing) { x.fillStyle = "rgba(241,109,91,.3)"; x.beginPath(); x.arc(ptr.x, ptr.y, 7, 0, 6.3); x.fill(); }
+    x.restore();
+  }
+  function ring(cx, cy, r, ratio, color, lw) {
+    x.save(); x.strokeStyle = color; x.lineWidth = lw; x.lineCap = "round";
+    x.beginPath(); x.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + 6.283 * clamp(ratio, 0, 1)); x.stroke();
+    x.restore();
+  }
+  function drawDot() {
+    const pulse = settings.anim ? 1 + Math.sin(tNow * 13) * .07 : 1;
+    const R = 30 * pulse;
+    const g = x.createRadialGradient(dot.x, dot.y, 1, dot.x, dot.y, R);
+    g.addColorStop(0, "rgba(255,92,66,.62)"); g.addColorStop(.42, "rgba(255,60,40,.24)"); g.addColorStop(1, "rgba(255,60,40,0)");
+    x.fillStyle = g; x.beginPath(); x.arc(dot.x, dot.y, R, 0, 6.3); x.fill();
+    x.fillStyle = "#FF2A18"; x.beginPath(); x.arc(dot.x, dot.y, 8 * pulse, 0, 6.3); x.fill();
+    x.fillStyle = "rgba(255,205,190,.95)"; x.beginPath(); x.arc(dot.x - 1.6, dot.y - 1.8, 3, 0, 6.3); x.fill();
+    if (segT > 0) ring(dot.x, dot.y, 15, segT / SEG_NEED, "#F5E66B", 3.5);
+    if (combo > 0 && comboMax > 0) ring(dot.x, dot.y, 22, clamp(comboT / comboMax, 0, 1), "#F16D5B", 3);
+    if (contact) ring(dot.x, dot.y, 30, 1, "rgba(255,255,255,.7)", 2);
+  }
+  function drawParts() {
+    parts.forEach(q => {
+      x.save(); x.globalAlpha = clamp(q.life * 1.7, 0, 1); x.fillStyle = q.c;
+      x.beginPath(); x.arc(q.x, q.y, q.r, 0, 6.3); x.fill(); x.restore();
+    });
+  }
+  function drawFloats() {
+    floats.forEach(f => {
+      x.save(); x.globalAlpha = clamp(f.life * 1.5, 0, 1);
+      x.font = "900 17px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillStyle = f.c || "#222"; x.strokeStyle = "#FAF8F3"; x.lineWidth = 4;
+      x.strokeText(f.t, f.x, f.y); x.fillText(f.t, f.x, f.y); x.restore();
+    });
+  }
+  function drawHud() {
+    x.save();
+    x.fillStyle = "rgba(255,255,255,.92)"; x.strokeStyle = "#222"; x.lineWidth = 2.4;
+    rr(x, 14, 12, DW - 28, 52, 12); x.fill(); x.stroke();
+    x.textBaseline = "middle";
+    x.textAlign = "left"; x.font = "900 14px 'PingFang SC',Arial"; x.fillStyle = "#222";
+    x.fillText("轨迹 " + PAT_NAME[patternNow()], 26, 28);
+    x.font = "700 11px 'PingFang SC',Arial"; x.fillStyle = "#88847D";
+    x.fillText("实时速度 " + Math.round(Math.hypot(dot.vx, dot.vy)) + " · 敏捷上限 " + Math.round(speedNow()), 26, 50);
+    const bw = 150, bx = DW - 26 - bw, by = 22;
+    x.fillStyle = "#fff"; x.strokeStyle = "#222"; x.lineWidth = 2;
+    rr(x, bx, by, bw, 12, 6); x.fill(); x.stroke();
+    const sr = clamp(segT / SEG_NEED, 0, 1);
+    if (sr > .01) { x.fillStyle = "#F5E66B"; rr(x, bx + 2, by + 2, Math.max(8, (bw - 4) * sr), 8, 4); x.fill(); x.stroke(); }
+    x.textAlign = "right"; x.font = "900 12px 'PingFang SC',Arial"; x.fillStyle = "#222";
+    x.fillText("本段 " + Math.round(sr * 100) + "%", bx + bw, by + 26);
+    if (!settings.anim) {
+      x.textAlign = "left"; x.fillStyle = "#F16D5B"; x.font = "900 11px 'PingFang SC',Arial";
+      x.strokeStyle = "rgba(250,248,243,.9)"; x.lineWidth = 4;
+      x.strokeText("动画已关闭：红点不躲，照常计时与结算", 24, 78);
+      x.fillText("动画已关闭：红点不躲，照常计时与结算", 24, 78);
+    }
+    x.restore();
+  }
+
+  /* ---------------- DOM HUD ---------------- */
+  function hud() {
+    const v = {
+      hTime: Math.max(0, Math.ceil(timeLeft)),
+      hScore: score,
+      hCombo: "×" + combo,
+      hCatch: (Math.round(catchTime * 10) / 10).toFixed(1)
+    };
+    for (const key in v) if (hudCache[key] !== v[key]) { hudCache[key] = v[key]; $("#" + key).textContent = v[key]; }
+    const pn = patternNow();
+    if (hudCache.pat !== pn) {
+      hudCache.pat = pn;
+      const el = $("#hPat"); el.textContent = PAT_NAME[pn]; el.className = "ls-badge " + PAT_CLS[pn];
+    }
+    const ag = Math.round(speedNow());
+    if (hudCache.agi !== ag) { hudCache.agi = ag; $("#hAgi").textContent = ag; }
+    const feel = mac.get() !== "PLAYING" ? "待命"
+      : contact ? "跟住了"
+      : pressing ? (ptr.active ? "按住空地" : "按住（无指针）")
+      : ptr.active ? "它警觉了" : "等它靠近";
+    if (hudCache.feel !== feel) {
+      hudCache.feel = feel;
+      const el = $("#hFeel"); el.textContent = feel;
+      el.className = "ls-badge" + (contact ? " hot" : pressing ? " warn" : "");
+    }
+    const ratio = combo > 0 && comboMax > 0 ? clamp(comboT / comboMax, 0, 1) : 0;
+    const pct = Math.round(ratio * 100);
+    if (hudCache.win !== pct) { hudCache.win = pct; $("#hProg").style.width = pct + "%"; }
+    if (hudCache.best !== bestCache) { hudCache.best = bestCache; $("#hBest").textContent = bestCache; }
+  }
+  function say(t, cls) {
+    bannerEl.innerHTML = '<span class="msg ' + (cls || "") + '">' + t + "</span>";
+    bannerT = tNow + 1.9;
+  }
+
+  /* ---------------- 结算 / 存档 ---------------- */
+  function finish() {
+    if (mac.get() === "FINISHED") return;
+    pressing = false; contact = false;
+    mac.set("FINISHED");
+    const r = ratingFor(score);
+    const color = r === "S" ? "#F16D5B" : r === "C" ? "#BFE4D0" : "#F5E66B";
+    const title = r === "S" ? "红点终结者" : r === "A" ? "猫爪级准头" : r === "B" ? "差一点点按住" : "被红点遛了 60 秒";
+    let rec = { best: score, isNew: false, plays: 1 };
+    try {
+      rec = ML.record("laser", score) || rec;
+      bestCache = Math.max(ML.best("laser") || 0, score);
+    } catch (e) { bestCache = Math.max(bestCache, score); }
+    let plays = rec.plays || 1;
+    try { plays = ML.plays("laser") || plays; } catch (e) {}
+    try { ML.patchStats({ interactions: score, points: score * 40, gamesPlayed: 1 }); } catch (e) {}
+    const isNew = !!(rec.isNew && score > 0);
+    score >= 12 ? sound.win() : sound.lose();
+    $("#endRating").textContent = r;
+    $("#endRating").style.background = color;
+    $("#endRating").style.color = color === "#F16D5B" ? "#fff" : "#222";
+    $("#endTitle").textContent = title;
+    $("#endNew").innerHTML = isNew ? '<span class="ls-rec">新纪录</span>' : "";
+    $("#endDesc").textContent = "时间到 · 追上 " + score + " 段 · 失误 " + misses + " 次 · " +
+      (isNew ? "刷新历史最佳" : "历史最佳 " + bestCache);
+    $("#stScore").textContent = score;
+    $("#stCombo").textContent = "×" + maxCombo;
+    $("#stTime").textContent = (Math.round(catchTime * 10) / 10).toFixed(1) + "s";
+    $("#stBest").textContent = bestCache;
+    $("#stMiss").textContent = misses;
+    $("#stPlays").textContent = plays;
+    $("#endHint").textContent = location.protocol.startsWith("file:")
+      ? "以 file:// 打开时浏览器可能拒绝导出画布；用本地服务器打开就一定拿得到分享卡。"
+      : "长按上面的图片也能保存。";
+    $("#endOv").classList.remove("hide");
+    hud();
+    ML.shareCard({
+      game: "追红点", petName: petName, rating: r, ratingColor: color, score,
+      timeText: "追上 " + score + " 段 · 最长连击 ×" + maxCombo + " · 按住 " + (Math.round(catchTime * 10) / 10).toFixed(1) + " 秒",
+      ending: title, badge: "红点捕获报告"
+    }).then(url => {
+      cardUrl = url; $("#endImg").src = url; $("#saveBtn").setAttribute("href", url);
+    }).catch(() => {
+      cardUrl = ""; $("#endHint").textContent = "分享卡生成失败（这台设备的浏览器不允许导出画布），可以直接截图。";
+    });
+  }
+  function saveToFav() {
+    try {
+      ML.addWork({
+        id: "laser-" + Date.now(), game: "laser", title: "追红点",
+        score, rating: ratingFor(score), time: ML.today(), png: cardUrl || ""
+      });
+      $("#favBtn").textContent = "已存进收藏";
+      $("#favBtn").disabled = true;
+      say("已保存到你的收藏", "mint");
+      sound.good();
+    } catch (e) {
+      $("#favBtn").textContent = "这台设备存不了";
+      say("这台设备的本地存储被浏览器拦了（隐私模式？），没存上。", "red");
+    }
+  }
+
+  /* ---------------- 输入（Pointer Events：手指 + 鼠标通用） ---------------- */
+  function onMove(e) {
+    const p = toWorld(e);
+    if (!p) return;
+    if (e.pointerType === "mouse") {
+      if (!p.inside) { if (!pressing) ptr.active = false; return; }
+      ptr.type = "mouse"; ptr.active = true;
+    } else {
+      if (!pressing) return;                    // 手指只有按住时才有坐标
+      ptr.type = e.pointerType; ptr.active = p.inside;
+    }
+    ptr.x = p.x; ptr.y = p.y;
+  }
+  stage.addEventListener("pointerdown", e => {
+    if (e.target.closest(".ov")) {
+      if (e.target.closest("a,button")) return;                 // 遮罩里的按钮交给浏览器
+      if (mac.get() === "READY") { e.preventDefault(); start(); return; }
+      if (mac.get() === "PAUSED") { e.preventDefault(); togglePause(false); return; }
+      return;                                                   // 结算遮罩不响应按住
+    }
+    e.preventDefault();
+    const p = toWorld(e);
+    if (p) { ptr.x = p.x; ptr.y = p.y; ptr.active = true; ptr.type = e.pointerType || "touch"; }
+    pressing = true;
+    if (mac.get() === "PLAYING") sound.tap();
+    hud();
+  });
+  window.addEventListener("pointermove", onMove, { passive: true });
+  function endPress(e) {
+    if (!pressing) return;
+    if (e && e.pointerType && ptr.type && e.pointerType !== ptr.type) return;
+    pressing = false;
+    if (ptr.type !== "mouse") ptr.active = false;               // 抬手后红点不再感应
+    hud();
+  }
+  window.addEventListener("pointerup", endPress);
+  window.addEventListener("pointercancel", endPress);
+  window.addEventListener("blur", () => { pressing = false; ptr.active = false; contact = false; hud(); });
+  cv.addEventListener("contextmenu", e => e.preventDefault());
+  document.addEventListener("dragstart", e => e.preventDefault());
+
+  /* ---------------- 暂停 / 开始 / 重开 ---------------- */
+  function togglePause(force) {
+    if (mac.get() === "PLAYING" && force !== false) {
+      mac.set("PAUSED"); pressing = false; contact = false;
+      $("#pauseOv").classList.remove("hide"); sound.tap();
+    } else if (mac.get() === "PAUSED") {
+      mac.set("PLAYING"); $("#pauseOv").classList.add("hide"); last = performance.now();
+    }
+    hud();
+  }
+  function reset() {
+    score = 0; combo = 0; maxCombo = 0; misses = 0; catchTime = 0; segT = 0; comboT = 0; comboMax = 0;
+    timeLeft = ROUND_TIME; elapsed = 0; contact = false; pressing = false; catR = 0;
+    shake = 0; redFlash = 0; goldFlash = 0; patShown = "LINE";
+    parts.length = 0; floats.length = 0; trail.length = 0;
+    dot.x = DW / 2; dot.y = DH * .68; dot.vx = 0; dot.vy = 0;
+    dot.head = rand(0, 6.283); dot.turnT = rand(.3, .8); dot.tpT = rand(.8, 1.4); dot.slow = 0;
+    bannerEl.innerHTML = ""; bannerT = 0;
+    $("#startOv").classList.add("hide"); $("#pauseOv").classList.add("hide"); $("#endOv").classList.add("hide");
+    $("#endImg").removeAttribute("src"); $("#saveBtn").removeAttribute("href");
+    $("#favBtn").textContent = "保存到收藏"; $("#favBtn").disabled = false;
+    cardUrl = "";
+    hudCache.feel = null;
+    hud(); render();
+  }
+  function start() {
+    if (mac.get() === "PLAYING") return;
+    reset();
+    mac.set("PLAYING");
+    last = performance.now();
+    sound.bonus();
+    say(settings.anim ? "按住红点 0.5 秒 = 追上一段" : "动画已关：红点不躲，照常计时", "yel");
+  }
+
+  $("#pauseBtn").onclick = () => togglePause();
+  $("#pauseBtn2").onclick = () => togglePause();
+  $("#resumeBtn").onclick = () => togglePause();
+  $("#startBtn").onclick = start;
+  $("#retryBtn").onclick = () => { reset(); mac.set("PLAYING"); last = performance.now(); sound.bonus(); say("新的一局，手别停", "yel"); };
+  $("#againBtn").onclick = () => { reset(); mac.set("PLAYING"); last = performance.now(); sound.bonus(); say("新的一局，手别停", "yel"); };
+  $("#favBtn").onclick = saveToFav;
+  ML.bindPause(mac, togglePause);
+  mac.on(st => {
+    stage.classList.toggle("ls-live", st === "PLAYING");
+    if (st !== "PLAYING") { pressing = false; contact = false; hud(); }
+  });
+
+  /* ---------------- 宠物配置（只取名字与毛色，画面仍全程序化） ---------------- */
+  ML.pet().then(cfg => {
+    if (cfg && cfg.petName) petName = cfg.petName;
+    if (cfg && cfg.furColor) FUR = cfg.furColor;
+    $("#lsName").textContent = petName + " 主演";
+  }).catch(() => {});
+
+  window.addEventListener("resize", size);
+  window.addEventListener("orientationchange", size);
+  if (window.ResizeObserver) { try { new ResizeObserver(size).observe(stage); } catch (e) {} }
+
+  /* ---------------- 启动 ---------------- */
+  size(); hud();
+  last = performance.now();
+  requestAnimationFrame(loop);
+
+  /* ---------------- 调试钩子 ---------------- */
+  window.__laserDebug = {
+    state: () => ({
+      mac: mac.get(), score, combo, maxCombo, misses,
+      segT: r2(segT), segNeed: SEG_NEED, catchTime: r2(catchTime),
+      timeLeft: r1(timeLeft), comboT: r2(comboT), comboMax: r2(comboMax),
+      pattern: patternNow(), agility: agility(), speedCap: Math.round(speedNow()),
+      speed: Math.round(Math.hypot(dot.vx, dot.vy)),
+      contact, pressing, anim: settings.anim, rating: ratingFor(score), best: bestCache,
+      dot: { x: r1(dot.x), y: r1(dot.y) },
+      ptr: { x: r1(ptr.x), y: r1(ptr.y), active: ptr.active },
+      zone: { catchR: CATCH_R, hesR: r1(hesR()), fleeR: r1(fleeR()) },
+      W, H, DW, DH, fit: r2(fit)
+    }),
+    solve, render, start, reset, hit, miss, finish,
+    step: (n = 1, dt = 1 / 60) => { for (let i = 0; i < n; i++) solve(dt); return score; },
+    end: () => { if (mac.get() !== "PLAYING") { reset(); mac.set("PLAYING"); } finish(); return score; },
+    score: () => score,
+    // 先补一段连击再判一次跟丢，方便在任意状态下验证失误分支
+    forceMiss: () => {
+      if (mac.get() !== "PLAYING") { reset(); mac.set("PLAYING"); }
+      if (combo <= 0) { score++; combo = 1; if (combo > maxCombo) maxCombo = combo; comboMax = winLen(); comboT = comboMax; }
+      miss();
+      return { combo, misses, score };
+    },
+    // 把指针吸在红点上按住，自动追上 n 段（验收用）
+    grab: (n = 1, dt = 1 / 60) => {
+      if (mac.get() !== "PLAYING") { reset(); mac.set("PLAYING"); }
+      const s0 = score; let guard = 0;
+      pressing = true; ptr.active = true;
+      while (score - s0 < n && guard < 4000 && mac.get() === "PLAYING") {
+        ptr.x = dot.x; ptr.y = dot.y; solve(dt); guard++;
+      }
+      pressing = false;
+      return { gained: score - s0, frames: guard, state: window.__laserDebug.state() };
+    },
+    setPointer: (wx, wy) => { ptr.x = clamp(wx, 0, DW); ptr.y = clamp(wy, 0, DH); ptr.active = true; hud(); },
+    setPress: on => { pressing = !!on; hud(); },
+    setDot: (wx, wy) => { dot.x = clamp(wx, BND.x0, BND.x1); dot.y = clamp(wy, BND.y0, BND.y1); hud(); },
+    setTime: v => { timeLeft = Math.max(0, v); hud(); },
+    setCombo: v => {
+      combo = Math.max(0, v | 0); if (combo > maxCombo) maxCombo = combo;
+      comboMax = winLen(); comboT = comboMax; hud();
+    }
+  };
+})();
+</script>
+</body>
+</html>

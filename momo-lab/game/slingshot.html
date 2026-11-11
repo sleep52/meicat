@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F3">
+<title>弹弓喂猫 — MOMO 事务所</title>
+<meta name="description" content="按住零食往后拉、松手发射，抛物线要准，还要等猫张嘴的那一下：喂到加分、打翻东西扣分并累计拆家值。">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/game.css">
+<style>
+  /* 本页专属补丁：不动共享 CSS */
+  .sl-wrap{max-width:560px}
+  .sl-stage{position:relative;border:var(--bd);border-radius:16px;box-shadow:var(--sh);overflow:hidden;
+    background:#F7F2E8;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+  .sl-stage *{-webkit-tap-highlight-color:transparent}
+  #cv{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:480/640}
+  .ov{touch-action:pan-y}
+  .ov .panel{max-height:100%;overflow:auto}
+  .sl-status{display:flex;gap:6px;margin-top:10px}
+  .sl-cell{flex:1;min-width:0;background:var(--card);border:var(--bd);border-radius:12px;padding:5px 6px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:2px 2px 0 rgba(34,34,34,.15)}
+  .sl-cell .k{font-size:9px;font-weight:800;letter-spacing:.08em;color:var(--mut);white-space:nowrap}
+  .sl-cell .v{font-size:12px;font-weight:900;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .sl-badge{border:1.5px solid var(--ink);border-radius:999px;padding:1px 9px;font-size:11px;font-weight:900;background:#E7E2D8;max-width:100%;overflow:hidden}
+  .sl-badge.open{background:var(--mint)}
+  .sl-badge.run{background:var(--yel)}
+  .sl-badge.fast{background:var(--red);color:#fff}
+  .sl-badge.hold{background:var(--pur)}
+  .sl-acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .sl-acts .btn{flex:1 1 0;min-width:0;padding:10px 8px;font-size:12px}
+  .sl-acts .btn.on{background:var(--yel);box-shadow:3px 3px 0 var(--ink)}
+  .sl-acts .tag{flex:0 0 auto;align-self:center}
+  .sl-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 4px}
+  .sl-stats div{border:var(--bd);border-radius:12px;background:var(--bg);padding:8px 6px;display:flex;flex-direction:column;gap:2px;min-width:0}
+  .sl-stats b{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
+  .sl-stats span{font-size:10px;letter-spacing:.1em;color:var(--mut);font-weight:700}
+  .newrec{display:inline-block;background:var(--red);color:#fff;border:var(--bd);border-radius:999px;padding:2px 12px;
+    font-size:11px;font-weight:900;letter-spacing:.1em;margin-bottom:6px}
+  .sl-hint{font-size:11px;line-height:1.5;margin-top:6px}
+  .sl-legend{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+  .sl-legend span{font-size:10px;font-weight:800;letter-spacing:.06em;border:var(--bd);border-radius:999px;padding:2px 9px;background:var(--card)}
+  @media(max-height:560px){
+    #cv{aspect-ratio:480/600}
+    .sl-status{margin-top:6px}
+    .sl-acts{margin-top:6px}
+  }
+</style>
+</head>
+<body data-page="slingshot" data-base="../">
+
+<div class="g-wrap sl-wrap">
+  <div class="g-top">
+    <a class="icon-btn" href="../games.html" aria-label="返回"><span data-icon="back"></span></a>
+    <div class="title">弹弓喂猫<small>游戏 09 · 张嘴才算数</small></div>
+    <button class="icon-btn" id="pauseBtn" aria-label="暂停"><span data-icon="pause"></span></button>
+  </div>
+
+  <div class="hud">
+    <div class="chip hot"><div class="k">时间</div><div class="v" id="hTime">60</div></div>
+    <div class="chip yel"><div class="k">得分</div><div class="v" id="hScore">0</div></div>
+    <div class="chip"><div class="k">连击</div><div class="v" id="hCombo">×0</div></div>
+    <div class="chip"><div class="k">拆家</div><div class="v" id="hTrash">0</div></div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="sl-stage" id="stage">
+    <canvas id="cv" width="480" height="640" aria-label="弹弓喂猫现场：下方弹弓，上方来回走动的猫"></canvas>
+
+    <div class="ov" id="startOv">
+      <div class="panel">
+        <span class="tag red">抛物线 · 时机</span>
+        <h2 class="h2">弹弓喂猫</h2>
+        <ul class="desc">
+          <li>按住画面<b>把零食往后拖</b>：拖得越远初速度越大，拖的方向就是发射的反方向。</li>
+          <li>松手才发射。虚线只画出<b>前 0.3 秒</b>的轨迹，后面全凭手感。</li>
+          <li>零食走真实抛物线（重力 + 可选空气阻力），撞墙撞天花板会<b>反弹</b>。</li>
+          <li>MOMO 在猫跳板上散步、突然加速、还会回头。<b>只有张嘴的窗口期命中才算喂到</b>，闭嘴打上去一律弹开不算分。</li>
+          <li>飘过的气球、晾衣绳上的袜子、地板上的扫地机器人都会挡住零食。</li>
+          <li>打翻<b>花瓶 -60</b>、<b>水杯 -45</b>，并累计拆家值；拆家到 4 件以上它会越走越慌。</li>
+          <li>60 秒。喂到 +100×连击倍率，卡准刚张嘴的瞬间 +60，反弹入嘴 +40。</li>
+        </ul>
+        <div class="row"><button class="btn yel big" id="startBtn">上弹弓</button></div>
+        <div class="sl-legend">
+          <span>← → 调角度 · ↑ ↓ 调力度 · 空格发射</span><span>P / Esc 暂停</span><span id="petName">MOMO 主演</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ov hide" id="pauseOv">
+      <div class="panel">
+        <h2 class="h2">已暂停</h2>
+        <p class="mut" style="font-size:13px">零食悬浮在半空等你。表已经停了。</p>
+        <div class="row"><button class="btn yel" id="resumeBtn">继续</button><a class="btn" href="../games.html">离开</a></div>
+      </div>
+    </div>
+
+    <div class="ov hide" id="endOv">
+      <div class="panel">
+        <div id="endNew"></div>
+        <span class="rating" id="endRating">C</span>
+        <h2 class="h2" id="endTitle" style="font-size:22px"></h2>
+        <p class="mut" style="font-size:13px" id="endDesc"></p>
+        <div class="sl-stats">
+          <div><b id="stScore">0</b><span>本局得分</span></div>
+          <div><b id="stBest">0</b><span>历史最佳</span></div>
+          <div><b id="stFed">0</b><span>喂到 / 发射</span></div>
+          <div><b id="stAcc">0%</b><span>命中率</span></div>
+          <div><b id="stCombo">×0</b><span>最长连击</span></div>
+          <div><b id="stTrash">0</b><span>拆家值</span></div>
+        </div>
+        <img class="result-img" id="endImg" alt="分享卡">
+        <p class="mut sl-hint" id="endHint"></p>
+        <div class="row">
+          <a class="btn yel small" id="saveBtn" download="momo-slingshot.png"><span data-icon="download"></span>保存卡片</a>
+          <button class="btn mint small" id="favBtn">保存到收藏</button>
+          <button class="btn small" id="retryBtn">再来一次</button>
+          <a class="btn small" href="../games.html">游戏厅</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sl-status">
+    <div class="sl-cell"><span class="k">猫嘴</span><span class="v"><span class="sl-badge" id="hMouth">闭嘴</span></span></div>
+    <div class="sl-cell"><span class="k">MOMO</span><span class="v"><span class="sl-badge" id="hCat">散步</span></span></div>
+    <div class="sl-cell"><span class="k">力度</span><span class="v" id="hPow">0%</span></div>
+    <div class="sl-cell"><span class="k">角度</span><span class="v" id="hAng">—</span></div>
+  </div>
+
+  <div class="sl-acts">
+    <button class="btn" id="guideBtn" aria-pressed="true">轨迹辅助 · 开</button>
+    <button class="btn" id="dragBtn" aria-pressed="false">空气阻力 · 关</button>
+    <span class="tag yel" id="bestTag">最佳 0</span>
+  </div>
+
+  <div class="g-actions"><span class="label">按住往后拖 = 蓄力 · 松手 = 发射 · P 暂停</span></div>
+</div>
+
+<script src="../js/icons.js"></script>
+<script src="../js/core.js"></script>
+<script>
+(() => {
+  "use strict";
+  const { $, clamp, rand, sound } = ML;
+  const settings = ML.settings;
+  const cv = $("#cv"), stage = $("#stage"), x = cv.getContext("2d");
+  const mac = ML.machine();
+  const GAME = "slingshot";
+
+  /* ---------------- 常量（世界坐标固定 480×640，等比缩放到画布） ---------------- */
+  const DW = 480, DH = 640;
+  const ROUND = 60;                    // 一局秒数
+  const G = 980;                       // 重力（世界单位/秒²）
+  const DRAG_K = .38;                  // 线性空气阻力系数（开启动作）
+  const ANCH = { x: 240, y: 500 };     // 皮兜静止点
+  const MAXPULL = 100;                 // 最大拖拽距离
+  const POW_K = 10.8;                  // 拖拽距离 → 初速度
+  const VMAX = MAXPULL * POW_K;        // 1080
+  const FLOOR = 606, CEIL = 16, WALL_L = 12, WALL_R = 468;
+  const LEDGE = 214;                   // 猫跳板表面 y（也是猫脚基准）
+  const ROPE_Y = 288;                  // 晾衣绳
+  const SNACK_R = 8, MOUTH_R = 18;     // 零食半径 / 嘴部命中半径
+  const WALL_REST = .55, FLOOR_REST = .4;
+  const RELOAD = .26;                  // 上膛间隔
+  const BASE = 100, PERFECT_B = 60, BANK_B = 40, PERFECT_T = .3, MAX_MULT = 3;
+  const PANIC_AT = 4;                  // 拆家值到多少猫开始慌
+  const CAT_MIN = 70, CAT_MAX = 410;
+  const BALLOON_MIN = 352, BALLOON_MAX = 402;
+
+  /* ---------------- 运行时 ---------------- */
+  let W = 0, H = 0, dpr = 1, kx = 1, ky = 1, shX = 0, shY = 0;
+  let score = 0, combo = 0, maxCombo = 0, fed = 0, shots = 0, bounced = 0, missed = 0, destruction = 0;
+  let timeLeft = ROUND, last = 0, tNow = 0, rT = 0;
+  let shake = 0, flash = 0, flashC = "#F16D5B", bannerT = 0;
+  let aiming = false, guideOn = true, dragOn = false, reload = 0, bestVal = 0, cardUrl = "";
+  let pouch = { x: ANCH.x, y: ANCH.y };
+  const kb = { on: false, ang: 62, pow: .85 };
+  const hudCache = {};
+  let parts = [], floats = [];
+  let petCfg = null, FUR = "#E8A857";
+
+  /* ---------------- 尺寸 ---------------- */
+  function size() {
+    const r = cv.getBoundingClientRect();
+    const cw = stage.clientWidth;                 // 整数：与每帧的尺寸守卫同一来源，避免来回重建
+    W = Math.max(200, cw || Math.round(r.width) || 320);
+    H = Math.max(240, Math.round(r.height || W * DH / DW));
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    kx = W / DW; ky = H / DH;
+    if (mac.get() !== "PLAYING") draw();
+  }
+  function setWorld() { x.setTransform(dpr * kx, 0, 0, dpr * ky, dpr * shX, dpr * shY); }
+  function setScreen() { x.setTransform(dpr, 0, 0, dpr, dpr * shX, dpr * shY); }
+  function toWorld(e) {
+    const r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / (r.width || 1) * DW, y: (e.clientY - r.top) / (r.height || 1) * DH };
+  }
+
+  /* ---------------- 猫 ---------------- */
+  const cat = {
+    x: 240, dir: 1, speed: 58, st: "walk", t: 0, dur: 1.8,
+    mouth: 0, open: false, openT: 0, next: 1.1, eatT: 0, blink: 0, nextBlink: 3, flick: 0
+  };
+  const CAT_STATE = { walk: "散步", dash: "加速", pause: "停下", turn: "回头" };
+  const mouthPos = () => ({ x: cat.x + cat.dir * 30, y: LEDGE - 46 });
+  const headPos = () => ({ x: cat.x + cat.dir * 20, y: LEDGE - 58 });
+  const bodyPos = () => ({ x: cat.x - cat.dir * 2, y: LEDGE - 26 });
+  const mouthOpen = () => cat.mouth >= .5;
+
+  function pickMove() {
+    const r = Math.random();
+    if (r < .3) { cat.st = "pause"; cat.dur = rand(.45, 1.25); }
+    else if (r < .55) { cat.st = "dash"; cat.dur = rand(.5, 1.05); }
+    else if (r < .78) { cat.st = "turn"; cat.dur = .34; }
+    else { cat.st = "walk"; cat.dur = rand(1.1, 2.6); }
+    cat.t = 0;
+  }
+  function forceTurn() {
+    cat.st = "turn"; cat.t = 0; cat.dur = .2;
+  }
+  function stepCat(dt) {
+    cat.t += dt;
+    const panic = destruction >= PANIC_AT ? 1.42 : 1;
+    let v = 0;
+    if (cat.st === "walk") v = cat.speed * panic;
+    else if (cat.st === "dash") v = cat.speed * 2.1 * panic;
+    else if (cat.st === "turn") {
+      if (cat.t >= cat.dur) { cat.dir *= -1; pickMove(); }
+    }
+    if (cat.st !== "turn") {
+      cat.x += cat.dir * v * dt;
+      if (cat.x < CAT_MIN) { cat.x = CAT_MIN; if (cat.dir < 0) forceTurn(); }
+      if (cat.x > CAT_MAX) { cat.x = CAT_MAX; if (cat.dir > 0) forceTurn(); }
+      if (cat.t >= cat.dur) pickMove();
+    }
+    cat.flick = Math.max(0, cat.flick - dt);
+
+    // 张嘴 / 闭嘴窗口
+    if (cat.eatT > 0) {
+      cat.eatT -= dt;
+      cat.open = false;
+      cat.next = Math.max(cat.next, .35);
+    } else {
+      cat.next -= dt;
+      if (cat.next <= 0) {
+        cat.open = !cat.open;
+        cat.openT = 0;
+        const mercy = (cat.st === "pause") ? .4 : 0;
+        cat.next = cat.open ? rand(.55, .95) + mercy : rand(.65, 1.35);
+        if (cat.open) cat.flick = .25;
+      }
+      if (cat.open) cat.openT += dt;
+    }
+    const target = cat.open ? 1 : 0;
+    cat.mouth += (target - cat.mouth) * (1 - Math.exp(-15 * dt));
+    if (cat.mouth > .985) cat.mouth = 1;
+    if (cat.mouth < .015) cat.mouth = 0;
+
+    // 眨眼（纯装饰，动画关掉时不动）
+    if (settings.anim) {
+      cat.nextBlink -= dt;
+      if (cat.nextBlink <= 0) { cat.blink = .14; cat.nextBlink = rand(2.4, 6); }
+      if (cat.blink > 0) cat.blink -= dt;
+    }
+  }
+
+  /* ---------------- 干扰物 ---------------- */
+  const balloons = [];
+  function newBalloon(spread) {
+    const fromLeft = Math.random() < .5;
+    return {
+      x: spread ? rand(50, DW - 50) : (fromLeft ? -26 : DW + 26),
+      y: rand(BALLOON_MIN, BALLOON_MAX), base: 0, r: 14,
+      vx: (fromLeft ? 1 : -1) * rand(28, 56), ph: rand(0, 6.28),
+      alive: true, back: 0, c: ["#F16D5B", "#DCD2F5", "#BFE4D0", "#F5E66B"][Math.floor(rand(0, 4))]
+    };
+  }
+  function resetBalloons() {
+    balloons.length = 0;
+    for (let i = 0; i < 3; i++) { const b = newBalloon(true); b.base = b.y; balloons.push(b); }
+  }
+  function stepBalloons(dt) {
+    for (let i = 0; i < balloons.length; i++) {
+      const b = balloons[i];
+      if (!b.alive) {
+        b.back -= dt;
+        if (b.back <= 0) { const n = newBalloon(false); n.base = n.y; balloons[i] = n; }
+        continue;
+      }
+      b.x += b.vx * dt;
+      b.y = b.base + (settings.anim ? Math.sin(tNow * 1.5 + b.ph) * 9 : 0);
+      if (b.x < -34 || b.x > DW + 34) { const n = newBalloon(false); n.base = n.y; balloons[i] = n; }
+    }
+  }
+  function popBalloon(b) {
+    b.alive = false; b.back = rand(2, 3.2);
+    spawnParts(b.x, b.y, b.c, 10);
+    sound.tick();
+    say("气球砰了一声", "yel");
+  }
+
+  const cloths = [
+    { ax: 118, len: 46, w: 30, ang: .04, av: 0, ph: .4, c: "#DCD2F5" },
+    { ax: 236, len: 52, w: 34, ang: -.05, av: 0, ph: 2.1, c: "#BFE4D0" },
+    { ax: 336, len: 44, w: 28, ang: .03, av: 0, ph: 4, c: "#F5E66B" }
+  ];
+  const ropeY = px => ROPE_Y + Math.sin(Math.PI * clamp(px / DW, 0, 1)) * 10;
+  function clothCenter(c) {
+    return { x: c.ax + Math.sin(c.ang) * c.len * .5, y: ropeY(c.ax) + Math.cos(c.ang) * c.len * .5 };
+  }
+  function stepCloths(dt) {
+    for (let i = 0; i < cloths.length; i++) {
+      const c = cloths[i];
+      const drive = settings.anim ? Math.sin(tNow * .8 + c.ph) * .5 : 0;
+      c.av += (-8 * c.ang - 1.4 * c.av + drive) * dt;
+      c.ang += c.av * dt;
+      c.ang = clamp(c.ang, -.5, .5);
+    }
+  }
+
+  const robot = { x: 150, dir: 1, sp: 84, bump: 0, brush: 0 };
+  const ROBOT_HW = 28, ROBOT_TOP = FLOOR - 24;
+  function stepRobot(dt) {
+    robot.x += robot.dir * robot.sp * dt;
+    if (robot.x < 70) { robot.x = 70; robot.dir = 1; }
+    if (robot.x > 410) { robot.x = 410; robot.dir = -1; }
+    if (robot.bump > 0) robot.bump = Math.max(0, robot.bump - dt * 3);
+    if (settings.anim) robot.brush += dt * 9;
+  }
+
+  const props = [
+    { id: "vase", name: "花瓶", x: 78, y: 444, w: 26, h: 44, pen: 60, st: "solid", t: 0, rot: 0, vy: 0, vx: 0, spin: 0, alpha: 1 },
+    { id: "cup", name: "水杯", x: 410, y: 494, w: 30, h: 26, pen: 45, st: "solid", t: 0, rot: 0, vy: 0, vx: 0, spin: 0, alpha: 1 }
+  ];
+  props.forEach(p => { p.hx = p.x; p.hy = p.y; });   // 复位锚点，打掉后放回这里
+  const shelves = [
+    { x0: 20, x1: 142, y: 466 },
+    { x0: 356, x1: 472, y: 506 }
+  ];
+  function stepProps(dt) {
+    for (let i = 0; i < props.length; i++) {
+      const p = props[i];
+      p.t += dt;
+      if (p.st === "fall") {
+        p.vy += G * .55 * dt;
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        p.rot += p.spin * dt;
+        if (p.y > FLOOR + 40 || p.t > 1.1) { p.st = "gone"; p.t = 0; }
+      } else if (p.st === "gone") {
+        if (p.t > 3) { p.st = "back"; p.t = 0; p.x = p.hx; p.y = p.hy; p.rot = 0; p.alpha = 0; }
+      } else if (p.st === "back") {
+        p.alpha = clamp(p.t / .35, 0, 1);
+        if (p.alpha >= 1) { p.st = "solid"; p.alpha = 1; }
+      }
+    }
+  }
+  function knock(p) {
+    if (!p) return false;
+    if (p.st !== "solid") { p.st = "solid"; p.alpha = 1; p.rot = 0; p.x = p.hx; p.y = p.hy; }
+    p.st = "fall"; p.t = 0;
+    p.vx = rand(-50, 50); p.vy = -rand(40, 110); p.spin = rand(-7, 7);
+    score = Math.max(0, score - p.pen);
+    destruction++; combo = 0;
+    sound.bad();
+    if (settings.anim) { shake = .4; flash = .3; flashC = "#F16D5B"; }
+    spawnParts(p.x, p.y, p.id === "vase" ? "#BFD8E8" : "#DCD2F5", 14);
+    floats.push({ t: "-" + p.pen, x: p.x, y: p.y - 24, life: 1, c: "#F16D5B" });
+    say(p.name + "被打翻了！-" + p.pen + " · 拆家值 " + destruction, "red");
+    hud();
+    return true;
+  }
+
+  /* ---------------- 零食（弹体） ---------------- */
+  const snacks = [];
+  function fireFrom(vx, vy) {
+    if (mac.get() !== "PLAYING") return false;
+    if (reload > 0) return false;
+    const s = {
+      x: ANCH.x, y: ANCH.y, px: ANCH.x, py: ANCH.y, vx, vy, r: SNACK_R,
+      life: 0, rest: 0, bounces: 0, stuck: 0, hold: -1, scored: false, bonked: false,
+      dead: false, rot: 0, spin: rand(-9, 9), trail: []
+    };
+    snacks.push(s);
+    while (snacks.length > 6) snacks.shift();
+    shots++; reload = RELOAD;
+    aiming = false; kb.on = false;
+    pouch = { x: ANCH.x, y: ANCH.y };
+    sound.tap();
+    spawnParts(ANCH.x, ANCH.y, "#E7D8BC", 5);
+    hud();
+    return true;
+  }
+  function fire(angleDeg, power) {
+    const a = (+angleDeg || 0) * Math.PI / 180;
+    const p = clamp(+power || 0, 0, 1) * VMAX;
+    return fireFrom(Math.cos(a) * p, -Math.sin(a) * p);
+  }
+  function releaseShot() {
+    const dx = ANCH.x - pouch.x, dy = ANCH.y - pouch.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d < 14) { say("往后拖一点再松手", "yel"); pouch = { x: ANCH.x, y: ANCH.y }; return false; }
+    if (dy > -4) {                                   // 往上拖 = 往下打，判定为误触，不消耗发射
+      say("把零食往「下」拖，才能弹到上面的猫", "yel");
+      pouch = { x: ANCH.x, y: ANCH.y };
+      hud();
+      return false;
+    }
+    return fireFrom(dx * POW_K, dy * POW_K);
+  }
+
+  function segDist(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    const l2 = dx * dx + dy * dy;
+    if (l2 <= 0.0001) return Math.hypot(px - ax, py - ay);
+    let t = ((px - ax) * dx + (py - ay) * dy) / l2;
+    t = clamp(t, 0, 1);
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  }
+  function reflect(s, nx, ny, rest) {
+    const d = s.vx * nx + s.vy * ny;
+    s.vx = (s.vx - 2 * d * nx) * rest;
+    s.vy = (s.vy - 2 * d * ny) * rest;
+  }
+
+  function feed(s) {
+    const m = mouthPos();
+    s.dead = true; s.scored = true;
+    const perfect = cat.openT <= PERFECT_T;
+    const bank = s.bounces > 0;
+    const mult = 1 + Math.min(combo, 8) * ((MAX_MULT - 1) / 8);
+    let gain = Math.round((BASE + (perfect ? PERFECT_B : 0) + (bank ? BANK_B : 0)) * mult);
+    score += gain; fed++; combo++;
+    if (combo > maxCombo) maxCombo = combo;
+    cat.eatT = .6; cat.open = false; cat.mouth = .2;
+    if (combo >= 3) sound.combo(combo); else sound.good();
+    if (perfect || bank) sound.bonus();
+    spawnParts(m.x, m.y, "#F5E66B", 12);
+    spawnParts(m.x, m.y, "#FFF6E6", 6);
+    floats.push({ t: "+" + gain, x: m.x, y: m.y - 26, life: 1 });
+    if (perfect) floats.push({ t: "完美时机", x: m.x, y: m.y - 46, life: 1, c: "#F16D5B" });
+    else if (bank) floats.push({ t: "反弹入嘴", x: m.x, y: m.y - 46, life: 1, c: "#3E9E7A" });
+    if (combo >= 3) floats.push({ t: "×" + combo.toFixed(1), x: m.x, y: m.y - 66, life: 1, c: "#8E6BD8" });
+    const tag = perfect ? "完美时机" : bank ? "反弹入嘴" : "喂到了";
+    say(tag + "！+" + gain + " · 连击 ×" + combo, combo >= 3 ? "yel" : "mint");
+    if (settings.anim) ML.floatSticker(stage, "+" + gain, W * .5, H * .26);
+    hud();
+  }
+  function bonk(s, nearMouth) {
+    if (!s.bonked) {
+      s.bonked = true; bounced++; combo = 0;
+      sound.bad();
+      floats.push({ t: nearMouth ? "闭嘴!" : "拍到身上", x: s.x, y: s.y - 18, life: .9, c: "#F16D5B" });
+      say(nearMouth ? "它闭着嘴，零食弹开了" : "拍到身上，没吃上", "red");
+      if (settings.anim) shake = Math.max(shake, .22);
+      hud();
+    }
+  }
+  function die(s) {
+    if (s.dead) return;
+    s.dead = true;
+    if (!s.scored) {
+      missed++;
+      if (!s.bonked) { combo = 0; say("零食掉地上了，一口没吃着", "yel"); hud(); }
+    }
+    spawnParts(s.x, s.y, "#C98A4B", 5);
+  }
+
+  function hitMouth(s) {
+    if (!mouthOpen()) return false;
+    const m = mouthPos();
+    if (segDist(m.x, m.y, s.px, s.py, s.x, s.y) > MOUTH_R) return false;
+    feed(s);
+    return true;
+  }
+  function hitCatBody(s) {
+    const h = headPos();
+    let dx = s.x - h.x, dy = s.y - h.y;
+    const hr = 19 + s.r * .5;
+    if (dx * dx + dy * dy < hr * hr) {
+      const d = Math.hypot(dx, dy) || 1;
+      s.x = h.x + dx / d * (hr + 1); s.y = h.y + dy / d * (hr + 1);
+      reflect(s, dx / d, dy / d, .5);
+      const m = mouthPos();
+      bonk(s, Math.hypot(s.x - m.x, s.y - m.y) < MOUTH_R + 10);
+      return true;
+    }
+    const b = bodyPos();
+    const brx = 30 + s.r * .5, bry = 22 + s.r * .5;
+    dx = (s.x - b.x) / brx; dy = (s.y - b.y) / bry;
+    const e = dx * dx + dy * dy;
+    if (e < 1) {
+      const d = Math.hypot(dx, dy) || 1;
+      s.x = b.x + dx / d * brx; s.y = b.y + dy / d * bry;
+      let nx = (s.x - b.x) / brx, ny = (s.y - b.y) / bry;
+      const nd = Math.hypot(nx, ny) || 1;
+      reflect(s, nx / nd, ny / nd, .45);
+      bonk(s, false);
+      return true;
+    }
+    return false;
+  }
+  function hitBalloon(s) {
+    for (let i = 0; i < balloons.length; i++) {
+      const b = balloons[i];
+      if (!b.alive) continue;
+      if (segDist(b.x, b.y, s.px, s.py, s.x, s.y) > b.r + s.r) continue;
+      popBalloon(b);
+      s.vx *= .3; s.vy = s.vy * .2 + 60;
+      if (settings.anim) shake = Math.max(shake, .16);
+      return true;
+    }
+    return false;
+  }
+  function hitCloth(s) {
+    for (let i = 0; i < cloths.length; i++) {
+      const c = cloths[i], q = clothCenter(c);
+      const hw = c.w * .5 + s.r, hh = c.len * .5 + s.r;
+      const dx = s.x - q.x, dy = s.y - q.y;
+      if (Math.abs(dx) > hw || Math.abs(dy) > hh) continue;
+      c.av += clamp(s.vx / 700, -.5, .5) + (dx > 0 ? .06 : -.06);
+      s.hold = i; s.stuck = .45;
+      floats.push({ t: "被袜子拦下", x: s.x, y: s.y - 16, life: .8, c: "#88847D" });
+      sound.tick();
+      return true;
+    }
+    return false;
+  }
+  function hitProp(s) {
+    for (let i = 0; i < props.length; i++) {
+      const p = props[i];
+      if (p.st !== "solid") continue;
+      const hw = p.w * .5 + s.r, hh = p.h * .5 + s.r;
+      if (Math.abs(s.x - p.x) > hw || Math.abs(s.y - p.y) > hh) continue;
+      knock(p);
+      s.vx *= .45; s.vy = -Math.abs(s.vy) * .3 - 40;
+      return true;
+    }
+    return false;
+  }
+  function hitRobot(s) {
+    const hw = ROBOT_HW + s.r, hh = (FLOOR - ROBOT_TOP) * .5 + s.r;
+    const cy = (ROBOT_TOP + FLOOR) * .5;
+    if (Math.abs(s.x - robot.x) > hw || Math.abs(s.y - cy) > hh) return false;
+    robot.bump = 1;
+    s.y = ROBOT_TOP - s.r - 1;
+    s.vy = -Math.abs(s.vy) * .5 - 150;
+    s.vx += robot.dir * 70;
+    sound.tick();
+    say("扫地机器人把它顶飞了", "yel");
+    spawnParts(s.x, ROBOT_TOP, "#B9B5AD", 6);
+    return true;
+  }
+  function bounds(s) {
+    if (s.x - s.r < WALL_L) { s.x = WALL_L + s.r; s.vx = Math.abs(s.vx) * WALL_REST; s.bounces++; }
+    else if (s.x + s.r > WALL_R) { s.x = WALL_R - s.r; s.vx = -Math.abs(s.vx) * WALL_REST; s.bounces++; }
+    if (s.y - s.r < CEIL) { s.y = CEIL + s.r; s.vy = Math.abs(s.vy) * WALL_REST; s.bounces++; }
+    // 猫跳板：单向，从下往上穿过，落下来才接住
+    if (s.vy > 0 && s.py < LEDGE && s.y >= LEDGE) {
+      s.y = LEDGE; s.vy = -Math.abs(s.vy) * .34; s.vx *= .82; s.rest += .3;
+      if (Math.abs(s.vy) < 70) s.vy = 0;
+    }
+    if (s.y + s.r > FLOOR) {
+      s.y = FLOOR - s.r; s.vy = -Math.abs(s.vy) * FLOOR_REST; s.vx *= .8; s.rest += .3;
+      if (Math.abs(s.vy) < 80) s.vy = 0;
+    }
+    if (s.vy === 0 && Math.abs(s.vx) < 24) s.rest += .5;
+    if (s.rest > .9 || s.life > 6.5) die(s);
+  }
+
+  function stepSnacks(dt) {
+    const N = 4, h = dt / N;
+    for (let i = snacks.length - 1; i >= 0; i--) {
+      const s = snacks[i];
+      if (s.dead) { snacks.splice(i, 1); continue; }
+      s.life += dt;
+      if (s.stuck > 0) {
+        s.stuck -= dt;
+        if (s.hold >= 0 && cloths[s.hold]) {
+          const q = clothCenter(cloths[s.hold]);
+          s.x = q.x; s.y = q.y + cloths[s.hold].len * .3;
+        }
+        s.px = s.x; s.py = s.y;
+        if (s.stuck <= 0) { s.hold = -1; s.vx = 0; s.vy = 0; }
+        continue;
+      }
+      for (let k = 0; k < N && !s.dead; k++) {
+        s.px = s.x; s.py = s.y;
+        if (dragOn) { const d = 1 - DRAG_K * h; s.vx *= d; s.vy *= d; }
+        s.vy += G * h;
+        s.x += s.vx * h; s.y += s.vy * h;
+        s.rot += s.spin * h;
+        if (hitMouth(s)) break;
+        if (hitBalloon(s)) continue;
+        if (hitCloth(s)) break;
+        if (hitProp(s)) continue;
+        if (hitRobot(s)) continue;
+        if (hitCatBody(s)) continue;
+        bounds(s);
+      }
+      if (!s.dead && settings.anim) {
+        s.trail.push({ x: s.x, y: s.y });
+        if (s.trail.length > 9) s.trail.shift();
+      }
+      if (s.dead) snacks.splice(i, 1);
+    }
+  }
+
+  /* ---------------- 特效 ---------------- */
+  function spawnParts(wx, wy, c, n) {
+    if (!settings.anim) return;
+    for (let i = 0; i < n; i++)
+      parts.push({ x: wx + rand(-8, 8), y: wy + rand(-8, 8), vx: rand(-120, 120), vy: rand(-170, -30), life: rand(.3, .7), r: rand(1.8, 4.2), c });
+  }
+  function stepFx(dt) {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const q = parts[i]; q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 760 * dt;
+      if (q.life <= 0) parts.splice(i, 1);
+    }
+    for (let i = floats.length - 1; i >= 0; i--) {
+      const f = floats[i]; f.life -= dt; f.y -= 26 * dt;
+      if (f.life <= 0) floats.splice(i, 1);
+    }
+    if (shake > 0) shake = Math.max(0, shake - dt * 2.6);
+    if (flash > 0) flash = Math.max(0, flash - dt * 2.2);
+    if (bannerT > 0 && rT > bannerT) { $("#banner").innerHTML = ""; bannerT = 0; }
+  }
+
+  /* ---------------- 主循环 ---------------- */
+  function step(dt) {
+    timeLeft -= dt;
+    if (reload > 0) reload -= dt;
+    stepCat(dt);
+    stepBalloons(dt);
+    stepCloths(dt);
+    stepRobot(dt);
+    stepProps(dt);
+    stepSnacks(dt);
+    const secBefore = Math.ceil(timeLeft + dt), secNow = Math.ceil(timeLeft);
+    if (timeLeft <= 10 && secNow !== secBefore && secNow >= 0) { sound.tick(); if (secNow > 0) say("最后 " + secNow + " 秒！", "red"); }
+    stepFx(dt);
+    hud();
+    if (timeLeft <= 0) { timeLeft = 0; hud(); finish(); }
+  }
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (stage.clientWidth !== W) size();
+    const dt = clamp((ts - last) / 1000, 0, .05);
+    last = ts;
+    rT += dt;
+    if (settings.anim) tNow += dt;
+    if (mac.get() === "PLAYING") step(dt);
+    else { stepBalloons(dt * .35); stepCloths(dt * .35); stepFx(dt * .3); }
+    draw();
+  }
+
+  /* ---------------- 绘制 ---------------- */
+  function draw() {
+    shX = shake > 0 ? rand(-5, 5) * shake : 0;
+    shY = shake > 0 ? rand(-4, 4) * shake : 0;
+    setScreen();
+    x.clearRect(0, 0, W, H);
+    x.fillStyle = "#F7F2E8"; x.fillRect(0, 0, W, H);
+
+    setWorld();
+    drawRoom();
+    drawShelves();
+    drawClothesline();
+    drawLedge();
+    drawCat();
+    drawBalloons();
+    drawRobot();
+    drawSnacks();
+    drawSling();
+    drawParts();
+    drawFloats();
+
+    setScreen();
+    if (flash > 0) { x.fillStyle = hexA(flashC, .32 * flash); x.fillRect(-10, -10, W + 20, H + 20); }
+    drawTimerArc();
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function hexA(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a.toFixed(3) + ")";
+  }
+  function ink(lw) { x.strokeStyle = "#222"; x.lineWidth = lw; }
+
+  function drawRoom() {
+    const g = x.createLinearGradient(0, 0, 0, FLOOR);
+    g.addColorStop(0, "#F9F4EB"); g.addColorStop(1, "#EFE6D5");
+    x.fillStyle = g; x.fillRect(-20, -20, DW + 40, FLOOR + 20);
+    // 地板
+    const fg = x.createLinearGradient(0, FLOOR, 0, DH);
+    fg.addColorStop(0, "#E3D4B6"); fg.addColorStop(1, "#D6C29B");
+    x.fillStyle = fg; x.fillRect(-20, FLOOR, DW + 40, DH - FLOOR + 20);
+    ink(2); x.beginPath(); x.moveTo(-20, FLOOR); x.lineTo(DW + 20, FLOOR); x.stroke();
+    x.strokeStyle = "rgba(34,34,34,.12)"; x.lineWidth = 1.4;
+    for (let i = 0; i < 11; i++) { const px = i * 48 + 8; x.beginPath(); x.moveTo(px, FLOOR + 2); x.lineTo(px + 6, DH + 10); x.stroke(); }
+    // 窗
+    const wx0 = 34, wy0 = 44, ww = 128, wh = 118;
+    x.fillStyle = "#DCEBF2"; x.strokeStyle = "#222"; x.lineWidth = 3;
+    ML.rr(x, wx0, wy0, ww, wh, 8); x.fill(); x.stroke();
+    x.lineWidth = 2.2;
+    x.beginPath(); x.moveTo(wx0 + ww / 2, wy0); x.lineTo(wx0 + ww / 2, wy0 + wh);
+    x.moveTo(wx0, wy0 + wh / 2); x.lineTo(wx0 + ww, wy0 + wh / 2); x.stroke();
+    x.fillStyle = "#E9DCC4"; ML.rr(x, wx0 - 8, wy0 + wh, ww + 16, 12, 4); x.fill(); x.stroke();
+    // 云
+    if (settings.anim) {
+      const cx = wx0 + 22 + ((tNow * 7) % (ww - 30));
+      x.fillStyle = "rgba(255,255,255,.85)";
+      x.beginPath(); x.ellipse(cx, wy0 + 34, 14, 7, 0, 0, 6.283); x.fill();
+      x.beginPath(); x.ellipse(cx + 12, wy0 + 30, 9, 6, 0, 0, 6.283); x.fill();
+    }
+    // 挂画
+    x.fillStyle = "#FFF6E6"; x.strokeStyle = "#222"; x.lineWidth = 3;
+    ML.rr(x, 322, 52, 96, 74, 6); x.fill(); x.stroke();
+    x.fillStyle = FUR;
+    x.beginPath(); x.arc(370, 92, 17, 0, 6.283); x.fill(); ink(2.4); x.stroke();
+    x.beginPath(); x.moveTo(358, 80); x.lineTo(356, 66); x.lineTo(368, 76); x.closePath(); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(382, 80); x.lineTo(384, 66); x.lineTo(372, 76); x.closePath(); x.fill(); x.stroke();
+  }
+  function drawShelves() {
+    for (let i = 0; i < shelves.length; i++) {
+      const s = shelves[i];
+      x.fillStyle = "#E4D0AA"; x.strokeStyle = "#222"; x.lineWidth = 2.6;
+      ML.rr(x, s.x0, s.y, s.x1 - s.x0, 12, 4); x.fill(); x.stroke();
+      x.beginPath(); x.moveTo(s.x0 + 14, s.y + 12); x.lineTo(s.x0 + 14, s.y + 34); x.lineTo(s.x0 + 34, s.y + 12);
+      x.moveTo(s.x1 - 14, s.y + 12); x.lineTo(s.x1 - 14, s.y + 34); x.lineTo(s.x1 - 34, s.y + 12); x.stroke();
+    }
+    for (let i = 0; i < props.length; i++) drawProp(props[i]);
+  }
+  function drawProp(p) {
+    x.save();
+    x.globalAlpha = p.alpha;
+    x.translate(p.x, p.y); x.rotate(p.rot);
+    x.strokeStyle = "#222"; x.lineWidth = 2.6; x.lineJoin = "round";
+    if (p.id === "vase") {
+      x.fillStyle = "#BFD8E8";
+      x.beginPath();
+      x.moveTo(-6, -p.h / 2); x.lineTo(6, -p.h / 2);
+      x.quadraticCurveTo(15, -p.h * .1, 12, p.h * .28);
+      x.quadraticCurveTo(9, p.h / 2, -9, p.h / 2);
+      x.quadraticCurveTo(-12, p.h * .28, -15, -p.h * .1);
+      x.quadraticCurveTo(-9, -p.h * .1, -6, -p.h / 2);
+      x.closePath(); x.fill(); x.stroke();
+      x.strokeStyle = "rgba(34,34,34,.25)"; x.lineWidth = 2;
+      x.beginPath(); x.moveTo(-9, -4); x.lineTo(9, -4); x.stroke();
+      // 花
+      x.strokeStyle = "#3E9E7A"; x.lineWidth = 2.4;
+      x.beginPath(); x.moveTo(0, -p.h / 2); x.quadraticCurveTo(-8, -p.h / 2 - 12, -10, -p.h / 2 - 20); x.stroke();
+      x.beginPath(); x.moveTo(0, -p.h / 2); x.quadraticCurveTo(7, -p.h / 2 - 10, 9, -p.h / 2 - 18); x.stroke();
+      x.fillStyle = "#F16D5B"; x.beginPath(); x.arc(-10, -p.h / 2 - 22, 5, 0, 6.283); x.fill(); x.strokeStyle = "#222"; x.lineWidth = 2; x.stroke();
+      x.fillStyle = "#F5E66B"; x.beginPath(); x.arc(9, -p.h / 2 - 20, 4.4, 0, 6.283); x.fill(); x.stroke();
+    } else {
+      x.fillStyle = "#DCD2F5";
+      ML.rr(x, -p.w / 2, -p.h / 2, p.w, p.h, 4); x.fill(); x.stroke();
+      x.beginPath(); x.moveTo(p.w / 2, -p.h * .2); x.quadraticCurveTo(p.w / 2 + 11, 0, p.w / 2, p.h * .28); x.stroke();
+      x.fillStyle = "#A78BE0";
+      ML.rr(x, -p.w / 2 + 3, -p.h / 2 + 5, p.w - 6, 5, 2); x.fill();
+    }
+    x.restore();
+    if (p.st === "gone") {
+      x.save(); x.globalAlpha = .5; x.fillStyle = "#88847D";
+      x.font = "800 10px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillText(p.id === "vase" ? "花瓶在柜子里" : "水杯在架子上", p.hx, p.hy - p.h / 2 - 8);
+      x.restore();
+    }
+  }
+  function drawClothesline() {
+    x.strokeStyle = "#222"; x.lineWidth = 2.4;
+    x.beginPath(); x.moveTo(0, ROPE_Y);
+    x.quadraticCurveTo(DW / 2, ROPE_Y + 20, DW, ROPE_Y); x.stroke();
+    for (let i = 0; i < cloths.length; i++) {
+      const c = cloths[i];
+      const ry = ropeY(c.ax);
+      x.save();
+      x.translate(c.ax, ry); x.rotate(c.ang);
+      x.fillStyle = c.c; x.strokeStyle = "#222"; x.lineWidth = 2.4; x.lineJoin = "round";
+      ML.rr(x, -c.w / 2, 0, c.w, c.len, 5); x.fill(); x.stroke();
+      x.strokeStyle = "rgba(34,34,34,.22)"; x.lineWidth = 2;
+      x.beginPath(); x.moveTo(-c.w / 2 + 5, c.len - 8); x.lineTo(c.w / 2 - 5, c.len - 8); x.stroke();
+      x.fillStyle = "#88847D";
+      x.beginPath(); x.arc(-c.w / 2 - 1, 3, 3, 0, 6.283); x.fill();
+      x.beginPath(); x.arc(c.w / 2 + 1, 3, 3, 0, 6.283); x.fill();
+      x.restore();
+    }
+  }
+  function drawLedge() {
+    x.fillStyle = "#E9D8B8"; x.strokeStyle = "#222"; x.lineWidth = 2.8;
+    ML.rr(x, -10, LEDGE, DW + 20, 14, 4); x.fill(); x.stroke();
+    x.strokeStyle = "rgba(34,34,34,.35)"; x.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
+      const bx = 40 + i * 130;
+      x.beginPath(); x.moveTo(bx, LEDGE + 14); x.lineTo(bx + 12, LEDGE + 34); x.lineTo(bx + 24, LEDGE + 14); x.stroke();
+    }
+    x.fillStyle = "#88847D"; x.font = "800 9px Arial"; x.textAlign = "left";
+    x.fillText("猫跳板", 8, LEDGE - 6);
+  }
+
+  /* ---------------- 猫 ---------------- */
+  function drawCat() {
+    const m = mouthPos(), h = headPos();
+    x.save();
+    x.translate(cat.x, LEDGE); x.scale(cat.dir, 1);
+    x.lineJoin = "round"; x.lineCap = "round";
+    // 影子
+    x.fillStyle = "rgba(34,34,34,.16)";
+    x.beginPath(); x.ellipse(0, 1, 28, 6, 0, 0, 6.283); x.fill();
+    const stepPh = (cat.st === "walk" || cat.st === "dash") ? (settings.anim ? tNow * (cat.st === "dash" ? 16 : 8) : 0) : 0;
+    // 尾巴
+    x.strokeStyle = "#222"; x.lineWidth = 9;
+    const tailW = settings.anim ? Math.sin(tNow * 2.2 + cat.flick * 6) * 8 : 0;
+    x.beginPath(); x.moveTo(-24, -22);
+    x.quadraticCurveTo(-46, -30 + tailW, -40, -52 + tailW); x.stroke();
+    x.strokeStyle = FUR; x.lineWidth = 5.6; x.stroke();
+    // 后腿
+    for (let i = 0; i < 2; i++) {
+      const lift = Math.max(0, Math.sin(stepPh + i * 3.1)) * 4;
+      x.fillStyle = FUR; ink(2.4);
+      ML.rr(x, -20 + i * 12, -14 - lift, 8, 15 + lift, 3.6); x.fill(); x.stroke();
+    }
+    // 身体
+    x.fillStyle = FUR; ink(2.8);
+    x.beginPath(); x.ellipse(-2, -26, 26, 19, 0, 0, 6.283); x.fill(); x.stroke();
+    x.fillStyle = "#FFF6E6";
+    x.beginPath(); x.ellipse(2, -16, 13, 9, 0, 0, 6.283); x.fill();
+    x.strokeStyle = "rgba(34,34,34,.2)"; x.lineWidth = 3;
+    x.beginPath(); x.moveTo(-14, -40); x.lineTo(-11, -32); x.moveTo(-4, -43); x.lineTo(-2, -35); x.moveTo(6, -41); x.lineTo(8, -33); x.stroke();
+    // 前腿
+    for (let i = 0; i < 2; i++) {
+      const lift = Math.max(0, Math.sin(stepPh + 1.57 + i * 3.1)) * 4;
+      x.fillStyle = FUR; ink(2.4);
+      ML.rr(x, 6 + i * 10, -14 - lift, 8, 15 + lift, 3.6); x.fill(); x.stroke();
+    }
+    // 头
+    const nod = cat.mouth * 2.5;
+    x.save();
+    x.translate(20, -58 + nod); x.rotate(-cat.mouth * .07);
+    x.fillStyle = FUR; ink(2.8);
+    x.beginPath(); x.arc(0, 0, 18, 0, 6.283); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(-11, -12); x.lineTo(-14, -27); x.lineTo(-1, -17); x.closePath(); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(9, -13); x.lineTo(14, -26); x.lineTo(17, -10); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = "#FBD9CF";
+    x.beginPath(); x.moveTo(-10, -14); x.lineTo(-12, -23); x.lineTo(-3, -17); x.closePath(); x.fill();
+    x.beginPath(); x.moveTo(10, -15); x.lineTo(13, -23); x.lineTo(15, -12); x.closePath(); x.fill();
+    // 口鼻
+    x.fillStyle = "#FFF6E6";
+    x.beginPath(); x.ellipse(6, 5, 12, 9, 0, 0, 6.283); x.fill();
+    // 眼睛
+    x.fillStyle = "#222";
+    const shut = cat.eatT > 0 || cat.blink > 0;
+    if (shut) {
+      x.strokeStyle = "#222"; x.lineWidth = 2.4;
+      x.beginPath(); x.moveTo(-8, -3); x.quadraticCurveTo(-4, -7, 0, -3); x.stroke();
+      x.beginPath(); x.moveTo(6, -3); x.quadraticCurveTo(10, -7, 14, -3); x.stroke();
+    } else {
+      x.beginPath(); x.ellipse(-4, -3, 2.9, 3.4, 0, 0, 6.283); x.fill();
+      x.beginPath(); x.ellipse(10, -3, 2.9, 3.4, 0, 0, 6.283); x.fill();
+      x.fillStyle = "#fff";
+      x.beginPath(); x.arc(-3, -4.4, 1, 0, 6.283); x.fill();
+      x.beginPath(); x.arc(11, -4.4, 1, 0, 6.283); x.fill();
+    }
+    // 鼻子
+    x.fillStyle = "#F16D5B"; ink(1.6);
+    x.beginPath(); x.moveTo(13, 3); x.lineTo(18, 6); x.lineTo(12.5, 7.5); x.closePath(); x.fill(); x.stroke();
+    // 嘴（张合）
+    const mo = clamp(cat.mouth, 0, 1);
+    if (mo > .06) {
+      const mh = 3 + mo * 13;
+      x.fillStyle = "#7A2E2E"; ink(2.2);
+      x.beginPath();
+      x.moveTo(2, 8); x.quadraticCurveTo(11, 8 - 3 * mo, 17, 8);
+      x.quadraticCurveTo(11, 8 + mh, 2, 8); x.closePath(); x.fill(); x.stroke();
+      x.fillStyle = "#F1909A";
+      x.beginPath(); x.ellipse(10, 8 + mh * .55, 4.4, mh * .3 + 1, 0, 0, 6.283); x.fill();
+    } else {
+      x.strokeStyle = "#222"; x.lineWidth = 2;
+      x.beginPath(); x.moveTo(3, 9); x.quadraticCurveTo(10, 13, 16, 9); x.stroke();
+    }
+    // 胡须
+    x.strokeStyle = "rgba(34,34,34,.55)"; x.lineWidth = 1.4;
+    x.beginPath();
+    x.moveTo(16, 5); x.lineTo(30, 1); x.moveTo(16, 8); x.lineTo(31, 9); x.moveTo(15, 11); x.lineTo(28, 16);
+    x.stroke();
+    x.restore();
+    x.restore();
+
+    // 命中圈：画在猫之上，把判定范围摆明处
+    if (cat.mouth > .12) {
+      x.save();
+      x.globalAlpha = .3 + .6 * cat.mouth;
+      x.strokeStyle = mouthOpen() ? "#3E9E7A" : "#88847D";
+      x.lineWidth = 2.2; x.setLineDash([5, 5]);
+      x.lineDashOffset = settings.anim ? -tNow * 14 : 0;
+      x.beginPath(); x.arc(m.x, m.y, MOUTH_R, 0, 6.283); x.stroke();
+      x.setLineDash([]);
+      x.restore();
+    }
+
+    if (cat.eatT > .1) {
+      x.save(); x.globalAlpha = clamp(cat.eatT, 0, 1);
+      x.fillStyle = "#3E9E7A"; x.font = "900 13px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillText("喵呜", h.x, h.y - 30);
+      x.restore();
+    }
+    if (destruction >= PANIC_AT) {
+      x.save(); x.fillStyle = "#8ECBE8";
+      x.beginPath(); x.ellipse(h.x - 22, h.y - 22, 3.4, 5, -.3, 0, 6.283); x.fill();
+      x.restore();
+    }
+  }
+
+  function drawBalloons() {
+    for (let i = 0; i < balloons.length; i++) {
+      const b = balloons[i];
+      if (!b.alive) continue;
+      x.save(); x.translate(b.x, b.y);
+      x.strokeStyle = "rgba(34,34,34,.6)"; x.lineWidth = 1.6;
+      x.beginPath(); x.moveTo(0, b.r + 4);
+      x.quadraticCurveTo(6, b.r + 16, -2, b.r + 28); x.stroke();
+      x.fillStyle = b.c; ink(2.4);
+      x.beginPath(); x.ellipse(0, 0, b.r * .86, b.r, 0, 0, 6.283); x.fill(); x.stroke();
+      x.beginPath(); x.moveTo(-3, b.r); x.lineTo(3, b.r); x.lineTo(0, b.r + 5); x.closePath(); x.fill(); x.stroke();
+      x.fillStyle = "rgba(255,255,255,.55)";
+      x.beginPath(); x.ellipse(-b.r * .3, -b.r * .34, 3.2, 4.6, -.5, 0, 6.283); x.fill();
+      x.restore();
+    }
+  }
+  function drawRobot() {
+    const sq = robot.bump * 3;
+    x.save(); x.translate(robot.x, FLOOR);
+    x.fillStyle = "rgba(34,34,34,.16)";
+    x.beginPath(); x.ellipse(0, 0, ROBOT_HW + 2, 5, 0, 0, 6.283); x.fill();
+    x.translate(0, -sq);
+    x.fillStyle = "#B9B5AD"; ink(2.8);
+    ML.rr(x, -ROBOT_HW, -(FLOOR - ROBOT_TOP), ROBOT_HW * 2, FLOOR - ROBOT_TOP, 8); x.fill(); x.stroke();
+    x.fillStyle = "#88847D";
+    ML.rr(x, -ROBOT_HW + 4, -6, ROBOT_HW * 2 - 8, 5, 2.5); x.fill();
+    x.fillStyle = "#F5E66B";
+    x.beginPath(); x.arc(0, -(FLOOR - ROBOT_TOP) + 8, 6, 0, 6.283); x.fill(); ink(2.2); x.stroke();
+    x.fillStyle = "#222";
+    x.beginPath(); x.arc(-ROBOT_HW + 9, -13, 2.2, 0, 6.283); x.fill();
+    x.strokeStyle = "#5C5852"; x.lineWidth = 2;
+    const bs = robot.brush;
+    for (let i = 0; i < 3; i++) {
+      const a = bs + i * 2.09;
+      x.beginPath(); x.moveTo(-ROBOT_HW + 14, -4);
+      x.lineTo(-ROBOT_HW + 14 + Math.cos(a) * 6, -4 + Math.abs(Math.sin(a)) * 3); x.stroke();
+    }
+    x.restore();
+  }
+  function drawSnacks() {
+    for (let i = 0; i < snacks.length; i++) {
+      const s = snacks[i];
+      if (settings.anim) {
+        for (let t = 0; t < s.trail.length; t++) {
+          const p = s.trail[t], a = (t + 1) / s.trail.length * .3;
+          x.fillStyle = "rgba(201,138,75," + a.toFixed(3) + ")";
+          x.beginPath(); x.arc(p.x, p.y, 2 + t * .28, 0, 6.283); x.fill();
+        }
+      }
+      drawTreat(s.x, s.y, s.rot, 1);
+    }
+  }
+  function drawTreat(px, py, rot, sc) {
+    x.save(); x.translate(px, py); x.rotate(rot || 0); x.scale(sc, sc);
+    x.fillStyle = "#C98A4B"; ink(2.4);
+    x.beginPath(); x.ellipse(0, 0, SNACK_R + 1, SNACK_R - 1.5, .5, 0, 6.283); x.fill(); x.stroke();
+    x.fillStyle = "#8C5A2B";
+    x.beginPath(); x.arc(-3, -1.5, 1.9, 0, 6.283); x.fill();
+    x.beginPath(); x.arc(3.4, 1.6, 1.7, 0, 6.283); x.fill();
+    x.beginPath(); x.arc(.5, -3.4, 1.3, 0, 6.283); x.fill();
+    x.restore();
+  }
+
+  /* ---------------- 弹弓 + 瞄准 ---------------- */
+  const TIP_L = { x: ANCH.x - 19, y: ANCH.y - 22 };
+  const TIP_R = { x: ANCH.x + 19, y: ANCH.y - 22 };
+  function aimInfo() {
+    let vx, vy;
+    if (aiming) { vx = (ANCH.x - pouch.x) * POW_K; vy = (ANCH.y - pouch.y) * POW_K; }
+    else if (kb.on) {
+      const a = kb.ang * Math.PI / 180, p = kb.pow * VMAX;
+      vx = Math.cos(a) * p; vy = -Math.sin(a) * p;
+    } else return null;
+    const sp = Math.hypot(vx, vy);
+    return { vx, vy, pow: clamp(sp / VMAX, 0, 1), ang: Math.atan2(-vy, vx) * 180 / Math.PI };
+  }
+  function simulate(vx, vy, steps, h) {
+    const pts = [];
+    let px = ANCH.x, py = ANCH.y;
+    for (let i = 0; i < steps; i++) {
+      for (let k = 0; k < 2; k++) {
+        if (dragOn) { const d = 1 - DRAG_K * h / 2; vx *= d; vy *= d; }
+        vy += G * h / 2;
+        px += vx * h / 2; py += vy * h / 2;
+      }
+      pts.push({ x: px, y: py });
+      if (px < WALL_L || px > WALL_R || py > FLOOR || py < CEIL) break;
+    }
+    return pts;
+  }
+  function drawSling() {
+    const a = aimInfo();
+    // 桩
+    x.strokeStyle = "#222"; x.lineWidth = 9; x.lineCap = "round";
+    x.beginPath(); x.moveTo(ANCH.x, FLOOR - 2); x.lineTo(ANCH.x, ANCH.y + 6); x.stroke();
+    x.strokeStyle = "#B4854C"; x.lineWidth = 5.6;
+    x.beginPath(); x.moveTo(ANCH.x, FLOOR - 2); x.lineTo(ANCH.x, ANCH.y + 6); x.stroke();
+    x.strokeStyle = "#222"; x.lineWidth = 8;
+    x.beginPath(); x.moveTo(ANCH.x, ANCH.y + 8); x.lineTo(TIP_L.x, TIP_L.y); x.moveTo(ANCH.x, ANCH.y + 8); x.lineTo(TIP_R.x, TIP_R.y); x.stroke();
+    x.strokeStyle = "#B4854C"; x.lineWidth = 4.6;
+    x.beginPath(); x.moveTo(ANCH.x, ANCH.y + 8); x.lineTo(TIP_L.x, TIP_L.y); x.moveTo(ANCH.x, ANCH.y + 8); x.lineTo(TIP_R.x, TIP_R.y); x.stroke();
+
+    const pp = a && aiming ? pouch : (a && kb.on ? { x: ANCH.x - Math.cos(kb.ang * Math.PI / 180) * kb.pow * MAXPULL, y: ANCH.y + Math.sin(kb.ang * Math.PI / 180) * kb.pow * MAXPULL } : ANCH);
+    // 皮筋
+    x.strokeStyle = "#8C3B2E"; x.lineWidth = 4.4; x.lineCap = "round";
+    x.beginPath(); x.moveTo(TIP_L.x, TIP_L.y); x.lineTo(pp.x, pp.y); x.lineTo(TIP_R.x, TIP_R.y); x.stroke();
+    x.strokeStyle = "rgba(255,255,255,.25)"; x.lineWidth = 1.6; x.stroke();
+    // 兜 + 待发的零食
+    if (reload <= 0) {
+      x.fillStyle = "#5C5852"; ink(2.2);
+      x.beginPath(); x.ellipse(pp.x, pp.y, 11, 7.5, 0, 0, 6.283); x.fill(); x.stroke();
+      drawTreat(pp.x, pp.y, settings.anim ? Math.sin(tNow * 3) * .2 : 0, 1);
+    } else if (reload > 0) {
+      x.save(); x.globalAlpha = .55; x.fillStyle = "#88847D";
+      x.font = "800 10px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillText("上膛…", ANCH.x, ANCH.y + 26); x.restore();
+    }
+
+    if (!a) return;
+    // 发射方向箭头
+    const dl = 34 + a.pow * 46;
+    const nx = Math.cos(a.ang * Math.PI / 180), ny = -Math.sin(a.ang * Math.PI / 180);
+    x.save();
+    x.strokeStyle = a.pow > .85 ? "#F16D5B" : "#222"; x.lineWidth = 3;
+    x.beginPath(); x.moveTo(pp.x, pp.y); x.lineTo(pp.x + nx * dl, pp.y + ny * dl); x.stroke();
+    x.beginPath();
+    x.moveTo(pp.x + nx * dl, pp.y + ny * dl);
+    x.lineTo(pp.x + nx * (dl - 11) - ny * 6, pp.y + ny * (dl - 11) + nx * 6);
+    x.lineTo(pp.x + nx * (dl - 11) + ny * 6, pp.y + ny * (dl - 11) - nx * 6);
+    x.closePath(); x.fillStyle = x.strokeStyle; x.fill();
+    x.restore();
+    // 只画前 0.3 秒
+    if (guideOn && a.pow > .08) {
+      const pts = simulate(a.vx, a.vy, 9, 1 / 30);
+      for (let i = 0; i < pts.length; i++) {
+        const al = .8 - i * .08;
+        x.fillStyle = "rgba(34,34,34," + Math.max(.12, al).toFixed(3) + ")";
+        x.beginPath(); x.arc(pts[i].x, pts[i].y, 4 - i * .22, 0, 6.283); x.fill();
+      }
+    }
+    // 力度读数
+    x.save();
+    x.fillStyle = "#88847D"; x.font = "900 11px Arial"; x.textAlign = "center";
+    x.fillText(Math.round(a.pow * 100) + "% · " + Math.round(a.ang) + "°", ANCH.x, FLOOR + 16);
+    x.restore();
+  }
+
+  function drawParts() {
+    for (let i = 0; i < parts.length; i++) {
+      const q = parts[i];
+      x.save(); x.globalAlpha = clamp(q.life * 1.8, 0, 1); x.fillStyle = q.c;
+      x.beginPath(); x.arc(q.x, q.y, q.r, 0, 6.283); x.fill(); x.restore();
+    }
+  }
+  function drawFloats() {
+    for (let i = 0; i < floats.length; i++) {
+      const f = floats[i];
+      x.save(); x.globalAlpha = clamp(f.life * 1.6, 0, 1);
+      x.font = "900 15px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillStyle = f.c || "#222"; x.strokeStyle = "#FAF8F3"; x.lineWidth = 4;
+      x.strokeText(f.t, f.x, f.y); x.fillText(f.t, f.x, f.y); x.restore();
+    }
+  }
+  function drawTimerArc() {
+    if (mac.get() !== "PLAYING" && mac.get() !== "PAUSED") return;
+    const r = 15, cx = W - r - 10, cy = r + 10;
+    const ratio = clamp(timeLeft / ROUND, 0, 1);
+    x.save();
+    x.fillStyle = "rgba(255,255,255,.9)"; x.strokeStyle = "#222"; x.lineWidth = 2;
+    x.beginPath(); x.arc(cx, cy, r, 0, 6.283); x.fill(); x.stroke();
+    x.strokeStyle = timeLeft <= 10 ? "#F16D5B" : "#3E9E7A"; x.lineWidth = 3.4;
+    x.beginPath(); x.arc(cx, cy, r - 3, -Math.PI / 2, -Math.PI / 2 + 6.283 * ratio); x.stroke();
+    x.fillStyle = "#222"; x.font = "900 11px Arial"; x.textAlign = "center";
+    x.fillText(String(Math.max(0, Math.ceil(timeLeft))), cx, cy + 4);
+    x.restore();
+  }
+
+  /* ---------------- DOM HUD ---------------- */
+  function hud() {
+    const v = { hTime: Math.max(0, Math.ceil(timeLeft)), hScore: score, hCombo: "×" + combo, hTrash: destruction };
+    for (const key in v) if (hudCache[key] !== v[key]) { hudCache[key] = v[key]; $("#" + key).textContent = v[key]; }
+    if (hudCache.trashCls !== (destruction >= PANIC_AT ? "bad" : "ok")) {
+      hudCache.trashCls = destruction >= PANIC_AT ? "bad" : "ok";
+      $("#hTrash").parentNode.className = "chip" + (destruction >= PANIC_AT ? " hot" : "");
+    }
+    const mk = mouthOpen() ? "open" : "shut";
+    if (hudCache.mk !== mk) {
+      hudCache.mk = mk;
+      const b = $("#hMouth");
+      b.textContent = mouthOpen() ? "张嘴中" : "闭嘴";
+      b.className = "sl-badge" + (mouthOpen() ? " open" : "");
+    }
+    const cs = cat.st + (destruction >= PANIC_AT ? "·慌" : "");
+    if (hudCache.cs !== cs) {
+      hudCache.cs = cs;
+      const b = $("#hCat");
+      b.textContent = CAT_STATE[cat.st] || "散步";
+      b.className = "sl-badge " + (cat.st === "dash" ? "fast" : cat.st === "pause" ? "hold" : cat.st === "turn" ? "run" : "");
+    }
+    const a = aimInfo();
+    const pw = a ? Math.round(a.pow * 100) : 0;
+    if (hudCache.pw !== pw) { hudCache.pw = pw; $("#hPow").textContent = pw + "%"; }
+    const ag = a ? Math.round(a.ang) : null;
+    if (hudCache.ag !== ag) { hudCache.ag = ag; $("#hAng").textContent = ag === null ? "—" : ag + "°"; }
+  }
+  function say(t, cls) {
+    $("#banner").innerHTML = '<span class="msg ' + (cls || "") + '">' + t + "</span>";
+    bannerT = rT + 1.9;
+  }
+
+  /* ---------------- 输入 ---------------- */
+  function setPouch(px, py) {
+    let dx = px - ANCH.x, dy = py - ANCH.y;
+    const d = Math.hypot(dx, dy);
+    if (d > MAXPULL) { dx = dx / d * MAXPULL; dy = dy / d * MAXPULL; }
+    pouch.x = ANCH.x + dx; pouch.y = ANCH.y + dy;
+  }
+  function beginAim(e) {
+    if (mac.get() !== "PLAYING" || reload > 0) return;
+    const p = toWorld(e);
+    aiming = true; kb.on = false;
+    setPouch(p.x, p.y);
+    hud();
+  }
+  function moveAim(e) {
+    if (!aiming) return;
+    const p = toWorld(e);
+    setPouch(p.x, p.y);
+    hud();
+  }
+  function endAim() {
+    if (!aiming) return;
+    aiming = false;
+    releaseShot();
+  }
+  function cancelAim() {
+    if (!aiming) return;
+    aiming = false;
+    pouch = { x: ANCH.x, y: ANCH.y };
+    hud();
+  }
+  stage.addEventListener("pointerdown", e => {
+    if (e.target.closest(".ov")) {
+      if (e.target.closest("a,button")) return;
+      if (mac.get() === "READY") { e.preventDefault(); start(); return; }
+      if (mac.get() === "PAUSED") { e.preventDefault(); togglePause(false); return; }
+      return;
+    }
+    if (mac.get() === "READY") { e.preventDefault(); start(); return; }
+    if (mac.get() !== "PLAYING") return;
+    e.preventDefault();
+    beginAim(e);
+    if (aiming) { try { stage.setPointerCapture(e.pointerId); } catch (err) {} }
+  });
+  stage.addEventListener("pointermove", e => { if (aiming) { e.preventDefault(); moveAim(e); } });
+  window.addEventListener("pointermove", e => { if (aiming) moveAim(e); });
+  stage.addEventListener("pointerup", e => { if (aiming) { e.preventDefault(); endAim(); } });
+  stage.addEventListener("pointercancel", cancelAim);
+  window.addEventListener("pointerup", endAim);
+  window.addEventListener("pointercancel", cancelAim);
+  window.addEventListener("blur", () => { cancelAim(); kb.on = false; });
+  cv.addEventListener("contextmenu", e => e.preventDefault());
+  document.addEventListener("dragstart", e => e.preventDefault());
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space" || e.key === " ") {
+      e.preventDefault();
+      if (e.repeat) return;
+      if (mac.get() === "READY") { start(); return; }
+      if (mac.get() !== "PLAYING") return;
+      kb.on = true; aiming = false;
+      reload = 0;
+      fire(kb.ang, kb.pow);
+      return;
+    }
+    if (mac.get() !== "PLAYING") return;
+    let used = true;
+    if (e.key === "ArrowLeft") kb.ang = clamp(kb.ang + 4, 8, 172);
+    else if (e.key === "ArrowRight") kb.ang = clamp(kb.ang - 4, 8, 172);
+    else if (e.key === "ArrowUp") kb.pow = clamp(kb.pow + .05, .15, 1);
+    else if (e.key === "ArrowDown") kb.pow = clamp(kb.pow - .05, .15, 1);
+    else used = false;
+    if (used) { e.preventDefault(); kb.on = true; aiming = false; hud(); }
+  });
+
+  /* ---------------- 结算 / 存档 ---------------- */
+  const RANK = { S: 3, A: 2, B: 1, C: 0 };
+  const RANK_WORD = { S: "神射手铲屎官", A: "喂得很准", B: "手有点抖", C: "猫都等你急了" };
+  function ratingFor(s) { return s >= 2200 ? "S" : s >= 1400 ? "A" : s >= 700 ? "B" : "C"; }
+  function recSafe(n) { try { return ML.record(GAME, n); } catch (e) { return { best: n, isNew: false, plays: 1 }; } }
+  function bestSafe() { try { return ML.best(GAME); } catch (e) { return 0; } }
+  function refreshBest() {
+    bestVal = bestSafe();
+    $("#bestTag").textContent = "最佳 " + bestVal;
+  }
+  let finished = false;
+  function finish() {
+    if (mac.get() === "FINISHED") return;
+    mac.set("FINISHED");
+    aiming = false; kb.on = false; pouch = { x: ANCH.x, y: ANCH.y };
+    const acc = shots ? Math.round(fed / shots * 100) : 0;
+    let r = ratingFor(score);
+    if (destruction >= 6 && RANK[r] > 1) r = "B";
+    const color = r === "S" ? "#F16D5B" : r === "C" ? "#BFE4D0" : "#F5E66B";
+    const rec = recSafe(score);
+    bestVal = Math.max(rec.best || 0, bestSafe(), score);
+    try { ML.patchStats({ interactions: fed, points: Math.max(0, score), gamesPlayed: 1 }); } catch (e) {}
+    $("#endRating").textContent = r;
+    $("#endRating").style.background = color;
+    $("#endRating").style.color = color === "#F16D5B" ? "#fff" : "#222";
+    $("#endTitle").textContent = RANK_WORD[r];
+    $("#endNew").innerHTML = rec.isNew && score > 0 ? '<span class="newrec">新纪录</span>' : "";
+    $("#endDesc").textContent = "发射 " + shots + " 发 · 喂到 " + fed + " 口 · 弹开 " + bounced +
+      " 次 · 打翻 " + destruction + " 件" + (rec.isNew && score > 0 ? " · 刷新历史最佳" : " · 历史最佳 " + bestVal);
+    $("#stScore").textContent = score;
+    $("#stBest").textContent = bestVal;
+    $("#stFed").textContent = fed + " / " + shots;
+    $("#stAcc").textContent = acc + "%";
+    $("#stCombo").textContent = "×" + maxCombo;
+    $("#stTrash").textContent = destruction;
+    $("#endHint").textContent = "命中率按发射次数算：喂到 " + fed + " ÷ 发射 " + shots + "。";
+    $("#endOv").classList.remove("hide");
+    score >= 1400 ? sound.win() : sound.lose();
+    refreshBest();
+    const expr = (petCfg && petCfg.petExpressions && (destruction >= 6 ? petCfg.petExpressions.mischief : petCfg.petExpressions.happy)) || "";
+    ML.shareCard({
+      game: "弹弓喂猫", petName: (petCfg && petCfg.petName) || "MOMO", rating: r, ratingColor: color,
+      score, timeText: "喂到 " + fed + " 口 · 命中率 " + acc + "% · 拆家 " + destruction,
+      ending: RANK_WORD[r], expr, badge: "投喂报告"
+    }).then(url => {
+      cardUrl = url; $("#endImg").src = url; $("#saveBtn").setAttribute("href", url);
+    }).catch(() => {
+      cardUrl = "";
+      $("#endImg").removeAttribute("src");
+      $("#endHint").textContent = "分享卡生成失败（浏览器不允许当前协议读取图片），可以截图保存。";
+    });
+    hud();
+    finished = true;
+  }
+  function saveToFav() {
+    try {
+      ML.addWork({
+        id: GAME + "-" + Date.now(), game: GAME, title: "弹弓喂猫",
+        score, rating: $("#endRating").textContent, time: ML.today(), png: cardUrl || ""
+      });
+      $("#favBtn").textContent = "已存进收藏";
+      $("#favBtn").disabled = true;
+      say("已保存到你的收藏", "mint");
+    } catch (e) {
+      $("#favBtn").textContent = "这台设备存不了";
+      say("这台设备的本地存储被浏览器拦了（隐私模式？），没存上。", "red");
+    }
+  }
+
+  /* ---------------- 暂停 / 开始 / 重开 ---------------- */
+  function togglePause(force) {
+    if (mac.get() === "PLAYING" && force !== false) {
+      mac.set("PAUSED");
+      aiming = false; kb.on = false; pouch = { x: ANCH.x, y: ANCH.y };
+      $("#pauseOv").classList.remove("hide");
+    } else if (mac.get() === "PAUSED") {
+      mac.set("PLAYING");
+      $("#pauseOv").classList.add("hide");
+      last = performance.now();
+    }
+  }
+  function reset() {
+    score = 0; combo = 0; maxCombo = 0; fed = 0; shots = 0; bounced = 0; missed = 0; destruction = 0;
+    timeLeft = ROUND; reload = 0; finished = false; cardUrl = "";
+    snacks.length = 0; parts = []; floats = [];
+    aiming = false; kb.on = false; kb.ang = 62; kb.pow = .85;
+    pouch = { x: ANCH.x, y: ANCH.y };
+    shake = 0; flash = 0; bannerT = 0;
+    cat.x = 240; cat.dir = 1; cat.st = "walk"; cat.t = 0; cat.dur = 1.8;
+    cat.mouth = 0; cat.open = false; cat.openT = 0; cat.next = 1.1; cat.eatT = 0; cat.flick = 0;
+    for (let i = 0; i < props.length; i++) {
+      const p = props[i];
+      p.st = "solid"; p.t = 0; p.rot = 0; p.vx = 0; p.vy = 0; p.spin = 0; p.alpha = 1;
+      p.x = p.hx; p.y = p.hy;
+    }
+    resetBalloons();
+    for (let i = 0; i < cloths.length; i++) { cloths[i].ang = (i % 2 ? -.05 : .04); cloths[i].av = 0; }
+    robot.x = 150; robot.dir = 1; robot.bump = 0;
+    $("#banner").innerHTML = "";
+    $("#startOv").classList.add("hide");
+    $("#pauseOv").classList.add("hide");
+    $("#endOv").classList.add("hide");
+    $("#endImg").removeAttribute("src");
+    $("#saveBtn").removeAttribute("href");
+    $("#favBtn").textContent = "保存到收藏";
+    $("#favBtn").disabled = false;
+    Object.keys(hudCache).forEach(key => { delete hudCache[key]; });
+    hud();
+  }
+  function start() {
+    if (mac.get() === "PLAYING") return;
+    reset();
+    mac.set("PLAYING");
+    last = performance.now();
+    say("把零食往后拖，等它张嘴再松手", "yel");
+  }
+  $("#startBtn").onclick = start;
+  $("#retryBtn").onclick = start;
+  $("#pauseBtn").onclick = () => togglePause();
+  $("#resumeBtn").onclick = () => togglePause();
+  $("#favBtn").onclick = saveToFav;
+  $("#guideBtn").onclick = () => {
+    guideOn = !guideOn;
+    $("#guideBtn").textContent = "轨迹辅助 · " + (guideOn ? "开" : "关");
+    $("#guideBtn").className = "btn" + (guideOn ? " on" : "");
+    $("#guideBtn").setAttribute("aria-pressed", String(guideOn));
+    sound.tap();
+  };
+  $("#dragBtn").onclick = () => {
+    dragOn = !dragOn;
+    $("#dragBtn").textContent = "空气阻力 · " + (dragOn ? "开" : "关");
+    $("#dragBtn").className = "btn" + (dragOn ? " on" : "");
+    $("#dragBtn").setAttribute("aria-pressed", String(dragOn));
+    sound.tap();
+  };
+  ML.bindPause(mac, togglePause);
+  mac.on(st => { if (st === "FINISHED") { aiming = false; kb.on = false; pouch = { x: ANCH.x, y: ANCH.y }; } });
+
+  /* ---------------- 宠物配置（仅用于配色 / 分享卡，画面全程序化绘制） ---------------- */
+  ML.pet().then(cfg => {
+    petCfg = cfg;
+    if (cfg.furColor) FUR = cfg.furColor;
+    $("#petName").textContent = (cfg.petName || "MOMO") + " 主演";
+  }).catch(() => {});
+
+  window.addEventListener("resize", size);
+  window.addEventListener("orientationchange", size);
+  if (window.ResizeObserver) { try { new ResizeObserver(size).observe(stage); } catch (e) {} }
+
+  /* ---------------- 启动 ---------------- */
+  resetBalloons();
+  refreshBest();
+  size(); hud(); draw();
+  last = performance.now();
+  requestAnimationFrame(loop);
+
+  /* ---------------- 调试钩子 ---------------- */
+  function manualStep(dt) {
+    const d = typeof dt === "number" ? clamp(dt, 0, .05) : 1 / 60;
+    if (mac.get() !== "PLAYING") return "not-playing:" + mac.get();
+    step(d);
+    return "ok";
+  }
+  window.__slingshotDebug = {
+    state: () => ({
+      mac: mac.get(), score, combo, maxCombo, fed, shots, bounced, missed,
+      destruction, timeLeft: Math.round(timeLeft * 10) / 10, reload: Math.round(reload * 100) / 100,
+      best: bestVal, guideOn, dragOn, aiming, kbAim: { ang: kb.ang, pow: kb.pow, on: kb.on },
+      activeSnacks: snacks.length, finished, W, H, DW, DH,
+      mouthOpen: mouthOpen(), mouthAmount: Math.round(cat.mouth * 100) / 100,
+      VMAX: Math.round(VMAX), G
+    }),
+    cat: () => ({
+      x: Math.round(cat.x * 10) / 10, y: LEDGE, dir: cat.dir, st: cat.st, t: Math.round(cat.t * 100) / 100,
+      dur: Math.round(cat.dur * 100) / 100, speed: Math.round(cat.speed), panic: destruction >= PANIC_AT,
+      mouth: Math.round(cat.mouth * 100) / 100, open: cat.open, openT: Math.round(cat.openT * 100) / 100,
+      nextSwitch: Math.round(cat.next * 100) / 100, eatT: Math.round(cat.eatT * 100) / 100,
+      mouthPos: mouthPos(), headPos: headPos(), bodyPos: bodyPos(), MOUTH_R
+    }),
+    snacks: () => snacks.map(s => ({
+      x: Math.round(s.x), y: Math.round(s.y), vx: Math.round(s.vx), vy: Math.round(s.vy),
+      bounces: s.bounces, stuck: Math.round(s.stuck * 100) / 100, scored: s.scored, bonked: s.bonked, life: Math.round(s.life * 100) / 100
+    })),
+    props: () => props.map(p => ({ id: p.id, st: p.st, x: Math.round(p.x), y: Math.round(p.y) })),
+    balloons: () => balloons.map(b => ({ alive: b.alive, x: Math.round(b.x), y: Math.round(b.y), back: Math.round(b.back * 10) / 10 })),
+    robot: () => ({ x: Math.round(robot.x), dir: robot.dir, top: ROBOT_TOP }),
+    start, finish: () => { if (mac.get() === "PLAYING") finish(); },
+    reset: () => { reset(); mac.set("READY"); draw(); return mac.get(); },
+    step: manualStep,
+    render: () => { size(); draw(); },
+    size,
+    fire: (angle, power) => {
+      if (mac.get() !== "PLAYING") start();
+      reload = 0;
+      return fire(typeof angle === "number" ? angle : 62, typeof power === "number" ? power : .9);
+    },
+    setMouth: v => {
+      const open = (typeof v === "boolean") ? v : (typeof v === "number" ? v >= .5 : !cat.open);
+      cat.open = open; cat.eatT = 0; cat.openT = 0;
+      cat.next = open ? 999 : 999;
+      cat.mouth = open ? 1 : 0;
+      hud();
+      return { open: cat.open, mouth: cat.mouth };
+    },
+    setCatX: v => { cat.x = clamp(+v || 0, CAT_MIN, CAT_MAX); return cat.x; },
+    setCatState: s => { if (CAT_STATE[s]) { cat.st = s; cat.t = 0; cat.dur = 999; } return cat.st; },
+    setTime: v => { timeLeft = Math.max(0, +v || 0); hud(); return timeLeft; },
+    forceHit: () => {
+      if (mac.get() !== "PLAYING") start();
+      const m = mouthPos();
+      const s = {
+        x: m.x, y: m.y, px: m.x, py: m.y + 10, vx: 0, vy: 60, r: SNACK_R,
+        life: 0, rest: 0, bounces: 0, stuck: 0, hold: -1, scored: false, bonked: false,
+        dead: false, rot: 0, spin: 0, trail: []
+      };
+      cat.open = true; cat.mouth = 1; cat.openT = .05; cat.eatT = 0;
+      shots++;
+      feed(s);
+      return { score, combo, fed, shots, at: m };
+    },
+    forceMiss: () => {
+      if (mac.get() !== "PLAYING") start();
+      const m = mouthPos();
+      const s = {
+        x: m.x, y: m.y, px: m.x, py: m.y + 10, vx: 0, vy: 120, r: SNACK_R,
+        life: .1, rest: 0, bounces: 0, stuck: 0, hold: -1, scored: false, bonked: false,
+        dead: false, rot: 0, spin: 0, trail: []
+      };
+      cat.open = false; cat.mouth = 0;
+      shots++;
+      bonk(s, true);
+      die(s);
+      return { score, combo, bounced, missed, shots };
+    },
+    knock: id => {
+      if (mac.get() !== "PLAYING") start();
+      const p = id ? props.filter(q => q.id === id)[0] : props.filter(q => q.st === "solid")[0];
+      const ok = knock(p || props[0]);
+      return { ok, score, destruction, combo };
+    },
+    addScore: n => { score = Math.max(0, score + (+n || 0)); hud(); return score; }
+  };
+})();
+</script>
+</body>
+</html>

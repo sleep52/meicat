@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F3">
+<title>静电吸毛 — MOMO 事务所</title>
+<meta name="description" content="在猫背上来回摩擦起电，用静电板把飘着的猫毛球吸干净。60 秒冲分与逐级过关两种模式，全程 Canvas 程序化绘制。">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/game.css">
+<style>
+  /* 本页专属补丁：不动共享 CSS */
+  .st-wrap{max-width:560px}
+  .st-stage{position:relative;border:var(--bd);border-radius:16px;box-shadow:var(--sh);overflow:hidden;
+    background:linear-gradient(#F8F3EA 0 60%,#EFE6D6 60% 100%);touch-action:none;user-select:none;
+    -webkit-user-select:none;-webkit-touch-callout:none}
+  #cv{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:480/620;-webkit-tap-highlight-color:transparent}
+  .st-stage .ov{touch-action:pan-y}
+  .st-stage .ov .panel{max-height:100%;overflow:auto}
+  .st-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 2px}
+  .st-mode{min-width:0;border:var(--bd);border-radius:14px;background:#fff;padding:9px 6px 8px;
+    display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:3px 3px 0 rgba(34,34,34,.18)}
+  .st-mode b{font-size:14px;font-weight:900;letter-spacing:.04em}
+  .st-mode small{font-size:10px;font-weight:700;color:var(--mut);letter-spacing:.02em}
+  .st-mode.sel{background:var(--yel);box-shadow:3px 3px 0 var(--ink)}
+  .st-status{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+  .st-cell{min-width:0;background:var(--card);border:var(--bd);border-radius:12px;padding:6px 7px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:2px 2px 0 rgba(34,34,34,.15)}
+  .st-cell .k{font-size:9px;font-weight:800;letter-spacing:.06em;color:var(--mut);white-space:nowrap}
+  .st-cell .v{font-size:12px;font-weight:900;white-space:nowrap;font-variant-numeric:tabular-nums;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .st-bar{width:100%;height:10px;border:2px solid var(--ink);border-radius:999px;background:#fff;overflow:hidden;margin-top:2px}
+  .st-bar i{display:block;height:100%;width:0%;background:var(--mint)}
+  .st-bar i.hi{background:var(--yel)}
+  .st-bar i.over{background:var(--red)}
+  .st-badge{display:inline-block;border:1.5px solid var(--ink);border-radius:999px;padding:1px 9px;font-size:11px;font-weight:900;
+    background:var(--mint);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .st-badge.rub{background:var(--yel)}
+  .st-badge.warn{background:var(--red);color:#fff}
+  .st-badge.full{background:var(--pur)}
+  .st-badge.idle{background:#EFEAD8;color:var(--mut)}
+  .st-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .st-row .btn{flex:1 1 auto;min-width:0}
+  .st-legend{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+  .st-legend span{font-size:10px;font-weight:800;letter-spacing:.06em;border:var(--bd);border-radius:999px;
+    padding:2px 9px;background:var(--card)}
+  .st-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 4px}
+  .st-stats div{min-width:0;border:var(--bd);border-radius:12px;background:var(--bg);padding:8px 6px;
+    display:flex;flex-direction:column;gap:2px}
+  .st-stats b{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
+  .st-stats span{font-size:10px;letter-spacing:.08em;color:var(--mut);font-weight:700}
+  .st-stats .wide{grid-column:1/-1}
+  .newrec{display:inline-block;background:var(--red);color:#fff;border:var(--bd);border-radius:999px;
+    padding:2px 12px;font-size:11px;font-weight:900;letter-spacing:.1em;margin-bottom:6px}
+  .hint{font-size:11px;line-height:1.5;margin-top:6px}
+  @media(max-width:420px){
+    .st-status{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .st-cell .v{font-size:11px}
+  }
+  @media(max-height:560px){
+    .st-status{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
+    .st-cell .v{font-size:11px}
+    .st-legend{margin-top:6px}
+    .st-row{margin-top:8px}
+  }
+</style>
+</head>
+<body data-page="static" data-base="../">
+
+<div class="g-wrap st-wrap">
+  <div class="g-top">
+    <a class="icon-btn" href="../games.html" aria-label="返回"><span data-icon="back"></span></a>
+    <div class="title">静电吸毛<small>游戏 12 · 来回摩擦起电</small></div>
+    <button class="icon-btn" id="pauseBtn" aria-label="暂停"><span data-icon="pause"></span></button>
+  </div>
+
+  <div class="hud">
+    <div class="chip hot"><div class="k" id="k1">时间</div><div class="v" id="h1">60</div></div>
+    <div class="chip"><div class="k" id="k2">静电</div><div class="v" id="h2">0</div></div>
+    <div class="chip yel"><div class="k" id="k3">毛球</div><div class="v" id="h3">0</div></div>
+    <div class="chip"><div class="k" id="k4">得分</div><div class="v" id="h4">0</div></div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="st-stage" id="stage">
+    <canvas id="cv" aria-label="在猫背上来回摩擦给静电板充能，把空中飘的猫毛球吸走"></canvas>
+
+    <div class="ov" id="startOv">
+      <div class="panel">
+        <span class="tag red">摩擦起电</span>
+        <h2 class="h2">静电吸毛</h2>
+        <ul class="desc">
+          <li>按住屏幕，在<b>猫背上左右来回摩擦</b>：摩擦越快、来回越多，静电涨得越猛。</li>
+          <li>停手或按住不动会<b>漏电</b>；板上的堆积越多越重，半径缩得越小、漏电越快。</li>
+          <li>把静电板<b>抬离猫背</b>靠近毛球，进入吸附圈的毛球会被真加速拉过来粘住。</li>
+          <li>粘住的毛会<b>压小吸附圈</b>。把板子<b>抬离猫背</b>，在半空<b>快速左右甩两下</b>（或点「抖落堆积」）就能甩干净。</li>
+          <li>静电冲到 <b>88</b> 会「啪」地放电：吸附圈内毛球全被弹开，电也掉一截。</li>
+          <li><b>湿毛巾</b>飘过撞上板子，电瞬间掉一大截；<b>小纸片</b>照样吸，但一分不得还占位置。</li>
+        </ul>
+        <div class="st-modes" id="modeBtns">
+          <button class="st-mode sel" data-m="timed" aria-pressed="true"><b>限时冲分</b><small>60 秒吸多少算多少</small></button>
+          <button class="st-mode" data-m="goal" aria-pressed="false"><b>目标模式</b><small>吸满过关，一关比一关凶</small></button>
+        </div>
+        <div class="row"><button class="btn yel big" id="startBtn">开始摩擦</button></div>
+        <div class="st-legend">
+          <span>P / Esc 暂停</span><span>键盘 ←→ 摩擦 · ↑↓ 抬起 · F 抖落</span>
+          <span id="bestTag">最佳 0</span><span id="goalTag">目标 —</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ov hide" id="pauseOv">
+      <div class="panel">
+        <h2 class="h2">已暂停</h2>
+        <p class="mut" style="font-size:13px">电还在慢慢漏，回来接着搓。</p>
+        <div class="row"><button class="btn yel" id="resumeBtn">继续</button><a class="btn" href="../games.html">离开</a></div>
+      </div>
+    </div>
+
+    <div class="ov hide" id="endOv">
+      <div class="panel">
+        <div id="endNew"></div>
+        <span class="rating" id="endRating">C</span>
+        <h2 class="h2" id="endTitle" style="font-size:22px"></h2>
+        <p class="mut" style="font-size:13px" id="endDesc"></p>
+        <div class="st-stats">
+          <div><b id="stCaught">0</b><span>吸到毛球</span></div>
+          <div><b id="stStreak">0.0s</b><span>最长连续摩擦</span></div>
+          <div><b id="stPeak">0</b><span>峰值静电</span></div>
+          <div><b id="stLeft">0</b><span>剩余目标</span></div>
+          <div class="wide"><b id="stLevel">—</b><span>关卡 / 甩落 / 纸片</span></div>
+          <div class="wide"><b id="stBest">0</b><span>历史最佳</span></div>
+        </div>
+        <p class="mut hint" id="endHint"></p>
+        <div class="row">
+          <button class="btn mint small" id="retryBtn">再来一局</button>
+          <button class="btn yel small" id="goalBtn">换个模式</button>
+          <a class="btn small" href="../games.html">游戏清单</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="st-status">
+    <div class="st-cell"><span class="k">静电值</span><span class="v" id="stGaugeV">0</span>
+      <span class="st-bar"><i id="stGauge"></i></span></div>
+    <div class="st-cell"><span class="k">摩擦</span><span class="v"><span class="st-badge idle" id="stRub">没上手</span></span></div>
+    <div class="st-cell"><span class="k">吸附半径</span><span class="v"><span class="st-badge" id="stRadius">72</span></span></div>
+    <div class="st-cell"><span class="k">堆积</span><span class="v"><span class="st-badge" id="stCluster">0/14</span></span></div>
+  </div>
+  <div class="st-status">
+    <div class="st-cell"><span class="k">甩手</span><span class="v"><span class="st-badge idle" id="stFling">不动</span></span></div>
+    <div class="st-cell"><span class="k">板下位置</span><span class="v"><span class="st-badge" id="stZone">空中</span></span></div>
+    <div class="st-cell"><span class="k">连吸</span><span class="v"><span class="st-badge" id="stCombo">×1.0</span></span></div>
+    <div class="st-cell"><span class="k">本局模式</span><span class="v"><span class="st-badge full" id="stMode">限时</span></span></div>
+  </div>
+
+  <div class="st-row">
+    <button class="btn" id="dumpBtn"><span data-icon="shuffle"></span>抖落堆积</button>
+    <button class="btn pur" id="modeSwap"><span data-icon="arrow"></span>切换模式</button>
+  </div>
+  <div class="g-actions"><span class="label">猫背上来回摩擦 = 充能 · 抬进半空 = 吸毛 · 半空快速左右甩 = 抖落 · P 暂停</span></div>
+</div>
+
+<script src="../js/icons.js"></script>
+<script src="../js/core.js"></script>
+<script>
+(() => {
+  const { $, $$, clamp, rand, settings, sound } = ML;
+
+  /* ---------------- 数值（未做实机手感校准，待逐款实测） ---------------- */
+  const WW = 480, WH = 620;          // 逻辑坐标
+  const ROUND_TIME = 60;             // 限时模式秒数
+  const CLUSTER = 14;                // 板上堆积槽位上限
+  const LEAK = 2.2;                  // 每秒基础漏电
+  const IDLE_LEAK = 4.4;             // 没在摩擦时的额外漏电
+  const RUB_K = 0.03;                // 每逻辑像素路程的充能（再乘 0.5~1.4 的快慢系数）
+  const RUB_TURN = 0.9;              // 每次方向翻转的额外充能奖励
+  const RUB_EPS = 0.9;               // 每帧位移低于此不算在摩擦（逻辑像素）
+  const RUB_BACK = 8;                // 换向滞回：从端点往回退这么多逻辑像素才算翻一次方向
+  const RUB_HEAT = 0.22;             // 换向迟滞：这段时间内没位移也算还在搓
+  const RUB_VMIN = 70, RUB_VMAX = 1100;  // 摩擦速度取值区间（像素/秒）
+  const BASE_R = 72, R_GAIN = 1.15;      // 吸附半径 = 72 + 静电 ×1.15 × (1 - 负载×0.20)
+  const PULL_MIN = 300, PULL_MAX = 1080; // 圆心与边缘的拉力加速度
+  const CATCH_D = 30;                    // 粘住判定距离
+  const SPARK_AT = 88, SPARK_WARN = 0.85;// 过冲阈值与预警时长
+  const FLICK_V = 1200, FLICK_DIR = 2;   // 甩板：手指瞬时速度（逻辑像素/秒）与方向翻转次数门槛
+  const CAT = { cx: 240, cy: 585, rx: 208, ry: 132 };  // 猫背椭圆（摩擦区）
+  const AIR_TOP = 74, AIR_BOT = 432;                   // 毛球活动的气层
+  const HOME = { x: 240, y: 500 };                     // 静电板待命位（压在猫背上）
+  const RUB_Y = 505;                                   // 键盘摩擦时板子压在背上的高度
+  const GOAL_TIME = level => Math.max(26, 46 - (level - 1) * 2);
+  const goalTarget = level => 8 + (level - 1) * 5;
+  const airWant = level => Math.min(42, 16 + level * 3);
+  const driftF = level => 1 + (level - 1) * 0.16;
+  const hazardEvery = level => Math.max(3.4, 9.5 - (level - 1) * 0.85);
+
+  /* ---------------- 运行时 ---------------- */
+  const cv = $("#cv"), x = cv.getContext("2d");
+  const stage = $("#stage"), mac = ML.machine(), bannerEl = $("#banner");
+  let W = 0, H = 0, dpr = 1, fit = 1, shakeX = 0, shakeY = 0, shake = 0;
+  let mode = "timed", level = 1, target = 0, made = 0, timeLeft = ROUND_TIME;
+  let charge = 0, maxCharge = 0, score = 0, caught = 0, papers = 0, dumped = 0, wet = 0;
+  let combo = 0, comboT = 0;
+  let rubStreak = 0, rubBest = 0, rubNow = false, rubRate = 0, rubHeat = 0;
+  let touching = false, keyTouch = false, px = HOME.x, py = HOME.y, lastPX = HOME.x, lastPY = HOME.y;
+  let rubDir = 0, rubTurns = 0, rubExtreme = HOME.x;
+  let flickAcc = 0, flickDir = 0, flickCool = 0, prevTX = HOME.x, pvxPeak = 0;
+  let sparkWarn = 0, whiteFlash = 0, blueFlash = 0, bannerT = 0, tNow = 0, last = 0, sparkCount = 0;
+  let towelTimer = 4.2, paperTimer = 6, miniSpark = 0;
+  let hairs = [], attached = [], towel = null, parts = [], floats = [];
+  let FUR = "#E8A857", petCfg = null;
+  let pendGain = 0, lastEvT = 0;
+  const plate = { x: HOME.x, y: HOME.y, vx: 0, tvx: 0, rot: 0, load: 0, bob: 0 };
+  const keys = { left: false, right: false, up: false, down: false };
+  let keyY = RUB_Y;
+  const hudCache = {};
+  // 毛刺与毛球的稳定随机种子（避免每帧抖动）
+  const STRANDS = [];
+  for (let i = 0; i < 88; i++) STRANDS.push({ a: Math.PI + (i + rand(-.45, .45)) / 88 * Math.PI, j: rand(.7, 1.35), w: rand(.8, 1.5) });
+
+  const animOn = () => settings.anim !== false;
+  const onCat = (cx2, cy2) => {
+    const dx = (cx2 - CAT.cx) / CAT.rx, dy = (cy2 - CAT.cy) / CAT.ry;
+    return dx * dx + dy * dy <= 1;
+  };
+  const radius = () => {
+    const load = attached.length / CLUSTER;
+    return (BASE_R + charge * R_GAIN) * (1 - load * 0.20);
+  };
+
+  /* ---------------- 尺寸 ---------------- */
+  function size() {
+    const w = Math.max(220, Math.round(stage.clientWidth || WW));
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = w; H = Math.round(w * WH / WW);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    fit = W / WW;
+    if (mac.get() !== "PLAYING") draw();
+  }
+
+  /* ---------------- 充能 / 摩擦 ----------------
+     真实输入（pointermove）、键盘（←→↑↓）与调试模拟都走这一个函数：
+     充能 = 累计路程 ×（快慢系数）+ 每次换向奖励，不是「点一下就充能」。
+     快慢用瞬时速度决定，换向次数用端点滞回统计，两者都与刷新率无关。 */
+  function ingest(nx, ny, dt, active) {
+    const on = active === undefined ? touching : active;
+    const dx = nx - lastPX, dy = ny - lastPY;
+    const dist = Math.hypot(dx, dy);
+    let gain = 0, turn = 0;
+    // 换向检测用「端点 + 回退滞回」：从本方向走到的最远点往回退超过 RUB_BACK 才算翻一次，
+    // 既不会被触屏抖动误触发，也不会像纯符号比较那样永远触发不了。
+    if (rubDir === 0) {
+      if (Math.abs(dx) > RUB_EPS) { rubDir = dx > 0 ? 1 : -1; rubExtreme = nx; }
+    } else if ((nx - rubExtreme) * rubDir > 0) {
+      rubExtreme = nx;
+    } else if ((rubExtreme - nx) * rubDir > RUB_BACK) {
+      turn = 1; rubTurns++; rubDir = -rubDir; rubExtreme = nx;
+      if (rubTurns % 2 === 0) sound.tick();
+    }
+    if (on && dist > RUB_EPS && onCat(nx, ny) && charge < 100) {
+      // 单位路程充电 ×（快慢系数）：路程 = 累计位移，快慢 = 瞬时速度（截断到 RUB_VMIN/RUB_VMAX）
+      const sp = clamp(Math.abs(dx) / Math.max(dt, 1e-4), RUB_VMIN, RUB_VMAX);
+      const svn = (sp - RUB_VMIN) / (RUB_VMAX - RUB_VMIN);
+      gain = dist * RUB_K * (0.5 + 0.9 * svn) + turn * RUB_TURN;
+    }
+    if (on) { px = nx; py = ny; }
+    lastPX = nx; lastPY = ny;
+    return gain;
+  }
+
+  function applyRub(dt, gain) {
+    if (gain > 0) {
+      charge = clamp(charge + gain, 0, 100);
+      maxCharge = Math.max(maxCharge, charge);
+      rubHeat = RUB_HEAT;
+      rubRate = rubRate + (gain / dt - rubRate) * clamp(dt * 6, 0, 1);
+      rubNow = true; rubStreak += dt; rubBest = Math.max(rubBest, rubStreak);
+      if (animOn() && Math.random() < dt * 12) spawnParts(plate.x + rand(-22, 22), plate.y + rand(-6, 10), "rub", 1);
+      if (charge >= 100 && charge - gain < 100) { sound.bonus(); say("充能满格！", "yel"); }
+    } else if (rubHeat > 0) {
+      // 换向瞬间手会慢下来：这零点几秒算「还在搓」，只轻微漏电，连续摩擦不中断
+      rubHeat -= dt;
+      rubNow = true; rubStreak += dt; rubBest = Math.max(rubBest, rubStreak);
+      charge = clamp(charge - LEAK * .5 * dt, 0, 100);
+      rubRate += (0 - rubRate) * clamp(dt * 5, 0, 1);
+    } else {
+      rubNow = false; rubStreak = 0;
+      rubRate += (0 - rubRate) * clamp(dt * 5, 0, 1);
+      const load = attached.length / CLUSTER;
+      charge = clamp(charge - (LEAK + IDLE_LEAK + load * 3) * dt, 0, 100);
+    }
+  }
+
+  /* ---------------- 吸附 / 粘住 ---------------- */
+  function stepHairs(dt) {
+    const R = radius();
+    const df = mode === "goal" ? driftF(level) : 1;
+    for (let i = hairs.length - 1; i >= 0; i--) {
+      const h = hairs[i];
+      if (h.cool > 0) h.cool -= dt;
+      // 随机漂移
+      h.vx += (Math.cos(h.s1 + tNow * h.f1) * 42 + rand(-26, 26)) * dt * df;
+      h.vy += (Math.sin(h.s2 + tNow * h.f2) * 34 + rand(-22, 22) - 9) * dt * df;
+      // 静电吸引
+      const dx = plate.x - h.x, dy = plate.y - h.y;
+      const d = Math.hypot(dx, dy) || 1;
+      let near = false;
+      if (charge > 0.5 && h.cool <= 0 && d < R) {
+        near = true;
+        const pull = PULL_MIN + (PULL_MAX - PULL_MIN) * (1 - d / R);
+        h.vx += dx / d * pull * (0.35 + charge / 100) * dt;
+        h.vy += dy / d * pull * (0.35 + charge / 100) * dt;
+      }
+      h.drag = near ? 1.4 : 0.85;
+      h.vx -= h.vx * h.drag * dt; h.vy -= h.vy * h.drag * dt;
+      h.x += h.vx * dt; h.y += h.vy * dt;
+      h.rot += h.spin * dt;
+      h.t += dt;
+      // 气层边界（刚被甩下来的先让它飞出去，0.3 秒后才收）
+      if (h.t > 0.3) {
+        if (h.y < AIR_TOP) { h.y = AIR_TOP; h.vy = Math.abs(h.vy) * .5; }
+        if (h.y > AIR_BOT) { h.y = AIR_BOT; h.vy = -Math.abs(h.vy) * .5; }
+        if (h.x < 20) { h.x = 20; h.vx = Math.abs(h.vx) * .6; }
+        if (h.x > WW - 20) { h.x = WW - 20; h.vx = -Math.abs(h.vx) * .6; }
+      }
+      // 粘住
+      if (near && d < CATCH_D + (h.paper ? 4 : 0)) { stick(h); hairs.splice(i, 1); continue; }
+      if (h.dead) hairs.splice(i, 1);
+    }
+    // 保持空中密度（毛球被吸走后补新的）
+    const want = mode === "goal" ? airWant(level) : 26;
+    let air = 0;
+    for (let i = 0; i < hairs.length; i++) if (!hairs[i].paper) air++;
+    if (air < want) spawnHair(false);
+    if (air < want - 6) spawnHair(false);
+    if (hairs.length > want + 14) hairs.shift();
+  }
+
+  function slotPos(idx) {
+    const ring = idx < 1 ? 0 : idx < 5 ? 1 : 2;
+    const first = [0, 1, 5][ring], cnt = [1, 4, CLUSTER - 5][ring];
+    const k = idx - first;
+    const rad = [0, 27, 47][ring];
+    const a = (k / cnt) * Math.PI * 2 + ring * .5 + (plate.load * .2);
+    return { x: Math.cos(a) * rad, y: Math.sin(a) * rad * .78, ring };
+  }
+  function stick(h) {
+    let slot = -1;
+    for (let i = 0; i < CLUSTER; i++) if (!attached.some(q => q.slot === i)) { slot = i; break; }
+    if (slot < 0) {          // 满了：从下层挑一个最占地方的
+      const old = attached.splice(0, 1)[0];
+      slot = old ? old.slot : 0;
+      flingOne(old, 0.55);
+    }
+    attached.push({ slot, paper: !!h.paper, seed: h.seed, r: h.r, t: 0, kind: h.paper ? "paper" : "hair" });
+    if (h.paper) { papers++; sound.bad(); say("吸到一张小纸片，白占一个位置", "pur"); }
+    else {
+      combo++; comboT = 2.2;
+      const base = 8 + Math.round(charge * 0.12);
+      const pts = Math.round(base * (1 + Math.min(combo, 6) * 0.15));
+      score += pts; made++; caught++;
+      addFloat("+" + pts, plate.x, plate.y - 34, "#222");
+      sound.combo(combo);
+      if (animOn()) spawnParts(plate.x, plate.y, "catch", 5);
+    }
+    plate.bob = 1;
+    if (mode === "goal" && made >= target) levelClear();
+  }
+  function flingOne(q, power) {
+    if (!q) return;
+    const s = slotPos(q.slot);
+    const a = Math.atan2(s.y, s.x) || rand(-.6, .6);
+    // 落点必须在吸附圈之外、并且带一段「别马上吸回来」的冷却，
+    // 否则下一帧就重新粘住，甩板等于白甩。
+    const d0 = CATCH_D + 34;
+    const h = spawnHair(q.paper, plate.x + Math.cos(a) * d0, plate.y + Math.sin(a) * d0 * .8 - 10,
+      Math.cos(a) * 760 * power, Math.sin(a) * 760 * power - 130, q.seed);
+    h.cool = .5;
+  }
+  function dump(fast) {
+    if (!attached.length) { if (fast !== "silent") { sound.tap(); say("板上没堆积，不用甩", "yel"); } return; }
+    const n = attached.length;
+    for (let i = 0; i < n; i++) flingOne(attached[i], fast === "silent" ? 1.15 : 1);
+    attached = [];
+    dumped++;
+    sound.good();
+    addFloat("甩掉 " + n, plate.x, plate.y - 44, "#F16D5B");
+    if (animOn()) spawnParts(plate.x, plate.y, "fling", 8);
+    say("甩掉 " + n + " 个堆积，吸附半径回来了", "mint");
+  }
+
+  /* ---------------- 干扰物 ---------------- */
+  function spawnHair(paper, x0, y0, vx0, vy0, seed) {
+    const h = {
+      x: x0 === undefined ? (Math.random() < .5 ? rand(26, 90) : rand(WW - 90, WW - 26)) : x0,
+      y: y0 === undefined ? rand(AIR_TOP + 20, AIR_BOT - 40) : y0,
+      vx: vx0 === undefined ? rand(-24, 24) : vx0,
+      vy: vy0 === undefined ? rand(-14, 14) : vy0,
+      r: paper ? 13 : rand(11, 17), rot: rand(0, 6.28), spin: rand(-1.2, 1.2),
+      s1: rand(0, 6.28), s2: rand(0, 6.28), f1: rand(.5, 1.5), f2: rand(.4, 1.2),
+      seed: seed === undefined ? rand(0, 6.28) : seed, paper: !!paper, dead: false, drag: .85, t: 0, cool: 0
+    };
+    hairs.push(h);
+    return h;
+  }
+  function spawnTowel() {
+    const dir = Math.random() < .5 ? 1 : -1;
+    towel = {
+      x: dir > 0 ? -90 : WW + 90, y: rand(AIR_TOP + 40, 380), dir,
+      v: rand(96, 132) + (mode === "goal" ? level * 7 : 0), rot: 0, drip: 0, warned: false
+    };
+    say("湿毛巾飘过来了，把板子挪开！", "red");
+    sound.bad();
+  }
+  function stepTowel(dt) {
+    if (!towel) {
+      towelTimer -= dt * (mode === "goal" ? driftF(level) : 1);
+      if (towelTimer <= 0) { towelTimer = hazardEvery(mode === "goal" ? level : 1) + rand(-1, 2); spawnTowel(); }
+      return;
+    }
+    towel.x += towel.dir * towel.v * dt;
+    towel.rot = Math.sin(tNow * 2.2) * .12;
+    towel.drip -= dt;
+    if (towel.drip <= 0 && animOn()) { towel.drip = .18; spawnParts(towel.x + rand(-30, 30), towel.y + 20, "drip", 1); }
+    // 撞上静电板：瞬间掉一大截电
+    if (Math.abs(towel.x - plate.x) < 62 && Math.abs(towel.y - plate.y) < 44) {
+      const before = charge;
+      charge = clamp(charge - 38, 0, 100);
+      wet = 1.1; blueFlash = .8; shake = animOn() ? .4 : 0;
+      for (let i = 0; i < 3 && attached.length; i++) flingOne(attached.splice(attached.length - 1, 1)[0], .8);
+      sound.bad(); addFloat("湿了 -" + Math.round(before - charge) + " 电", plate.x, plate.y - 40, "#6D8FD6");
+      say("湿毛巾砸中板子，电漏了一大半", "red");
+      towel.x = towel.dir > 0 ? WW + 120 : -120;
+    }
+    if ((towel.dir > 0 && towel.x > WW + 100) || (towel.dir < 0 && towel.x < -100)) towel = null;
+  }
+  function stepPaper(dt) {
+    paperTimer -= dt * (mode === "goal" ? driftF(level) : 1);
+    if (paperTimer <= 0) {
+      paperTimer = Math.max(4, 11 - (mode === "goal" ? level : 1) * .7) + rand(0, 4);
+      spawnHair(true);
+      say("一张小纸片混进来了，吸到不算分", "pur");
+    }
+  }
+
+  /* ---------------- 静电放电 ---------------- */
+  function stepSpark(dt) {
+    if (charge >= SPARK_AT) {
+      sparkWarn += dt;
+      if (sparkWarn > .45 && sparkWarn - dt <= .45) { sound.tick(); say("电太满了，要放电了！", "yel"); }
+      if (sparkWarn >= SPARK_WARN) { doSpark("max"); }
+    } else {
+      if (sparkWarn > 0) sparkWarn = Math.max(0, sparkWarn - dt * 2);
+      // 偶尔的小电弧：电中等、堆得满时更容易来
+      miniSpark -= dt;
+      if (miniSpark <= 0 && charge > 45 && attached.length >= 7) {
+        miniSpark = rand(6, 11);
+        if (Math.random() < .5 * (mode === "goal" ? 1 + level * .1 : 1)) doSpark("mini");
+      }
+    }
+  }
+  function doSpark(kind) {
+    const max = kind === "max";
+    sparkCount++;
+    sparkWarn = 0; miniSpark = max ? 1.6 : 3;
+    const R = radius() * (max ? 1.5 : 1.1);
+    let pushed = 0;
+    hairs.forEach(h => {
+      const dx = h.x - plate.x, dy = h.y - plate.y, d = Math.hypot(dx, dy) || 1;
+      if (d < R) {
+        const imp = (max ? 520 : 260) * (1 - d / R) + 90;
+        h.vx += dx / d * imp; h.vy += dy / d * imp - 40; pushed++;
+      }
+    });
+    if (max) {
+      charge = clamp(charge * .42 - 6, 0, 100);
+      whiteFlash = .75; shake = animOn() ? .6 : 0;
+      for (let i = 0; i < 3 && attached.length; i++) flingOne(attached.splice(attached.length - 1, 1)[0], 1.3);
+      sound.bad(); say("啪！静电放电，弹开了 " + pushed + " 个毛球", "red");
+    } else {
+      charge = clamp(charge * .82, 0, 100);
+      whiteFlash = .3; shake = animOn() ? .22 : 0;
+      sound.bad(); say("小电弧：弹开了 " + pushed + " 个毛球", "yel");
+    }
+    if (animOn()) spawnParts(plate.x, plate.y, "spark", max ? 18 : 9);
+  }
+
+  /* ---------------- 粒子 / 飘字 ---------------- */
+  function spawnParts(wx, wy, kind, n) {
+    for (let i = 0; i < n; i++) {
+      const p = { kind, x: wx + rand(-10, 10), y: wy + rand(-10, 10), life: 0, max: rand(.3, .7), rot: rand(0, 6.28), s: rand(.7, 1.3) };
+      if (kind === "spark") { p.vx = rand(-190, 190); p.vy = rand(-190, 190); p.max = rand(.2, .4); }
+      else if (kind === "rub") { p.vx = rand(-70, 70); p.vy = rand(-90, -30); }
+      else if (kind === "drip") { p.vx = rand(-10, 10); p.vy = rand(30, 70); p.max = rand(.4, .8); }
+      else if (kind === "burst") { p.vx = rand(-230, 230); p.vy = rand(-260, -40); p.max = rand(.5, .9); }
+      else if (kind === "star") { p.vx = rand(-120, 120); p.vy = rand(-160, -20); p.max = rand(.6, 1); }
+      else { p.vx = rand(-120, 120); p.vy = rand(-150, -30); p.max = rand(.4, .7); }
+      parts.push(p);
+    }
+  }
+  function stepFx(dt) {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i]; p.life += dt;
+      if (p.life >= p.max) { parts.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.kind === "drip" || p.kind === "burst") p.vy += 320 * dt; else p.vy += 40 * dt;
+      p.rot += dt * 3;
+    }
+    for (let i = floats.length - 1; i >= 0; i--) {
+      const f = floats[i]; f.life -= dt; f.y -= 26 * dt;
+      if (f.life <= 0) floats.splice(i, 1);
+    }
+    for (let i = 0; i < attached.length; i++) attached[i].t += dt;
+    if (plate.bob > 0) plate.bob = Math.max(0, plate.bob - dt * 3);
+    if (shake > 0) shake = Math.max(0, shake - dt * 2.4);
+    if (whiteFlash > 0) whiteFlash = Math.max(0, whiteFlash - dt * 2.6);
+    if (blueFlash > 0) blueFlash = Math.max(0, blueFlash - dt * 1.6);
+    if (wet > 0) wet = Math.max(0, wet - dt * .9);
+    if (bannerT && tNow > bannerT) { bannerEl.innerHTML = ""; bannerT = 0; }
+  }
+  function addFloat(t, wx, wy, c) { floats.push({ t, x: wx, y: wy, life: 1, c: c || "#222" }); }
+  function say(t, cls) {
+    bannerEl.innerHTML = '<span class="msg ' + (cls || "") + '">' + t + "</span>";
+    bannerT = tNow + 2.1;
+  }
+
+  /* ---------------- 关卡 / 模式 ---------------- */
+  function levelClear() {
+    const bonus = 120 + 40 * level;
+    score += bonus;
+    sound.win();
+    addFloat("过关 +" + bonus, WW / 2, 200, "#F16D5B");
+    say("第 " + level + " 关过了！" + (attached.length ? "记得先甩掉堆积" : "下一关毛更多"), "mint");
+    const r = stage.getBoundingClientRect();
+    ML.floatSticker(stage, "过关 +" + bonus, r.width * .5, r.height * .3);
+    if (animOn()) spawnParts(WW / 2, 210, "star", 14);
+    level++;
+    made = 0; target = goalTarget(level); timeLeft = GOAL_TIME(level);
+    charge = clamp(charge * .85, 0, 100);
+    extra.levelBest = Math.max(extra.levelBest, level);
+    saveExtra();
+  }
+  function setMode(next, quiet) {
+    mode = next === "goal" ? "goal" : "timed";
+    $$("#modeBtns .st-mode").forEach(b => {
+      const on = b.dataset.m === mode;
+      b.classList.toggle("sel", on); b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    $("#goalTag").textContent = mode === "goal" ? "第 1 关需 " + goalTarget(1) + " 根" : "目标 —";
+    if (!quiet) switchModeRun();
+  }
+  /* 切模式 = 重新摆一局（限时/目标都是真能玩的独立模式） */
+  function switchModeRun() {
+    reset();
+    if (mac.get() === "PLAYING" || mac.get() === "PAUSED") {
+      mac.set("PLAYING"); last = performance.now();
+    } else {
+      mac.set("READY");
+      $("#startOv").classList.remove("hide");
+    }
+    say(mode === "goal" ? "目标模式：吸满 " + goalTarget(1) + " 根过关" : "限时模式：60 秒冲分", "yel");
+  }
+
+  /* ---------------- 主循环 ---------------- */
+  function movePlate(dt) {
+    const follow = touching || keyTouch;
+    const tx = clamp(follow ? px : plate.x, 22, WW - 22);
+    const ty = clamp(follow ? py : plate.y, 22, WH - 22);
+    const kk = 1 - Math.exp(-20 * dt);
+    const ox = plate.x;
+    plate.x += (tx - plate.x) * kk;
+    plate.y += (ty - plate.y) * kk;
+    plate.vx = (plate.x - ox) / Math.max(dt, 1e-4);
+    plate.load = attached.length / CLUSTER;
+    plate.rot += ((clamp(plate.vx / 2600, -.3, .3) + plate.load * .18) - plate.rot) * clamp(dt * 8, 0, 1);
+    // 甩板检测：算的是手指（目标点）的速度，不是被弹簧拖慢的板子速度，
+    // 否则再快的手腕也过不了门槛，手势就成了摆设。
+    if (!follow) { prevTX = plate.x; pvxPeak = 0; plate.tvx = 0; }
+    else {
+      const raw = (tx - prevTX) / Math.max(dt, 1e-4);
+      prevTX = tx;
+      pvxPeak = Math.max(Math.abs(raw), pvxPeak * Math.exp(-14 * dt));   // 峰值保持约 0.07 秒
+      plate.tvx = (raw < 0 ? -1 : 1) * pvxPeak;
+    }
+    const v = Math.abs(plate.tvx);
+    const flickReady = attached.length && v > FLICK_V && !onCat(plate.x, plate.y);
+    if (flickReady) {
+      const d = plate.tvx > 0 ? 1 : -1;
+      if (d !== flickDir) { flickDir = d; flickAcc++; }
+    } else if (v < FLICK_V * .5 || onCat(plate.x, plate.y)) { flickAcc = 0; flickDir = 0; }
+    flickCool = Math.max(0, flickCool - dt);
+    if (flickAcc >= FLICK_DIR && flickCool <= 0 && attached.length) {
+      flickAcc = 0; flickCool = .45; dump("silent");
+    }
+  }
+  // 键盘是一套完整操作：←→ 摩擦充能，↑↓ 把板子抬离/压回猫背，F 抖落堆积。
+  function keyRub(dt) {
+    const moving = keys.left || keys.right, lifting = keys.up || keys.down;
+    if (!moving && !lifting) { keyTouch = false; return 0; }
+    if (touching) return 0;                     // 手指优先，键盘不抢
+    keyTouch = true;
+    keyY = clamp(keyY + ((keys.down ? 1 : 0) - (keys.up ? 1 : 0)) * 320 * dt, 96, RUB_Y);
+    let nx = onCat(px, py) ? px : plate.x;
+    if (moving) {
+      const dir = keys.left && keys.right ? (Math.random() < .5 ? -1 : 1) : (keys.left ? -1 : 1);
+      nx = clamp(nx + dir * 640 * dt, 110, WW - 110);
+    }
+    return ingest(nx, keyY, dt, true);
+  }
+  function update(dt) {
+    tNow += dt;
+    if (mac.get() === "PLAYING") {
+      const gain = pendGain + keyRub(dt);
+      pendGain = 0;
+      applyRub(dt, gain);
+      movePlate(dt);
+      stepHairs(dt);
+      stepTowel(dt);
+      stepPaper(dt);
+      stepSpark(dt);
+      comboT -= dt; if (comboT <= 0 && combo > 0) { combo = 0; comboT = 0; }
+      timeLeft -= dt;
+      const secBefore = Math.ceil(timeLeft + dt), secNow = Math.ceil(timeLeft);
+      if (timeLeft <= 10 && secNow !== secBefore && secNow >= 0) { sound.tick(); if (secNow > 0 && mode === "timed") say("最后 " + secNow + " 秒！", "red"); }
+      if (timeLeft <= 0) { timeLeft = 0; stepFx(dt); hud(); finish(); return; }
+    } else {
+      movePlate(dt * .5);
+      stepHairs(dt * (mac.get() === "READY" ? 1 : 0));
+    }
+    stepFx(dt);
+    hud();
+  }
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (stage.clientWidth !== W) size();
+    const dt = clamp((ts - last) / 1000, 0, .05); last = ts;
+    update(dt);
+    draw();
+  }
+
+  /* ---------------- 绘制 ---------------- */
+  function draw() {
+    shakeX = shake > 0 ? rand(-5, 5) * shake * fit : 0;
+    shakeY = shake > 0 ? rand(-4, 4) * shake * fit : 0;
+    x.setTransform(dpr * fit, 0, 0, dpr * fit, dpr * shakeX, dpr * shakeY);
+    drawBg();
+    drawCat();
+    drawHairs();
+    drawTowel();
+    drawField();
+    drawPlate();
+    drawParts();
+    drawFloats();
+    drawGauge();
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawFlash();
+  }
+  function drawBg() {
+    const g = x.createLinearGradient(0, 0, 0, WH);
+    g.addColorStop(0, "#F9F5ED"); g.addColorStop(.6, "#F2EADA"); g.addColorStop(.601, "#EADFCA"); g.addColorStop(1, "#E3D6BE");
+    x.fillStyle = g; x.fillRect(-10, -10, WW + 20, WH + 20);
+    // 窗光
+    x.save(); x.globalAlpha = .4; x.fillStyle = "#FFF7D9";
+    x.beginPath(); x.moveTo(60, 0); x.lineTo(210, 0); x.lineTo(150, 300); x.lineTo(40, 300); x.closePath(); x.fill(); x.restore();
+    // 挂画
+    x.strokeStyle = "rgba(34,34,34,.5)"; x.lineWidth = 3;
+    x.fillStyle = "#fff"; ML.rr(x, 320, 60, 108, 78, 6); x.fill(); x.stroke();
+    x.strokeStyle = "rgba(34,34,34,.35)"; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(336, 118); x.lineTo(360, 92); x.lineTo(386, 118); x.stroke();
+    x.fillStyle = "#F5E66B"; x.beginPath(); x.arc(406, 84, 9, 0, 6.3); x.fill();
+    // 地缝
+    x.strokeStyle = "rgba(34,34,34,.16)"; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(0, 374); x.lineTo(WW, 374); x.stroke();
+    for (let i = 0; i < 7; i++) {
+      const yy = 392 + i * 34;
+      x.strokeStyle = "rgba(34,34,34,.09)"; x.beginPath(); x.moveTo(0, yy); x.lineTo(WW, yy); x.stroke();
+    }
+    // 猫窝软垫
+    x.fillStyle = "#DCD2F5"; x.strokeStyle = "#222"; x.lineWidth = 3;
+    x.beginPath(); x.ellipse(240, 606, 232, 58, 0, 0, 6.3); x.fill(); x.stroke();
+    x.strokeStyle = "rgba(34,34,34,.25)"; x.lineWidth = 2;
+    x.beginPath(); x.ellipse(240, 600, 208, 44, 0, 0, 6.3); x.stroke();
+  }
+  function drawCat() {
+    // 身体（背拱起的大椭圆）
+    x.save();
+    x.fillStyle = "rgba(34,34,34,.13)";
+    x.beginPath(); x.ellipse(CAT.cx, CAT.cy + 16, CAT.rx * .96, CAT.ry * .34, 0, 0, 6.3); x.fill();
+    x.fillStyle = FUR; x.strokeStyle = "#222"; x.lineWidth = 3.2;
+    x.beginPath(); x.ellipse(CAT.cx, CAT.cy, CAT.rx, CAT.ry, 0, 0, 6.3); x.fill(); x.stroke();
+    // 肚皮亮面
+    x.save(); x.beginPath(); x.ellipse(CAT.cx, CAT.cy, CAT.rx, CAT.ry, 0, 0, 6.3); x.clip();
+    x.fillStyle = "rgba(255,246,230,.7)";
+    x.beginPath(); x.ellipse(CAT.cx - 20, CAT.cy + 60, CAT.rx * .8, CAT.ry * .42, 0, 0, 6.3); x.fill();
+    // 虎斑
+    x.strokeStyle = "rgba(34,34,34,.18)"; x.lineWidth = 7;
+    for (let i = 0; i < 5; i++) {
+      const bx = 120 + i * 58;
+      x.beginPath(); x.moveTo(bx, CAT.cy - CAT.ry * .7); x.quadraticCurveTo(bx + 12, CAT.cy - CAT.ry * .2, bx - 4, CAT.cy + 20); x.stroke();
+    }
+    x.restore();
+    // 静电让毛竖起来
+    const up = charge / 100;
+    x.strokeStyle = "rgba(34,34,34,.55)";
+    STRANDS.forEach(s => {
+      const nx = Math.cos(s.a) / CAT.rx, ny = Math.sin(s.a) / CAT.ry;
+      const nl = Math.hypot(nx, ny) || 1;
+      const bx = CAT.cx + Math.cos(s.a) * CAT.rx, by = CAT.cy + Math.sin(s.a) * CAT.ry;
+      const len = (5 + up * 20) * s.j + (animOn() ? Math.sin(tNow * 3 + s.a * 7) * 1.4 * up : 0);
+      x.lineWidth = 1.6 * s.w;
+      x.beginPath(); x.moveTo(bx, by);
+      x.quadraticCurveTo(bx + nx / nl * len * .5 - ny / nl * 3, by + ny / nl * len * .5,
+        bx + nx / nl * len, by + ny / nl * len * .9);
+      x.stroke();
+    });
+    if (charge > 62 && animOn() && Math.random() < .35) {
+      x.fillStyle = "#F5E66B";
+      const s = STRANDS[Math.floor(rand(0, STRANDS.length))];
+      x.beginPath(); x.arc(CAT.cx + Math.cos(s.a) * CAT.rx, CAT.cy + Math.sin(s.a) * CAT.ry, 2.4, 0, 6.3); x.fill();
+    }
+    // 尾巴
+    x.strokeStyle = "#222"; x.lineWidth = 12; x.lineCap = "round";
+    const tw = animOn() ? Math.sin(tNow * (1.4 + charge / 40)) * 12 : 0;
+    x.beginPath(); x.moveTo(420, 566); x.quadraticCurveTo(466 + tw, 520, 448 + tw, 452); x.stroke();
+    x.strokeStyle = FUR; x.lineWidth = 8; x.stroke();
+    // 头（趴在左边）
+    const hx = 92, hy = 512;
+    x.fillStyle = FUR; x.strokeStyle = "#222"; x.lineWidth = 3;
+    x.beginPath(); x.moveTo(hx - 30, hy - 22); x.lineTo(hx - 40, hy - 56 + tw * .2); x.lineTo(hx - 6, hy - 34); x.closePath(); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(hx + 22, hy - 28); x.lineTo(hx + 34, hy - 58 - tw * .2); x.lineTo(hx + 44, hy - 22); x.closePath(); x.fill(); x.stroke();
+    x.beginPath(); x.arc(hx, hy, 44, 0, 6.3); x.fill(); x.stroke();
+    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(hx + 6, hy + 16, 24, 17, 0, 0, 6.3); x.fill();
+    // 眼睛：电大了就睁一只
+    const wide = clamp((charge - 40) / 45, 0, 1);
+    x.strokeStyle = "#222"; x.lineWidth = 2.6;
+    x.beginPath(); x.moveTo(hx - 16, hy - 4); x.quadraticCurveTo(hx - 8, hy + 2, hx, hy - 4); x.stroke();
+    if (wide > .25) {
+      x.fillStyle = "#222";
+      x.beginPath(); x.ellipse(hx + 16, hy - 4, 3.4, 2.4 + wide * 3, 0, 0, 6.3); x.fill();
+    } else {
+      x.beginPath(); x.moveTo(hx + 10, hy - 4); x.quadraticCurveTo(hx + 18, hy + 2, hx + 25, hy - 4); x.stroke();
+    }
+    x.fillStyle = "#F16D5B";
+    x.beginPath(); x.moveTo(hx + 4, hy + 10); x.lineTo(hx + 13, hy + 10); x.lineTo(hx + 8.5, hy + 16); x.closePath(); x.fill();
+    x.strokeStyle = "rgba(34,34,34,.4)"; x.lineWidth = 1.6;
+    x.beginPath(); x.moveTo(hx + 14, hy + 18); x.lineTo(hx + 40, hy + 12);
+    x.moveTo(hx + 14, hy + 20); x.lineTo(hx + 40, hy + 24); x.stroke();
+    x.restore();
+    // 摩擦区提示：只在开局静电很低、且手指不在屏幕上时出现，避免遮挡操作
+    if (mac.get() === "PLAYING" && charge < 15 && !touching) {
+      x.save();
+      x.globalAlpha = .55 + (animOn() ? Math.sin(tNow * 4) * .12 : 0);
+      x.strokeStyle = "#222"; x.lineWidth = 2.4; x.setLineDash([9, 8]);
+      x.beginPath(); x.ellipse(CAT.cx, CAT.cy, CAT.rx * .82, CAT.ry * .82, 0, Math.PI * 1.06, Math.PI * 1.94); x.stroke();
+      x.setLineDash([]);
+      x.fillStyle = "rgba(34,34,34,.6)"; x.font = "800 15px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillText("按住，在猫背上左右来回摩擦", CAT.cx, CAT.cy - CAT.ry * .62);
+      x.restore();
+    }
+  }
+  function drawHairs() {
+    hairs.forEach(h => {
+      x.save(); x.translate(h.x, h.y); x.rotate(h.rot);
+      if (h.paper) {
+        x.fillStyle = "#fff"; x.strokeStyle = "#222"; x.lineWidth = 2;
+        ML.rr(x, -13, -11, 26, 22, 3); x.fill(); x.stroke();
+        x.strokeStyle = "rgba(34,34,34,.4)"; x.lineWidth = 1.4;
+        x.beginPath(); x.moveTo(-8, -4); x.lineTo(8, -4); x.moveTo(-8, 2); x.lineTo(4, 2); x.stroke();
+        x.fillStyle = "#E4E7EA"; x.beginPath(); x.moveTo(13, -11); x.lineTo(13, -3); x.lineTo(5, -11); x.closePath(); x.fill(); x.stroke();
+      } else {
+        x.strokeStyle = "rgba(232,168,87,.95)"; x.lineWidth = 1.5;
+        for (let i = 0; i < 9; i++) {
+          const a = h.seed + i * .7;
+          x.beginPath(); x.moveTo(Math.cos(a) * h.r * .3, Math.sin(a) * h.r * .3);
+          x.quadraticCurveTo(Math.cos(a + .3) * h.r * .8, Math.sin(a + .3) * h.r * .8,
+            Math.cos(a + .5) * h.r * 1.18, Math.sin(a + .5) * h.r * 1.18);
+          x.stroke();
+        }
+        x.fillStyle = "rgba(255,248,236,.95)";
+        x.beginPath(); x.arc(0, 0, h.r * .62, 0, 6.3); x.fill();
+        x.strokeStyle = "rgba(34,34,34,.45)"; x.lineWidth = 1.6;
+        x.beginPath(); x.arc(0, 0, h.r * .78, h.seed, h.seed + 4.4); x.stroke();
+      }
+      x.restore();
+    });
+  }
+  function drawTowel() {
+    if (!towel) return;
+    x.save(); x.translate(towel.x, towel.y); x.rotate(towel.rot);
+    x.fillStyle = "#BFD4F0"; x.strokeStyle = "#222"; x.lineWidth = 3;
+    x.beginPath();
+    x.moveTo(-56, -22); x.lineTo(56, -22);
+    for (let i = 0; i <= 6; i++) x.lineTo(56 - i * 18.6, 22 + (i % 2 ? 5 : -3));
+    x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = "rgba(255,255,255,.75)";
+    x.fillRect(-52, -12, 104, 7); x.fillRect(-52, 2, 104, 7);
+    x.strokeStyle = "rgba(34,34,34,.35)"; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(-40, -22); x.lineTo(-40, 22); x.moveTo(40, -22); x.lineTo(40, 22); x.stroke();
+    // 滴水
+    x.fillStyle = "rgba(109,143,214,.8)";
+    for (let i = -2; i <= 2; i++) {
+      const dy = 26 + ((tNow * 60 + i * 17) % 26);
+      x.beginPath(); x.ellipse(i * 20, dy, 2.4, 4.4, 0, 0, 6.3); x.fill();
+    }
+    x.restore();
+    x.save();
+    x.fillStyle = "#6D8FD6"; x.font = "900 13px 'PingFang SC',Arial"; x.textAlign = "center";
+    x.fillText("湿毛巾", towel.x, towel.y - 32); x.restore();
+  }
+  function drawField() {
+    if (charge < 0.8) return;
+    const R = radius();
+    const pulse = animOn() ? 1 + Math.sin(tNow * 6) * .015 * (charge / 100) : 1;
+    x.save();
+    x.globalAlpha = .16 + charge / 100 * .22;
+    const g = x.createRadialGradient(plate.x, plate.y, R * .2, plate.x, plate.y, R * pulse);
+    const hot = charge >= SPARK_AT;
+    g.addColorStop(0, hot ? "rgba(241,109,91,.55)" : "rgba(220,210,245,.6)");
+    g.addColorStop(1, "rgba(220,210,245,0)");
+    x.fillStyle = g; x.beginPath(); x.arc(plate.x, plate.y, R * pulse, 0, 6.3); x.fill();
+    x.globalAlpha = .5 + charge / 100 * .4;
+    x.strokeStyle = hot ? "#F16D5B" : "#8E7CC3"; x.lineWidth = 2.2; x.setLineDash([7, 9]);
+    x.lineDashOffset = animOn() ? -tNow * 22 : 0;
+    x.beginPath(); x.arc(plate.x, plate.y, R * pulse, 0, 6.3); x.stroke();
+    x.setLineDash([]);
+    x.globalAlpha = .55; x.lineWidth = 2;
+    x.beginPath(); x.arc(plate.x, plate.y, CATCH_D + 8, 0, 6.3); x.stroke();
+    x.restore();
+    // 放电预警
+    if (sparkWarn > 0.02) {
+      x.save();
+      x.globalAlpha = .35 + .5 * (animOn() ? Math.abs(Math.sin(tNow * 14)) : 1);
+      x.strokeStyle = "#F16D5B"; x.lineWidth = 4 + sparkWarn * 4;
+      x.beginPath(); x.arc(plate.x, plate.y, R * (1 - sparkWarn * .18), 0, 6.3); x.stroke();
+      x.fillStyle = "#F16D5B"; x.font = "900 14px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillText("要放电了！", plate.x, plate.y - R - 12);
+      x.restore();
+    }
+  }
+  function drawPlate() {
+    const load = plate.load || 0;
+    x.save();
+    x.translate(plate.x, plate.y + load * 4 + plate.bob * 2);
+    x.rotate(plate.rot);
+    // 压在猫背上的凹陷阴影
+    if ((touching || keyTouch) && onCat(plate.x, plate.y)) {
+      x.fillStyle = "rgba(34,34,34,.16)";
+      x.beginPath(); x.ellipse(0, 16, 46, 14, 0, 0, 6.3); x.fill();
+    }
+    // 堆积（板下层先画）
+    attached.forEach(q => {
+      const s = slotPos(q.slot);
+      x.save(); x.translate(s.x, s.y); x.rotate(q.t * .6 + q.seed);
+      if (q.paper) {
+        x.fillStyle = "#fff"; x.strokeStyle = "#222"; x.lineWidth = 1.8;
+        ML.rr(x, -9, -8, 18, 15, 2); x.fill(); x.stroke();
+      } else {
+        x.strokeStyle = "rgba(232,168,87,.95)"; x.lineWidth = 1.3;
+        for (let i = 0; i < 6; i++) {
+          const a = q.seed + i * 1.05;
+          x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(a) * q.r * 1.1, Math.sin(a) * q.r * 1.1); x.stroke();
+        }
+        x.fillStyle = "rgba(255,248,236,.95)"; x.beginPath(); x.arc(0, 0, q.r * .5, 0, 6.3); x.fill();
+      }
+      x.restore();
+    });
+    // 手柄
+    x.fillStyle = "#C98A4B"; x.strokeStyle = "#222"; x.lineWidth = 2.6;
+    ML.rr(x, -8, 24, 16, 34, 7); x.fill(); x.stroke();
+    // 板面
+    const grad = x.createLinearGradient(-40, -30, 40, 30);
+    grad.addColorStop(0, "#DCD2F5"); grad.addColorStop(1, wet > 0 ? "#BFD4F0" : "#B9A6E4");
+    x.fillStyle = grad;
+    ML.rr(x, -42, -30, 84, 58, 16); x.fill(); x.stroke();
+    x.strokeStyle = "rgba(255,255,255,.6)"; x.lineWidth = 2.4;
+    x.beginPath(); x.moveTo(-30, -20); x.lineTo(30, -20); x.stroke();
+    // 电荷符号
+    x.fillStyle = charge > 20 ? "#F5E66B" : "rgba(255,255,255,.5)";
+    x.strokeStyle = "#222"; x.lineWidth = 1.6;
+    [[-18, 2], [6, -6], [16, 10]].forEach((p, i) => {
+      if (charge > (i + 1) * 22) {
+        x.save(); x.translate(p[0], p[1]);
+        x.beginPath(); x.moveTo(2, -8); x.lineTo(-4, 1); x.lineTo(0, 1); x.lineTo(-2, 8); x.lineTo(4, -1); x.lineTo(0, -1); x.closePath();
+        x.fill(); x.stroke(); x.restore();
+      }
+    });
+    // 满堆提醒
+    if (attached.length >= CLUSTER - 3) {
+      x.save();
+      x.fillStyle = "#F16D5B"; x.font = "900 13px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillText("抬离猫背 · 快速左右甩 → 抖落", 0, -44);
+      x.restore();
+    }
+    x.restore();
+  }
+  function drawParts() {
+    parts.forEach(p => {
+      x.save(); x.globalAlpha = clamp((1 - p.life / p.max) * 1.4, 0, 1);
+      x.translate(p.x, p.y); x.rotate(p.rot); x.scale(p.s, p.s);
+      if (p.kind === "spark") {
+        x.strokeStyle = "#F5E66B"; x.lineWidth = 2.4;
+        x.beginPath(); x.moveTo(-7, 0); x.lineTo(7, 0); x.moveTo(0, -7); x.lineTo(0, 7); x.stroke();
+      } else if (p.kind === "drip") {
+        x.fillStyle = "rgba(109,143,214,.9)";
+        x.beginPath(); x.ellipse(0, 0, 2.6, 4.4, 0, 0, 6.3); x.fill();
+      } else if (p.kind === "star") {
+        x.fillStyle = "#F5E66B"; x.strokeStyle = "#222"; x.lineWidth = 1.4;
+        x.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const a = i * Math.PI / 4, rr = i % 2 ? 4 : 10;
+          x[i ? "lineTo" : "moveTo"](Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        x.closePath(); x.fill(); x.stroke();
+      } else if (p.kind === "catch") {
+        x.fillStyle = "rgba(232,168,87,.9)";
+        x.beginPath(); x.arc(0, 0, 3, 0, 6.3); x.fill();
+      } else {
+        x.strokeStyle = "rgba(140,120,200,.9)"; x.lineWidth = 1.6;
+        x.beginPath(); x.moveTo(-4, -4); x.lineTo(4, 4); x.stroke();
+      }
+      x.restore();
+    });
+  }
+  function drawFloats() {
+    floats.forEach(f => {
+      x.save(); x.globalAlpha = clamp(f.life * 1.5, 0, 1);
+      x.font = "900 16px 'PingFang SC',Arial"; x.textAlign = "center";
+      x.fillStyle = f.c; x.strokeStyle = "#FAF8F3"; x.lineWidth = 4;
+      x.strokeText(f.t, f.x, f.y); x.fillText(f.t, f.x, f.y); x.restore();
+    });
+  }
+  function drawGauge() {
+    const bx = 14, by = 12, bw = 158, bh = 22;
+    x.save();
+    x.fillStyle = "rgba(255,255,255,.94)"; x.strokeStyle = "#222"; x.lineWidth = 2.4;
+    ML.rr(x, bx, by, bw, bh, 11); x.fill(); x.stroke();
+    const seg = 10, cw = (bw - 8) / seg;
+    for (let i = 0; i < seg; i++) {
+      const th = (i + 1) * 10;
+      if (charge >= th - 0.001) {
+        x.fillStyle = th >= SPARK_AT ? "#F16D5B" : th > 60 ? "#F5E66B" : "#BFE4D0";
+        ML.rr(x, bx + 4 + i * cw, by + 4, cw - 3, bh - 8, 3); x.fill();
+      }
+    }
+    x.fillStyle = "#88847D"; x.font = "800 10px Arial"; x.textAlign = "left";
+    x.fillText("静电 " + Math.round(charge), bx + 2, by + bh + 13);
+    // 放电阈值刻度
+    x.strokeStyle = "#F16D5B"; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(bx + 4 + cw * SPARK_AT / 10, by + 1); x.lineTo(bx + 4 + cw * SPARK_AT / 10, by + bh - 1); x.stroke();
+    // 右侧模式信息
+    x.textAlign = "right"; x.fillStyle = "#222"; x.font = "900 13px 'PingFang SC',Arial";
+    if (mode === "timed") x.fillText("剩 " + Math.max(0, Math.ceil(timeLeft)) + " 秒", WW - 16, 26);
+    else x.fillText("第 " + level + " 关 · 还需 " + Math.max(0, target - made), WW - 16, 26);
+    x.font = "800 11px Arial"; x.fillStyle = "#88847D";
+    x.fillText("毛球 " + caught + " · 分 " + score, WW - 16, 42);
+    x.restore();
+  }
+  function drawFlash() {
+    if (whiteFlash > 0) { x.fillStyle = "rgba(255,255,255," + (.65 * whiteFlash) + ")"; x.fillRect(0, 0, W, H); }
+    if (blueFlash > 0) { x.fillStyle = "rgba(109,143,214," + (.4 * blueFlash) + ")"; x.fillRect(0, 0, W, H); }
+    if (wet > 0) {
+      const g = x.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "rgba(109,143,214," + (.3 * wet) + ")"); g.addColorStop(.4, "rgba(109,143,214,0)");
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+    }
+  }
+
+  /* ---------------- HUD ---------------- */
+  function hud() {
+    const timed = mode === "timed";
+    const v = {
+      k1: timed ? "时间" : "关卡", h1: timed ? Math.max(0, Math.ceil(timeLeft)) : level,
+      k2: "静电", h2: Math.round(charge),
+      k3: timed ? "毛球" : "剩余", h3: timed ? caught : Math.max(0, target - made),
+      k4: "得分", h4: score
+    };
+    for (const key in v) if (hudCache[key] !== v[key]) { hudCache[key] = v[key]; $("#" + key).textContent = v[key]; }
+    const R = radius();
+    const gv = $("#stGaugeV"), bar = $("#stGauge");
+    const txt = Math.round(charge) + (charge >= SPARK_AT ? " 过冲" : "");
+    if (hudCache.gv !== txt) { hudCache.gv = txt; gv.textContent = txt; }
+    bar.style.width = clamp(charge, 0, 100) + "%";
+    bar.className = charge >= SPARK_AT ? "over" : charge > 55 ? "hi" : "";
+    badge("stRub", rubNow ? "+" + rubRate.toFixed(1) + "/秒" : (charge > 0.5 ? "漏电中" : "没上手"),
+      rubNow ? "rub" : charge > 0.5 ? "warn" : "idle");
+    badge("stRadius", Math.round(R), R > 150 ? "rub" : "");
+    badge("stCluster", attached.length + "/" + CLUSTER, attached.length >= CLUSTER - 3 ? "warn" : attached.length ? "full" : "idle");
+    const fv = Math.abs(plate.tvx);
+    badge("stFling", fv > FLICK_V ? "甩 " + flickAcc + "/" + FLICK_DIR : attached.length ? "再快些" : "板上没毛",
+      flickAcc ? "rub" : fv > FLICK_V ? "full" : "idle");
+    badge("stZone", onCat(plate.x, plate.y) ? "压在猫背" : "在半空", onCat(plate.x, plate.y) ? "rub" : "full");
+    badge("stCombo", "×" + (1 + Math.min(combo, 6) * 0.15).toFixed(1), combo >= 3 ? "rub" : "");
+    badge("stMode", mode === "goal" ? "目标 第" + level + "关" : "限时", "full");
+  }
+  function badge(id, text, cls) {
+    const el = $("#" + id), t = String(text);
+    if (hudCache[id] !== t) { hudCache[id] = t; el.textContent = t; }
+    const c = "st-badge " + (cls || "");
+    if (el.className !== c) el.className = c;
+  }
+
+  /* ---------------- 输入 ---------------- */
+  function toPt(e) {
+    const r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / Math.max(r.width, 1) * WW, y: (e.clientY - r.top) / Math.max(r.height, 1) * WH };
+  }
+  let activeId = null;
+  stage.addEventListener("pointerdown", e => {
+    if (e.target.closest(".ov")) {
+      if (e.target.closest("a,button")) return;
+      if (mac.get() === "READY") { e.preventDefault(); start(); }
+      else if (mac.get() === "PAUSED") { e.preventDefault(); togglePause(false); }
+      return;
+    }
+    e.preventDefault();
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    activeId = e.pointerId;
+    const p = toPt(e);
+    touching = true; px = p.x; py = p.y; lastPX = p.x; lastPY = p.y;
+    rubDir = 0; rubExtreme = p.x;
+    plate.x = p.x; plate.y = p.y; prevTX = p.x; pvxPeak = 0; plate.tvx = 0;
+    pendGain = 0; lastEvT = performance.now();
+    sound.tap();
+  });
+  stage.addEventListener("pointermove", e => {
+    if (!touching || (activeId !== null && e.pointerId !== activeId)) return;
+    e.preventDefault();
+    const now = performance.now();
+    let dt = (now - lastEvT) / 1000;
+    lastEvT = now;
+    if (!isFinite(dt) || dt <= 0) dt = 1 / 60;
+    dt = clamp(dt, 1 / 240, 1 / 25);          // 换算成真实事件间隔，摩擦手感与刷新率无关
+    const p = toPt(e);
+    pendGain += ingest(p.x, p.y, dt, true);
+  });
+  function endTouch(e) {
+    if (e && activeId !== null && e.pointerId !== activeId) return;
+    touching = false; activeId = null; rubDir = 0; rubTurns = 0; rubExtreme = px;
+  }
+  stage.addEventListener("pointerup", endTouch);
+  stage.addEventListener("pointercancel", endTouch);
+  window.addEventListener("blur", () => {
+    touching = false; keyTouch = false; activeId = null;
+    keys.left = keys.right = keys.up = keys.down = false;
+  });
+  document.addEventListener("dragstart", e => e.preventDefault());
+  cv.addEventListener("contextmenu", e => e.preventDefault());
+
+  document.addEventListener("keydown", e => {
+    const L = e.code === "ArrowLeft" || e.key === "ArrowLeft" || e.key === "a" || e.key === "A";
+    const Rt = e.code === "ArrowRight" || e.key === "ArrowRight" || e.key === "d" || e.key === "D";
+    const Up = e.code === "ArrowUp" || e.key === "ArrowUp" || e.key === "w" || e.key === "W";
+    const Dn = e.code === "ArrowDown" || e.key === "ArrowDown" || e.key === "s" || e.key === "S";
+    if (L || Rt || Up || Dn) {
+      e.preventDefault();
+      if (L) keys.left = true;
+      if (Rt) keys.right = true;
+      if (Up) keys.up = true;
+      if (Dn) keys.down = true;
+      keyTouch = true;
+      return;
+    }
+    if (e.code === "Space" || e.key === " ") {
+      e.preventDefault();
+      if (e.repeat) return;
+      if (mac.get() === "READY" || mac.get() === "FINISHED") start();
+      else if (mac.get() === "PAUSED") togglePause(false);
+    }
+    if ((e.key === "f" || e.key === "F") && mac.get() === "PLAYING") dump();
+  });
+  document.addEventListener("keyup", e => {
+    const L = e.code === "ArrowLeft" || e.key === "ArrowLeft" || e.key === "a" || e.key === "A";
+    const Rt = e.code === "ArrowRight" || e.key === "ArrowRight" || e.key === "d" || e.key === "D";
+    const Up = e.code === "ArrowUp" || e.key === "ArrowUp" || e.key === "w" || e.key === "W";
+    const Dn = e.code === "ArrowDown" || e.key === "ArrowDown" || e.key === "s" || e.key === "S";
+    if (L) keys.left = false;
+    if (Rt) keys.right = false;
+    if (Up) keys.up = false;
+    if (Dn) keys.down = false;
+    if (!keys.left && !keys.right && !keys.up && !keys.down) keyTouch = false;
+  });
+
+  /* ---------------- 结算 / 存档 ---------------- */
+  const EXTRA_KEY = "ml-static";
+  let extra = { levelBest: 0, catchBest: 0, chargeBest: 0 };
+  try { extra = Object.assign(extra, JSON.parse(localStorage.getItem(EXTRA_KEY) || "{}") || {}); } catch (e) {}
+  function saveExtra() { try { localStorage.setItem(EXTRA_KEY, JSON.stringify(extra)); } catch (e) {} }
+  function ratingFor() {
+    if (mode === "timed") return score >= 900 ? "S" : score >= 620 ? "A" : score >= 340 ? "B" : "C";
+    return level >= 6 ? "S" : level >= 4 ? "A" : level >= 2 ? "B" : "C";
+  }
+  function finish() {
+    if (mac.get() === "FINISHED") return;
+    mac.set("FINISHED"); touching = false;
+    const r = ratingFor();
+    const color = r === "S" ? "#F16D5B" : r === "C" ? "#BFE4D0" : "#F5E66B";
+    const TITLE = {
+      timed: { S: "摩擦大师·猫毛清零", A: "静电很稳的一局", B: "还得再搓快点", C: "猫毛还在空中飘" },
+      goal: { S: "过关到第 " + level + " 关", A: "过了 " + (level - 1) + " 关", B: "刚上手就断电", C: "第一关都没吸满" }
+    };
+    let rec = { best: score, isNew: false, plays: 1 };
+    try { rec = ML.record("static", score); } catch (e) {}
+    try { ML.patchStats({ interactions: caught, points: score, gamesPlayed: 1 }); } catch (e) {}
+    extra.catchBest = Math.max(extra.catchBest || 0, caught);
+    extra.chargeBest = Math.max(extra.chargeBest || 0, Math.round(maxCharge));
+    extra.levelBest = Math.max(extra.levelBest || 0, level);
+    saveExtra();
+    $("#endRating").textContent = r;
+    $("#endRating").style.background = color;
+    $("#endRating").style.color = color === "#F16D5B" ? "#fff" : "#222";
+    $("#endTitle").textContent = TITLE[mode][r];
+    $("#endNew").innerHTML = rec.isNew && score > 0 ? '<span class="newrec">新纪录</span>' : "";
+    $("#endDesc").textContent = (mode === "timed" ? "60 秒到" : "第 " + level + " 关时间用完") + " · " +
+      (rec.isNew && score > 0 ? "刷新历史最佳" : "历史最佳 " + rec.best);
+    $("#stCaught").textContent = caught;
+    $("#stStreak").textContent = rubBest.toFixed(1) + "s";
+    $("#stPeak").textContent = Math.round(maxCharge);
+    $("#stLeft").textContent = Math.max(0, target - made);
+    $("#stLevel").textContent = "第 " + level + " 关 · 甩落 " + dumped + " 次 · 纸片 " + papers;
+    $("#stBest").textContent = Math.max(rec.best, score) + "（最高过关 第" + extra.levelBest + "关）";
+    $("#endHint").textContent = "本机历史最佳 " + bestSafe() + " · 玩过 " + playsSafe() + " 局。摩擦要左右来回，按住不动只会被漏电。";
+    $("#endOv").classList.remove("hide");
+    r === "S" || r === "A" ? sound.win() : sound.lose();
+    refreshBest();
+    hud();
+  }
+  function bestSafe() { try { return ML.best("static"); } catch (e) { return 0; } }
+  function playsSafe() { try { return ML.plays("static"); } catch (e) { return 0; } }
+  function refreshBest() { $("#bestTag").textContent = "最佳 " + bestSafe(); }
+
+  /* ---------------- 暂停 / 开始 / 重开 ---------------- */
+  function togglePause(force) {
+    if (mac.get() === "PLAYING" && force !== false) {
+      mac.set("PAUSED"); touching = false; $("#pauseOv").classList.remove("hide");
+    } else if (mac.get() === "PAUSED") {
+      mac.set("PLAYING"); last = performance.now(); $("#pauseOv").classList.add("hide");
+    }
+  }
+  function fillStage(density) {
+    hairs = [];
+    const want = density || (mode === "goal" ? airWant(level) : 26);
+    for (let i = 0; i < want; i++) spawnHair(i % 9 === 8);
+  }
+  function reset() {
+    level = 1; made = 0; target = mode === "goal" ? goalTarget(1) : 0;
+    timeLeft = mode === "goal" ? GOAL_TIME(1) : ROUND_TIME;
+    charge = 0; maxCharge = 0; score = 0; caught = 0; papers = 0; dumped = 0; wet = 0;
+    combo = 0; comboT = 0; rubStreak = 0; rubBest = 0; rubNow = false; rubRate = 0; rubHeat = 0;
+    rubDir = 0; rubTurns = 0; rubExtreme = HOME.x; flickAcc = 0; flickDir = 0; flickCool = 0; pvxPeak = 0;
+    sparkWarn = 0; miniSpark = 0; sparkCount = 0; towelTimer = mode === "goal" ? 5 : 7.5; paperTimer = 6;
+    touching = false; keyTouch = false; activeId = null; pendGain = 0;
+    keyY = RUB_Y; keys.left = keys.right = keys.up = keys.down = false;
+    attached = []; towel = null; parts = []; floats = [];
+    plate.x = HOME.x; plate.y = HOME.y; plate.vx = 0; plate.tvx = 0; prevTX = HOME.x;
+    plate.load = 0; plate.rot = 0; plate.bob = 0;
+    px = HOME.x; py = HOME.y; lastPX = HOME.x; lastPY = HOME.y;
+    whiteFlash = 0; blueFlash = 0; shake = 0;
+    bannerEl.innerHTML = ""; bannerT = 0;
+    fillStage();
+    $("#startOv").classList.add("hide"); $("#pauseOv").classList.add("hide"); $("#endOv").classList.add("hide");
+    for (const key in hudCache) delete hudCache[key];
+    hud();
+  }
+  function start() {
+    if (mac.get() !== "READY" && mac.get() !== "FINISHED") return;
+    reset();
+    mac.set("PLAYING");
+    last = performance.now();
+    say(mode === "goal" ? "目标 " + target + " 根：先搓满电再抬起来吸" : "先搓满电，再把板子抬进毛球堆", "yel");
+  }
+
+  /* ---------------- 按钮 ---------------- */
+  $("#startBtn").onclick = start;
+  $("#pauseBtn").onclick = () => togglePause();
+  $("#resumeBtn").onclick = () => togglePause(false);
+  $("#retryBtn").onclick = () => { reset(); mac.set("PLAYING"); last = performance.now(); say("新的一局，先搓满电", "yel"); };
+  $("#dumpBtn").onclick = () => { dump(); };
+  $("#goalBtn").onclick = () => { setMode(mode === "timed" ? "goal" : "timed", true); switchModeRun(); };
+  $("#modeSwap").onclick = () => { setMode(mode === "timed" ? "goal" : "timed", true); switchModeRun(); };
+  $$("#modeBtns .st-mode").forEach(b => b.onclick = () => {
+    if (b.dataset.m === mode) { sound.tap(); say("已经在这" + (mode === "goal" ? "个模式了：目标吸满过关" : "个模式了：60 秒冲分"), "yel"); return; }
+    setMode(b.dataset.m, true);
+    switchModeRun();
+  });
+  ML.bindPause(mac, togglePause);
+  mac.on(st => { if (st === "FINISHED") touching = false; });
+
+  /* ---------------- 宠物配置（毛色跟随，画面仍全部程序化） ---------------- */
+  ML.pet().then(cfg => {
+    petCfg = cfg;
+    if (cfg && cfg.furColor) FUR = cfg.furColor;
+    $("#goalTag").textContent = mode === "goal" ? "第 1 关需 " + goalTarget(1) + " 根" : "目标 —";
+  }).catch(() => {});
+
+  window.addEventListener("resize", size);
+  window.addEventListener("orientationchange", size);
+  if (window.ResizeObserver) { try { new ResizeObserver(size).observe(stage); } catch (e) {} }
+
+  /* ---------------- 启动 ---------------- */
+  refreshBest();
+  setMode("timed", true);
+  fillStage();
+  size(); hud(); draw();
+  last = performance.now();
+  requestAnimationFrame(loop);
+
+  /* ---------------- 调试钩子 ---------------- */
+  /* simRub：把「来回摩擦」喂进和真实指针完全相同的 ingest/applyRub 通道，
+     并连同放电规则一起跑（充到 88 一样会「啪」）。
+     opt = { dur 秒, speed 来回次数/秒, amp 幅度逻辑像素, dt, x, y } */
+  function simRub(opt) {
+    const o = opt || {};
+    const dur = o.dur === undefined ? 1.5 : o.dur;
+    const freq = o.speed === undefined ? 2.6 : o.speed;
+    const amp = o.amp === undefined ? 120 : o.amp;
+    const dt = o.dt === undefined ? 1 / 60 : o.dt;
+    if (mac.get() === "READY" || mac.get() === "FINISHED") start();
+    const sx = o.x === undefined ? CAT.cx : o.x;
+    const sy = o.y === undefined ? RUB_Y : o.y;
+    const wasTouching = touching, wasKey = keyTouch;
+    touching = true; keyTouch = false;
+    px = sx; py = sy; lastPX = sx; lastPY = sy; rubDir = 0; rubExtreme = sx; rubTurns = 0;
+    prevTX = sx; pvxPeak = 0; plate.tvx = 0;
+    const charged = charge, sparks0 = sparkCount;
+    let t = 0, frames = 0, sum = 0;
+    while (t < dur) {
+      const nx = clamp(sx + Math.sin(t * Math.PI * 2 * freq) * amp, 40, WW - 40);
+      const g = ingest(nx, sy, dt, true);
+      sum += g;
+      applyRub(dt, g);
+      movePlate(dt * .35);
+      stepHairs(dt); stepSpark(dt); stepFx(dt);
+      frames++; t += dt;
+    }
+    touching = wasTouching; keyTouch = wasKey;
+    px = plate.x; py = plate.y;
+    hud(); draw();
+    return {
+      frames, gain: Math.round(sum * 100) / 100,
+      chargeFrom: Math.round(charged * 10) / 10, chargePerSec: Math.round(sum / (frames * dt) * 10) / 10,
+      charge: Math.round(charge * 10) / 10, sparks: sparkCount - sparks0,
+      turns: rubTurns, rubBest: Math.round(rubBest * 100) / 100, caught, score
+    };
+  }
+  /* simFlick：模拟「抬到半空快速左右甩」这个抖落手势，喂进和真实手指同样的测速通道。
+     opt = { dur 秒, speed 来回次数/秒, amp 幅度逻辑像素, dt, x, y } */
+  function simFlick(opt) {
+    const o = opt || {};
+    const dur = o.dur === undefined ? .6 : o.dur;
+    const freq = o.speed === undefined ? 4 : o.speed;
+    const amp = o.amp === undefined ? 90 : o.amp;
+    const dt = o.dt === undefined ? 1 / 60 : o.dt;
+    if (mac.get() === "READY" || mac.get() === "FINISHED") start();
+    const wasTouching = touching, wasKey = keyTouch;
+    touching = true; keyTouch = false;
+    const sx = o.x === undefined ? CAT.cx : o.x;
+    const sy = o.y === undefined ? 240 : o.y;
+    px = sx; py = sy; prevTX = sx; pvxPeak = 0; plate.tvx = 0; rubDir = 0; rubExtreme = sx;
+    const before = attached.length;
+    let t = 0, frames = 0, peak = 0;
+    while (t < dur) {
+      px = clamp(sx + Math.sin(t * Math.PI * 2 * freq) * amp, 30, WW - 30);
+      movePlate(dt);
+      peak = Math.max(peak, Math.abs(plate.tvx));
+      stepHairs(dt); stepFx(dt);
+      frames++; t += dt;
+    }
+    touching = wasTouching; keyTouch = wasKey;
+    px = plate.x; py = plate.y;
+    hud(); draw();
+    return {
+      frames, peakTvx: Math.round(peak), threshold: FLICK_V,
+      attachedBefore: before, attachedAfter: attached.length,
+      flung: before - attached.length, dumpedTimes: dumped
+    };
+  }
+  window.__staticDebug = {
+    state: () => ({
+      mac: mac.get(), mode, charge: Math.round(charge * 10) / 10, maxCharge: Math.round(maxCharge),
+      radius: Math.round(radius()), score, caught, made, papers, dumped,
+      level, target, remaining: Math.max(0, target - made), timeLeft: Math.round(timeLeft * 10) / 10,
+      attached: attached.length, air: hairs.length, combo, rubNow,
+      rubStreak: Math.round(rubStreak * 100) / 100, rubBest: Math.round(rubBest * 100) / 100,
+      rubRate: Math.round(rubRate * 10) / 10, rubTurns, sparks: sparkCount, sparkWarn: Math.round(sparkWarn * 100) / 100,
+      plate: { x: Math.round(plate.x), y: Math.round(plate.y), vx: Math.round(plate.vx), tvx: Math.round(plate.tvx) },
+      flickAcc, flickReady: attached.length > 0 && Math.abs(plate.tvx) > FLICK_V && !onCat(plate.x, plate.y),
+      onCat: onCat(plate.x, plate.y), touching, towel: !!towel,
+      best: bestSafe(), plays: playsSafe(), levelBest: extra.levelBest,
+      W, H, WW, WH, fit: Math.round(fit * 1000) / 1000
+    }),
+    charge: () => charge,
+    counts: () => ({ caught, score, attached: attached.length, air: hairs.length, papers, made, level }),
+    mode: next => {
+      if (next === undefined) return mode;
+      if (next !== mode) { setMode(next, true); switchModeRun(); }
+      return mode;
+    },
+    hairs: n => {
+      if (n === undefined) return hairs.map(h => ({ x: Math.round(h.x), y: Math.round(h.y), paper: h.paper, r: Math.round(h.r) }));
+      const air = hairs.filter(h => !h.paper).length;
+      if (n > air) for (let i = 0; i < n - air; i++) spawnHair(false);
+      else for (let i = 0; i < air - n; i++) { const k = hairs.findIndex(h => !h.paper); if (k < 0) break; hairs.splice(k, 1); }
+      return hairs.length;
+    },
+    start, reset, step: (dt, n) => {
+      const d = dt === undefined ? 1 / 60 : dt, c = n === undefined ? 1 : n;
+      if (mac.get() === "READY") start();
+      for (let i = 0; i < c; i++) update(d);
+      draw();
+      return { charge: Math.round(charge * 10) / 10, score, caught, timeLeft: Math.round(timeLeft * 10) / 10, air: hairs.length };
+    },
+    render: draw,
+    rub: simRub,
+    flick: simFlick,
+    forceCharge: v => {
+      charge = clamp(+v || 0, 0, 100); maxCharge = Math.max(maxCharge, charge);
+      sparkWarn = 0; hud(); return charge;
+    },
+    forceSpark: kind => { if (mac.get() === "READY") start(); doSpark(kind === "mini" ? "mini" : "max"); return { charge, air: hairs.length }; },
+    forceCatch: n => {
+      const want = Math.min(n === undefined ? 1 : n, hairs.length);
+      let got = 0;
+      for (let i = 0; i < want; i++) {
+        const h = hairs.shift(); if (!h) break;
+        h.x = plate.x; h.y = plate.y; stick(h); got++;
+      }
+      hud(); return { got, caught, attached: attached.length, score };
+    },
+    dump,
+    forceTowel: () => { spawnTowel(); return towel && Math.round(towel.x); },
+    forcePaper: n => { for (let i = 0; i < (n || 1); i++) spawnHair(true); return hairs.length; },
+    setLevel: n => { level = Math.max(1, n | 0); made = 0; target = goalTarget(level); timeLeft = GOAL_TIME(level); fillStage(); hud(); return { level, target, timeLeft }; },
+    setTime: v => { timeLeft = Math.max(0, +v || 0); hud(); return timeLeft; },
+    moveTo: (nx, ny) => { plate.x = clamp(nx, 22, WW - 22); plate.y = clamp(ny, 22, WH - 22); px = plate.x; py = plate.y; hud(); return { x: plate.x, y: plate.y }; },
+    finish: () => { if (mac.get() !== "FINISHED") finish(); return { score, rating: ratingFor(), mode }; },
+    togglePause,
+    constants: { WW, WH, CLUSTER, SPARK_AT, ROUND_TIME, FLICK_V, FLICK_DIR, CATCH_D, BASE_R, R_GAIN, LEAK, IDLE_LEAK,
+      RUB_K, RUB_TURN, RUB_BACK, RUB_EPS, RUB_HEAT, RUB_VMAX, RUB_Y, PULL_MIN, PULL_MAX }
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F3">
+<title>猫语翻译机 — MOMO 事务所</title>
+<meta name="description" content="人话转喵语、喵语猜意：确定可复现的翻译规则 + 16 条题库 + WebAudio 合成喵叫 + 真实 PNG 导出。">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/game.css">
+<style>
+  /* 本页专属：全部 mt- 前缀，不动共享 CSS */
+  [hidden]{display:none!important}
+  .mt-wrap{max-width:900px}
+  .mt-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+  .mt-col{min-width:0}
+  .mt-stage{position:relative;border:var(--bd);border-radius:16px;box-shadow:var(--sh);overflow:hidden;background:#FAF8F3;
+    max-width:460px;margin:0 auto;touch-action:manipulation}
+  #mtCv{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:600/760;touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent}
+  .mt-corner{position:absolute;right:8px;top:8px;background:var(--card);border:var(--bd);border-radius:999px;
+    padding:2px 9px;font-size:9px;font-weight:900;letter-spacing:.14em;box-shadow:2px 2px 0 rgba(34,34,34,.25);pointer-events:none}
+  .mt-note{font-size:11px;line-height:1.55;color:var(--mut);margin:8px 0 0;min-height:15px;overflow-wrap:anywhere}
+  .mt-note.warn{color:var(--red);font-weight:700}
+  .mt-mini{font-size:11px;color:var(--mut);line-height:1.55;margin-top:8px}
+  .mt-tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .mt-tab{border:var(--bd);border-radius:999px;background:#fff;padding:9px 16px;font-size:13px;font-weight:900;
+    letter-spacing:.06em;box-shadow:3px 3px 0 rgba(34,34,34,.18);min-height:44px;touch-action:manipulation}
+  .mt-tab.sel{background:var(--yel);box-shadow:3px 3px 0 var(--ink)}
+  .mt-sec{padding:14px;min-width:0}
+  .mt-sec .label{display:block;margin-bottom:10px}
+  .mt-area{width:100%;border:var(--bd);border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;line-height:1.6;
+    background:#fff;min-height:86px;resize:vertical}
+  .mt-out{margin-top:10px;border:var(--bd);border-radius:12px;background:var(--bg);padding:10px 12px;min-height:62px}
+  .mt-meow{font-size:18px;font-weight:900;line-height:1.55;letter-spacing:.04em;overflow-wrap:anywhere;word-break:normal}
+  .mt-marks{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  .mt-marks span{border:1.5px solid var(--ink);border-radius:7px;background:#fff;font-size:11px;font-weight:900;padding:1px 5px;line-height:1.5}
+  .mt-marks span i{font-style:normal;color:var(--mut);font-size:10px}
+  .mt-mood{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  .mt-rule{font-size:11px;color:var(--mut);line-height:1.6;margin-top:8px;overflow-wrap:anywhere}
+  .mt-expr{width:52px;height:52px;padding:3px;overflow:hidden}
+  .mt-expr img{width:100%;height:100%;object-fit:contain}
+  .mt-expr.fb{display:grid;place-items:center;font-size:15px;font-weight:900;background:var(--bg)}
+  .mt-choices{display:grid;grid-template-columns:minmax(0,1fr);gap:9px;margin-top:12px}
+  .mt-choices .choice{margin:0}
+  .choice.right{background:var(--mint)}
+  .choice.wrongpick{background:var(--red);color:#fff}
+  .choice.dim{opacity:.5}
+  .mt-qhead{border:var(--bd);border-radius:12px;background:var(--bg);padding:10px 12px}
+  .mt-qmeow{font-size:17px;font-weight:900;line-height:1.6;overflow-wrap:anywhere}
+  .mt-qhint{font-size:11px;color:var(--mut);margin-top:4px}
+  .mt-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .mt-actions .btn{flex:1 1 auto}
+  .mt-actions [data-icon]{display:grid;place-items:center;width:18px;height:18px;flex:none}
+  .mt-actions svg{width:18px;height:18px;display:block;flex:none}
+  .mt-rules li{margin:6px 0;padding-left:14px;position:relative;font-size:12.5px;line-height:1.6}
+  .mt-rules li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;background:var(--yel);border:1px solid var(--ink)}
+  .mt-rules code{background:var(--bg);border:1px solid rgba(34,34,34,.25);border-radius:6px;padding:0 5px;font-size:12px}
+  .mt-tl{position:relative;padding-left:16px;margin-top:6px}
+  .mt-tl::before{content:"";position:absolute;left:4px;top:2px;bottom:6px;width:2px;background:rgba(34,34,34,.2)}
+  .mt-tl div{position:relative;font-size:12.5px;line-height:1.55;margin:0 0 9px;overflow-wrap:anywhere}
+  .mt-tl div::before{content:"";position:absolute;left:-15px;top:6px;width:8px;height:8px;background:var(--yel);border:1.5px solid var(--ink);border-radius:50%}
+  .mt-tl b{font-weight:900}
+  .mt-st{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 4px}
+  .mt-st div{border:var(--bd);border-radius:12px;background:var(--bg);padding:8px 6px;display:flex;flex-direction:column;gap:2px;min-width:0}
+  .mt-st b{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
+  .mt-st span{font-size:10px;letter-spacing:.1em;color:var(--mut);font-weight:700}
+  .newrec{display:inline-block;background:var(--red);color:#fff;border:var(--bd);border-radius:999px;padding:2px 12px;
+    font-size:11px;font-weight:900;letter-spacing:.1em;margin-bottom:6px}
+  .ov{touch-action:pan-y}
+  .ov .panel{max-height:100%;overflow:auto;text-align:left}
+  .ov .panel h2{text-align:center}
+  @media(min-width:860px){
+    .mt-grid{grid-template-columns:minmax(0,390px) minmax(0,1fr);align-items:start;gap:18px}
+    .mt-left{position:sticky;top:78px}
+  }
+  @media(max-height:520px){
+    /* 只缩宽度，不改 aspect-ratio：比例永远等于 600/760，所见=所得 */
+    .mt-stage{max-width:min(420px,calc((100vh - 96px) * 600 / 760))}
+  }
+</style>
+</head>
+<body data-page="meowtalk" data-base="../">
+
+<div class="g-wrap mt-wrap">
+  <div class="g-top">
+    <a class="icon-btn" href="../games.html" aria-label="返回"><span data-icon="back"></span></a>
+    <div class="title">猫语翻译机<small>互动台 · 人话 ↔ 喵语 · <span id="whoName">MOMO</span> 配音</small></div>
+    <span class="tag yel" id="moodTag">平静路过</span>
+  </div>
+
+  <div class="mt-tabs">
+    <button class="mt-tab sel" id="tabTr">人话转喵语</button>
+    <button class="mt-tab" id="tabQz">喵语猜意</button>
+    <button class="mt-tab" id="tabRules">翻译规则</button>
+  </div>
+
+  <div class="hud" id="hudTr">
+    <div class="chip"><div class="k">音节</div><div class="v" id="cSyl">0</div></div>
+    <div class="chip yel"><div class="k">心情</div><div class="v" id="cMood" style="font-size:14px">—</div></div>
+    <div class="chip"><div class="k">规则命中</div><div class="v" id="cHit" style="font-size:14px">0/0</div></div>
+    <div class="chip"><div class="k">形象</div><div class="v" id="cArt" style="font-size:14px">素材</div></div>
+  </div>
+
+  <div class="hud" id="hudQz" hidden>
+    <div class="chip"><div class="k">题号</div><div class="v" id="cPos">0</div></div>
+    <div class="chip yel"><div class="k">得分</div><div class="v" id="cScore">0</div></div>
+    <div class="chip"><div class="k">连击</div><div class="v" id="cCombo">×0</div></div>
+    <div class="chip hot"><div class="k">最佳</div><div class="v" id="cBest">0</div></div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="mt-grid">
+    <div class="mt-col mt-left">
+      <div class="mt-stage" id="stage">
+        <canvas id="mtCv" width="600" height="760" aria-label="猫语翻译机现场：MOMO 的表情与喵语气泡"></canvas>
+        <span class="mt-corner" id="stageTag">喵语 600×760</span>
+      </div>
+      <p class="mt-note" id="stageNote">这一格就是最终导出的图：所见 = 所得。</p>
+      <p class="mt-note" id="artNote">表情形象：正在读取站内素材…</p>
+    </div>
+
+    <div class="mt-col mt-right">
+      <!-- 模式一：人话转喵语 -->
+      <div class="card mt-sec" id="paneTr">
+        <span class="label">01 / 说人话</span>
+        <textarea class="mt-area" id="inText" maxlength="60" rows="3" placeholder="例如：本喵的饭呢？" aria-label="要翻译的人话">本喵的饭呢？</textarea>
+        <div class="ed-row" style="margin-top:10px" id="presetRow"></div>
+        <div class="mt-actions">
+          <button class="btn yel" id="goBtn">翻成喵语</button>
+          <button class="btn" id="voiceBtn"><span data-icon="note"></span>叫一声</button>
+          <button class="btn small" id="clearBtn">清空</button>
+        </div>
+      </div>
+
+      <div class="card mt-sec" id="paneTrOut">
+        <span class="label">02 / 喵语输出</span>
+        <div class="mt-out">
+          <div class="mt-meow" id="meowOut">喵呜…</div>
+          <div class="mt-marks" id="marksOut"></div>
+        </div>
+        <div class="mt-mood">
+          <span class="tag" id="moodTag2">—</span>
+          <span class="mut" style="font-size:12px;line-height:1.5;min-width:0" id="moodLine">等你输入。</span>
+        </div>
+        <p class="mt-rule" id="ruleLine">规则：韵母定音节、标点定收尾、关键词定心情。</p>
+        <span class="label" style="margin-top:14px">03 / 表情（点了真的会换形象 + 换音高）</span>
+        <div class="ed-row" style="margin-top:6px" id="exprRow"></div>
+        <p class="mt-mini" id="soundNote">喵叫是 WebAudio 现场合成的，跟「音效」开关走。</p>
+      </div>
+
+      <!-- 模式二：喵语猜意 -->
+      <div class="card mt-sec" id="paneQz" hidden>
+        <span class="label">喵语猜意 · 第 <b id="qPos">1</b> / <b id="qTotal">8</b> 题</span>
+        <div class="mt-qhead">
+          <div class="mt-qmeow" id="qMeow">…</div>
+          <div class="mt-qhint" id="qHint">看喵语 + 表情，猜 MOMO 真正想说什么。</div>
+        </div>
+        <div class="mt-choices" id="qChoices"></div>
+        <p class="mt-note" id="qFeed">答对加分并叠连击；答错会老实告诉你正确答案。</p>
+        <div class="mt-actions">
+          <button class="btn yel" id="qNext" disabled>下一题</button>
+          <button class="btn" id="qAgain">换一轮</button>
+          <button class="btn mint" id="qCard">结算卡</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-actions" id="globalActions">
+    <button class="btn" id="expBtn"><span data-icon="download"></span>导出 PNG</button>
+    <button class="btn mint" id="favBtn">存进收藏</button>
+    <button class="btn red small" id="resetBtn">重置</button>
+  </div>
+
+  <!-- 规则说明 -->
+  <div class="ov hide" id="rulesOv" style="position:fixed">
+    <div class="panel">
+      <h2 class="h2" style="font-size:21px">翻译规则（确定可复现）</h2>
+      <ul class="mt-rules">
+        <li><b>韵母 → 音节</b>：后鼻音 <code>-ng</code> 一律「嗷」；其余按介音分：含 <code>i/ü</code> →「咪」，含 <code>u</code> →「呜」，开口 <code>a/o/e/ai/ei/ao/ou/an/en</code> →「喵」。空韵 <code>zhi/chi/shi/ri/zi/ci/si</code> 归「呜」。</li>
+        <li><b>声调 → 音高走向</b>：一声平「→」、二声扬「↑」、三声拐「∨」、四声砸「↓」、轻声短「·」。合成喵叫时同步用这条。</li>
+        <li><b>标点 → 收尾</b>：<code>？?</code> 加「咪嗷?」；<code>！!</code> 加「喵嗷!」；<code>～~</code> 加「咪呜~」；<code>…</code> 加「呜…」；<code>。</code> 加「呜」；没标点补一个悬着的「喵」。</li>
+        <li><b>句内分隔</b>：<code>，、；,</code> 处断开成「·」，一句长喵话就是一份断句。</li>
+        <li><b>词长 → 音节数</b>：一个字一个音节（字母数字同理），超过 <code>14</code> 音节按规则截断，只加省略号，绝不补随机字。</li>
+        <li><b>气泡上限</b>：卡面气泡最多显示 <code>6</code> 个音节，多出来的一律用「…」表示；页面输出区给的是完整喵语，两者都算同一串规则的结果。</li>
+        <li><b>心情</b>：关键词按优先级命中第一条就定表情与心情标签；<code>～</code> 会撒娇；全都没命中就是「平静路过」。</li>
+        <li><b>没收录的字</b>：按码位走兜底 <code>类 = [(码位>>3) mod 4]</code>、<code>调 = [(码位 mod 4)+1]</code>，稳定可复现，页面上会告诉你兜底了几个字。</li>
+      </ul>
+      <p class="mt-mini" id="rulesDemo">当前这句的逐步拆解：</p>
+      <div class="mt-tl" id="rulesTrace"></div>
+      <div class="row" style="justify-content:center"><button class="btn small yel" id="rulesClose">知道了</button></div>
+    </div>
+  </div>
+
+  <!-- 导出结果 -->
+  <div class="ov hide" id="ovExport" style="position:fixed">
+    <div class="panel">
+      <h2 class="h2" style="font-size:21px">喵语卡已生成</h2>
+      <img class="result-img" id="ovImg" alt="喵语卡 PNG">
+      <p class="mut" style="font-size:12px" id="ovNote">600 × 760 · 手机可长按图片保存。</p>
+      <div class="row">
+        <a class="btn yel small" id="ovDl" download="momo-meowtalk.png">下载 PNG</a>
+        <button class="btn small mint" id="ovFav">存进收藏</button>
+        <button class="btn small" id="ovClose">继续翻</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 猜意结算 -->
+  <div class="ov hide" id="ovEnd" style="position:fixed">
+    <div class="panel">
+      <div id="endNew"></div>
+      <div style="text-align:center"><span class="rating" id="endRating">C</span></div>
+      <h2 class="h2" style="font-size:21px" id="endTitle">一轮读心结束</h2>
+      <p class="mut" style="font-size:13px" id="endDesc"></p>
+      <div class="mt-st">
+        <div><b id="stScore">0</b><span>本轮得分</span></div>
+        <div><b id="stAcc">0%</b><span>读心准确率</span></div>
+        <div><b id="stCombo">×0</b><span>最高连击</span></div>
+        <div><b id="stRight">0</b><span>答对题数</span></div>
+        <div><b id="stWrong">0</b><span>答错次数</span></div>
+        <div><b id="stBest">0</b><span>历史最佳</span></div>
+      </div>
+      <img class="result-img" id="endImg" alt="结算卡">
+      <p class="mt-note" id="endHint"></p>
+      <div class="row">
+        <a class="btn yel small" id="endDl" download="momo-meowtalk-score.png"><span data-icon="download"></span>保存结算卡</a>
+        <button class="btn small mint" id="endFav">存进收藏</button>
+        <button class="btn small" id="endRetry">再来一轮</button>
+        <button class="btn small" id="endClose">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/icons.js"></script>
+<script src="../js/core.js"></script>
+<script>
+(() => {
+  const { $, $$, clamp, settings, sound } = ML;
+
+  /* ================= 1. 音节字符集（气泡里只显示 6 个音节，多了换行难看） ================= */
+  const MAX_SHOW = 6;   // 气泡 / 卡片展示的音节上限
+  const MAX_SYL = 14;   // 翻译规则里的音节上限（超出即压缩）
+
+  /* ================= 2. 韵母类别 → 音节 ================= */
+  const CLS_SYL = { A: "喵", I: "咪", U: "呜", G: "嗷" };
+  const TONE_ARROW = { 1: "→", 2: "↑", 3: "∨", 4: "↓", 5: "·" };
+  const TONE_NAME = { 1: "平", 2: "扬", 3: "拐", 4: "砸", 5: "轻" };
+  const CLS_NAME = { A: "开口→喵", I: "齐齿撮口→咪", U: "合口·空韵→呜", G: "后鼻→嗷" };
+
+  // 手写的常见字韵母/声调表（类 + 声调）。表里没有的字走码位兜底，同样确定。
+  const PY_ROWS = [
+    ["A1", "妈猫摸哥歌车喝三山开拍猜呆高刀包偷周粥收波八哈他她它拉沙发干甘安班身根分真针黑杯该答哎唉嘿啊噢撒"],
+    ["A2", "来没人才什麻爬茶啥拿挠门闻晨尘雷才台抬孩还河和盒合壳鹅额蛇馋盘"],
+    ["A3", "好老早草找扫满感敢本很怎忍粉走狗口手打把马喊给尾每美奶哪摆板版饱宝保倒少恼吵炒考烤稳耳尔"],
+    ["A4", "大这看饭慢站在再爱带位为未味喂背被妹累类泪到道造号抱泡炮办半汉汗太态代待袋菜赛赞热色客课刻饿二盖内"],
+    ["A5", "的了吗呢吧嘛啦们么得"],
+    ["I1", "天边鸡一需心音因家间千签西烟交喵咪飘亲七期衣依医添鲜先踢秋邀接贴"],
+    ["I2", "鱼余元全钱前甜皮迷鼻泥疑提移宜齐奇骑棋局橘球求及即极集急节杰截摇瞄眠棉苗描年"],
+    ["I3", "你里理米小鸟秒点脸眼远卷软洗写喜以已乙雨语与羽有友酒九久咬脚角搅姐解野也"],
+    ["I4", "去趣句剧据具立力利例历粒丽气汽弃器地第弟帝递意义亿易艺异议戏细系记季寄计技既忌面遍变便片骗见件建剑健现线限院愿夜业叶页要药笑叫教较吊掉调跳票庙妙灭谢卸屑血月越阅恋练链念六旧就绿"],
+    ["U1", "乌屋哭粗苏出初书输舒叔珠猪朱蛛抓瓜花多拖脱说捉桌锅归规龟推堆吹追衰摔酸孙蒜关观欢宽专砖川穿之吃思"],
+    ["U2", "无吴图徒湖胡壶服福如回十时食实识拾石竹烛逐足族完玩"],
+    ["U3", "我母捕虎许楚苦土组祖主属水鬼嘴腿悔毁短暖乱左朵果裹所锁躲火伙五爪只紫死碗晚管"],
+    ["U4", "木目不布部步路露陆录论住注祝树数术束室事是市式试视世处触醋自字次四最罪醉退快怪外话化画坏换幻惯罐座做作坐错括货祸获度兔肚过段断钻会队对岁碎穗万"],
+    ["U5", "着"],
+    ["G1", "刚汪汤箱香帮冰星经精灯风丰封蜂峰疯工中公功攻中忠终登睛光张章伤商窗霜双"],
+    ["G2", "名明行瓶平能绳零铃虫龙同红熊穷王藏床黄粮凉长尝忙盲房防旁从成城程承疼腾停亭庭形型刑"],
+    ["G3", "想响冷省等井醒影港养往网爽广请抢厂整景警两永"],
+    ["G4", "梦动洞痛命净静敬境镜让浪亮样上唱旺放胖望忘用应映硬病并定订钉正证政郑盛剩更共供控空弄种向象像将降酱烫"]
+  ];
+  const PY = (() => {
+    const m = {};
+    for (const [k, chars] of PY_ROWS) {
+      const cls = k[0], tone = +k[1];
+      for (const ch of chars) {
+        if (!/[\u4e00-\u9fff]/.test(ch)) continue;
+        if (!m[ch]) m[ch] = { cls, tone };
+      }
+    }
+    return m;
+  })();
+
+  /* ================= 3. 心情规则（优先级从上到下，命中第一条） ================= */
+  const MOOD_RULES = [
+    { re: /饿|饭|吃|喂|罐头|碗|零食|干饭|外卖|点餐|该开/, key: "angry", label: "饿到拆家", line: "音量一句比一句短，末音砸下去。" },
+    { re: /困|睡|哈欠|累|别吵|安静|躺|勿扰|闭眼/, key: "sleep", label: "困了，勿扰", line: "整句被压低拖长，喵到一半就没气了。" },
+    { re: /玩|球|纸箱|盒|逗|抓|咬|挠|拆|虫|猎|半夜|凌晨|唱|王座/, key: "mischief", label: "蠢蠢欲动", line: "音节偏尖，尾音上扬，已经在盘算下一步。" },
+    { re: /爱|摸|抱|陪|亲亲|蹭|贴贴|谢谢|辛苦|需要|冷/, key: "happy", label: "想要贴贴", line: "咪音变多，时长拉长，是那种黏人的调子。" },
+    { re: /滚|烦|讨厌|别碰|凶|赔|踩|味道|别的猫|生气|哼|不是我的/, key: "angry", label: "别惹我", line: "四声扎堆，听起来像在倒数。" },
+    { re: /[？?]|吗|呢|怎么|为什么|啥|哪|什么|居然|天呐|吓/, key: "surprised", label: "歪头，不懂", line: "收尾被抬上去，气泡里多出一串咪嗷。" },
+    { re: /不是我|我没|不知道|无辜|猜|不说|随便|哦|呵/, key: "innocent", label: "装无辜", line: "轻声变多，短促又心虚。" },
+    { re: /无语|随便|算了|不必|职业|精神|后果/, key: "deadpan", label: "面无表情", line: "音高全程不动，方波，很敷衍。" }
+  ];
+  const MOOD_DEFAULT = { key: "deadpan", label: "平静路过", line: "没被关键词命中，按标点决定收尾。" };
+
+  /* ================= 4. 翻译（纯函数，无随机、无外部状态） ================= */
+  function normalize(s) {
+    let t = String(s == null ? "" : s).replace(/\s+/g, "");
+    if (t.length > 60) t = t.slice(0, 60);
+    return t;
+  }
+  const BREAK_PUNCT = /[，。、；！？…～,.;:!?~]/;
+  const isBreakPunct = ch => /[，、；,;]/.test(ch);
+  const isSentencePunct = ch => /[。！？…?!.]/.test(ch);
+
+  function classOf(ch) {
+    const code = ch.codePointAt(0);
+    if (PY[ch]) return Object.assign({ ch, known: true }, PY[ch]);
+    if (code >= 0x4e00 && code <= 0x9fff) {
+      const clsIdx = (code >> 3) % 4, tone = (code % 4) + 1;
+      return { ch, known: false, cls: ["A", "I", "U", "G"][clsIdx], tone, fb: true };
+    }
+    if (/[0-9a-zA-Z]/.test(ch)) {
+      const c = code + 7;
+      return { ch, known: false, cls: ["A", "I", "U", "G"][((c >> 2) + c) % 4], tone: (c % 4) + 1, fb: true };
+    }
+    return null;
+  }
+
+  function moodOf(text) {
+    for (let i = 0; i < MOOD_RULES.length; i++) {
+      const r = MOOD_RULES[i], m = text.match(r.re);
+      if (m) return { key: r.key, label: r.label, line: r.line, hit: "关键词「" + m[0] + "」", ruleIdx: i };
+    }
+    if (/～|~/.test(text)) return { key: "innocent", label: "撒娇拖长音", line: "波浪号收尾，音调被拖软。", hit: "标点「～」", ruleIdx: -1 };
+    if (/[！!]$/.test(text)) return { key: "surprised", label: "情绪有点高", line: "感叹号把末音砸重了。", hit: "标点「！」", ruleIdx: -1 };
+    return Object.assign({ hit: "无（默认）", ruleIdx: -2 }, MOOD_DEFAULT);
+  }
+
+  function suffixOf(text) {
+    let last = "", seen = false;
+    for (const ch of text) { if (isSentencePunct(ch) || /[～~]/.test(ch)) { last = ch; seen = true; } }
+    if (!seen) return { syl: "喵", mark: "", note: "没标点 → 悬一个「喵」收尾", tone: 1 };
+    if (/[？?]/.test(last)) return { syl: "咪嗷", mark: "?", note: "问号 → 上扬收尾", tone: 2 };
+    if (/[！!]/.test(last)) return { syl: "喵嗷", mark: "!", note: "感叹号 → 砸下来", tone: 4 };
+    if (/[～~]/.test(last)) return { syl: "咪呜", mark: "~", note: "波浪号 → 撒娇拖长", tone: 1 };
+    if (/…/.test(last)) return { syl: "呜", mark: "…", note: "省略号 → 越说越轻", tone: 5 };
+    return { syl: "呜", mark: "。", note: "句号 → 平稳落地", tone: 5 };
+  }
+
+  function translate(raw) {
+    const text = normalize(raw);
+    const res = {
+      ok: false, input: raw == null ? "" : String(raw), text, reason: "",
+      syllables: [], clauses: [], meow: "", bubble: "", marks: [],
+      mood: Object.assign({ hit: "空句", ruleIdx: -3 }, MOOD_DEFAULT),
+      suffix: null, stats: { content: 0, known: 0, fallback: 0, compressed: false, clauses: 0 },
+      rule: [
+        "韵母类别 → " + Object.keys(CLS_SYL).map(k => CLS_NAME[k]).join("；"),
+        "声调 → 音高走向：一声→ 二声↑ 三声∨ 四声↓ 轻声·",
+        "词长 → 音节数：一字一音节，上限 " + MAX_SYL,
+        "标点 → 收尾与断句"
+      ]
+    };
+    if (!text) { res.reason = "空输入"; return res; }
+
+    let clauses = [[]], unknown = [], truncated = false, totalContent = 0;
+    for (const ch of text) {
+      if (BREAK_PUNCT.test(ch)) {
+        if (isBreakPunct(ch) && clauses[clauses.length - 1].length) clauses.push([]);
+        continue;
+      }
+      const c = classOf(ch);
+      if (!c) continue;
+      totalContent++;
+      if (totalContent > MAX_SYL) { truncated = true; continue; }
+      clauses[clauses.length - 1].push(Object.assign({ syl: CLS_SYL[c.cls] }, c));
+      if (!c.known) unknown.push(ch);
+    }
+    clauses = clauses.filter(cl => cl.length);
+    const punctOnly = !clauses.length;
+    if (punctOnly) clauses = [[]];   // 只有标点：给语气后缀留一个空分句
+    const sfx = suffixOf(text);
+    const lastCl = clauses[clauses.length - 1];
+    for (const s of sfx.syl) lastCl.push({ ch: "", syl: s, cls: "", tone: sfx.tone, known: true, suffix: true });
+    clauses = clauses.filter(cl => cl.length);
+    if (!clauses.length) { res.reason = "无法翻译"; return res; }
+    if (punctOnly) res.reason = "只有标点，喵话退化成收尾语气";
+
+    const flat = [];
+    clauses.forEach((cl, i) => { cl.forEach(s => { s.clause = i; flat.push(s); }); });
+    res.clauses = clauses.map(cl => cl.map(s => s.syl).join(""));
+    res.meow = res.clauses.join("·") + (sfx.mark || "");
+    res.bubble = flat.slice(0, MAX_SHOW).map(s => s.syl).join("") + (flat.length > MAX_SHOW ? "…" : "");
+    res.syllables = flat;
+    res.marks = flat.map(s => ({ syl: s.syl, tone: s.tone, arrow: TONE_ARROW[s.tone] || "·", name: TONE_NAME[s.tone] || "轻", suffix: !!s.suffix }));
+    const known = flat.filter(s => s.known && !s.suffix).length;
+    const allContent = clauses.reduce((n, cl) => n + cl.filter(s => !s.suffix).length, 0);
+    res.stats = {
+      content: totalContent, known, fallback: unknown.length,
+      compressed: truncated, clauses: clauses.length, shown: flat.length, allContent
+    };
+    res.mood = moodOf(text);
+    res.suffix = sfx;
+    res.unknown = Array.from(new Set(unknown));
+    res.ok = true;
+    return res;
+  }
+
+  /* ================= 5. WebAudio 喵叫（现场合成，受音效开关控制） ================= */
+  const SYL_BASE = { A: 470, I: 660, U: 320, G: 540 };
+  const MOOD_SOUND = {
+    angry: { p: 0.82, d: 1.0, type: "sawtooth", g: 0.06 },
+    happy: { p: 1.12, d: 0.95, type: "triangle", g: 0.055 },
+    surprised: { p: 1.3, d: 0.8, type: "triangle", g: 0.06 },
+    innocent: { p: 1.22, d: 0.72, type: "sine", g: 0.05 },
+    sleep: { p: 0.62, d: 1.5, type: "sine", g: 0.05 },
+    mischief: { p: 1.02, d: 0.9, type: "square", g: 0.04 },
+    deadpan: { p: 0.95, d: 0.68, type: "square", g: 0.035 }
+  };
+  const TONE_SHAPE = {
+    1: [[1, 0], [1.02, 1]],
+    2: [[0.86, 0], [1.34, 1]],
+    3: [[0.92, 0], [0.74, .45], [1.16, 1]],
+    4: [[1.14, 0], [0.62, 1]],
+    5: [[1.04, 0], [0.92, .8]]
+  };
+  let ac = null;
+  function audioCtx() {
+    if (!settings.sound) return null;
+    try {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === "suspended") { try { ac.resume(); } catch (e) {} }
+      return ac;
+    } catch (e) { return null; }
+  }
+  // 浏览器自动播放策略下，AudioContext 可能是 suspended：排了音也听不见，得如实说
+  const audioBlocked = () => !!ac && ac.state !== "running";
+  function syllable(a, syl, prof, t0, idx) {
+    const base = (SYL_BASE[syl.cls] || 500) * prof.p * (idx % 2 ? 1.02 : 1);
+    const dur = clamp(prof.d * (syl.tone === 3 ? .32 : syl.tone === 5 ? .14 : .24), .09, .5);
+    try {
+      const o = a.createOscillator(), g = a.createGain(), lfo = a.createOscillator(), lg = a.createGain();
+      o.type = prof.type; lfo.type = "sine";
+      lfo.frequency.setValueAtTime(6.5, t0); lg.gain.setValueAtTime(syl.suffix ? 16 : 9, t0);
+      lfo.connect(lg); lg.connect(o.frequency);
+      o.frequency.setValueAtTime(base, t0);
+      const sh = TONE_SHAPE[syl.tone] || TONE_SHAPE[1];
+      sh.forEach(([mul, pos]) => o.frequency.exponentialRampToValueAtTime(Math.max(60, base * mul), t0 + dur * pos));
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(prof.g, t0 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(a.destination);
+      o.start(t0); o.stop(t0 + dur + 0.03); lfo.start(t0); lfo.stop(t0 + dur + 0.03);
+    } catch (e) {}
+    return dur * 0.9;
+  }
+  function playRes(res) {
+    if (!res || !res.ok) return false;
+    const a = audioCtx();
+    if (!a) return false;
+    const prof = MOOD_SOUND[res.mood.key] || MOOD_SOUND.deadpan;
+    const list = res.syllables.slice(0, 12);
+    let t = a.currentTime + 0.03;
+    list.forEach((s, i) => { t += syllable(a, s, prof, t, i); });
+    return true;
+  }
+  function playExpr(key) {
+    const a = audioCtx();
+    if (!a) return false;
+    const prof = MOOD_SOUND[key] || MOOD_SOUND.deadpan;
+    const seq = [{ cls: "A", tone: 2 }, { cls: "I", tone: key === "sleep" ? 5 : 4 }];
+    let t = a.currentTime + 0.02;
+    seq.forEach((s, i) => { t += syllable(a, s, prof, t, i); });
+    return true;
+  }
+
+  /* ================= 6. 表情形象：真实素材 + 程序化简笔猫兜底 ================= */
+  let petCfg = null, EXPRS = [], curExpr = "deadpan";
+  const imgCache = {}, imgState = {};
+  let FUR = "#E8A857";
+  const EXP_LABEL = {
+    happy: "开心", angry: "炸毛", surprised: "震惊", innocent: "无辜",
+    sleep: "困", deadpan: "无语", mischief: "使坏"
+  };
+  const artOk = () => imgState[curExpr] === "ok";
+
+  // 素材路径只从 ML.pet() 的配置里取；取不到就返回 ""，由页面走程序化简笔猫兜底。
+  function exprSrc(key) {
+    const ex = (petCfg && petCfg.petExpressions) || {};
+    return ex[key] || (petCfg && petCfg.petAvatar) || "";
+  }
+  function exprList() {
+    const ex = (petCfg && petCfg.petExpressions) || {};
+    return Object.keys(EXP_LABEL).filter(k => ex[k]);
+  }
+
+  function buildExprRow() {
+    $("#exprRow").innerHTML = EXPRS.map(k => {
+      const s = exprSrc(k), lab = EXP_LABEL[k];
+      return s
+        ? `<button class="ed-btn exp mt-expr" data-k="${k}" title="${lab}" aria-label="切换到${lab}表情"><img src="${s}" alt="${lab}"></button>`
+        : `<button class="ed-btn exp mt-expr fb" data-k="${k}" title="${lab}" aria-label="切换到${lab}表情">${lab.slice(0, 1)}</button>`;
+    }).join("");
+    $$("#exprRow .mt-expr").forEach(b => {
+      b.onclick = () => { setExpr(b.dataset.k, { fromUser: true }); sound.tap(); };
+      const im = b.querySelector("img");
+      if (im) im.onerror = () => { b.classList.add("fb"); b.textContent = EXP_LABEL[b.dataset.k].slice(0, 1); };
+    });
+    syncExprRow();
+  }
+  function syncExprRow() {
+    $$("#exprRow .mt-expr").forEach(b => b.classList.toggle("sel", b.dataset.k === curExpr));
+  }
+  function setExpr(key, opt) {
+    if (!EXP_LABEL[key]) return false;
+    curExpr = key;
+    const src = exprSrc(key);
+    if (!src) imgState[key] = "fail";
+    else if (!imgCache[key] && imgState[key] !== "fail") {
+      imgState[key] = "load";
+      ML.img(src).then(im => { imgCache[key] = im; imgState[key] = "ok"; dirty = true; }).catch(() => { imgState[key] = "fail"; dirty = true; });
+    }
+    syncExprRow(); updateArtNote(); dirty = true;
+    if (opt && opt.fromUser && opt.sound !== false) playExpr(key);
+    if (opt && opt.count) try { ML.patchStats({ interactions: 1 }); } catch (e) {}
+    return true;
+  }
+  function moodExprKey(moodKey) { return EXPRS.indexOf(moodKey) >= 0 ? moodKey : (EXPRS[0] || "deadpan"); }
+
+  function updateArtNote() {
+    const st = imgState[curExpr];
+    const el = $("#artNote");
+    if (!petCfg) { el.textContent = "表情形象：正在读取站内素材…"; el.classList.remove("warn"); return; }
+    if (st === "ok") {
+      el.textContent = "表情形象：真实素材「" + (EXP_LABEL[curExpr] || curExpr) + "」· " + (petCfg.petName || "MOMO") + "。加载失败时会自动改用程序化简笔猫。";
+      el.classList.remove("warn");
+    } else if (st === "fail") {
+      el.textContent = "表情形象：兜底 —— 这张表情图没能加载，当前是 Canvas 现场画的简笔猫，不是素材。";
+      el.classList.add("warn");
+    } else {
+      el.textContent = "表情形象：素材读取中，先给你看简笔猫。";
+      el.classList.remove("warn");
+    }
+    $("#cArt").textContent = st === "ok" ? "素材" : (st === "fail" ? "简笔" : "读取中");
+  }
+
+  function updateSoundNote() {
+    const el = $("#soundNote");
+    if (!el) return;
+    el.textContent = settings.sound
+      ? "喵叫是 WebAudio 现场合成的（站内没有音频文件），跟「设置 → 音效」开关走；不同表情的音高和时长不一样。"
+      : "音效开关现在是关的：喵叫不出声，但翻译、表情、出题和导出照常。开了就能听。";
+  }
+
+  /* ================= 7. 卡面绘制（现场 = 导出，同一套代码） ================= */
+  const INK = "#222", MUT = "#88847D";
+  const FONT = (w, s) => `${w} ${s}px "PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",Arial,sans-serif`;
+  function wrap(x, str, maxW) {
+    const out = []; let line = "";
+    for (const ch of String(str || "")) {
+      if (ch === "\n") { out.push(line); line = ""; continue; }
+      const t = line + ch;
+      if (x.measureText(t).width > maxW && line) { out.push(line); line = ch; }
+      else line = t;
+    }
+    if (line) out.push(line);
+    return out.length ? out : [""];
+  }
+
+  function drawCatArt(x, bx, by, bw, bh, o) {
+    x.save();
+    x.translate(bx, by); x.scale(bw / 200, bh / 200);
+    x.lineJoin = "round"; x.lineCap = "round";
+    x.fillStyle = "rgba(34,34,34,.13)";
+    x.beginPath(); x.ellipse(100, 182, 54, 9, 0, 0, 6.283); x.fill();
+
+    x.strokeStyle = INK; x.lineWidth = 6;
+    x.beginPath(); x.moveTo(52, 156); x.quadraticCurveTo(20, 140, 30, 106); x.stroke();
+    x.strokeStyle = o.fur; x.lineWidth = 3.4; x.stroke();
+
+    x.fillStyle = o.fur; x.strokeStyle = INK; x.lineWidth = 3;
+    x.beginPath(); x.ellipse(100, 150, 46, 32, 0, 0, 6.283); x.fill(); x.stroke();
+    x.fillStyle = "#FFF6E6";
+    x.beginPath(); x.ellipse(100, 160, 26, 17, 0, 0, 6.283); x.fill();
+
+    x.fillStyle = o.fur; x.strokeStyle = INK; x.lineWidth = 3;
+    x.beginPath(); x.moveTo(66, 62); x.lineTo(56, 24); x.lineTo(92, 48); x.closePath(); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(134, 62); x.lineTo(144, 24); x.lineTo(108, 48); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = "#FBD9CF";
+    x.beginPath(); x.moveTo(70, 55); x.lineTo(64, 33); x.lineTo(86, 49); x.closePath(); x.fill();
+    x.beginPath(); x.moveTo(130, 55); x.lineTo(136, 33); x.lineTo(114, 49); x.closePath(); x.fill();
+    x.beginPath(); x.arc(100, 90, 42, 0, 6.283); x.fillStyle = o.fur; x.fill(); x.stroke();
+    x.fillStyle = "#FFF6E6"; x.beginPath(); x.ellipse(100, 108, 26, 18, 0, 0, 6.283); x.fill();
+
+    const L = 82, R = 118, E = 86;
+    x.fillStyle = INK; x.strokeStyle = INK; x.lineWidth = 3;
+    const face = o.expr;
+    if (face === "happy") {
+      [-1, 1].forEach(s => { const cx = s < 0 ? L : R; x.beginPath(); x.arc(cx, E + 3, 9, Math.PI * 1.15, Math.PI * 1.85); x.stroke(); });
+    } else if (face === "angry") {
+      [L, R].forEach(cx => { x.beginPath(); x.arc(cx, E, 6, 0, 6.283); x.fill(); });
+      x.lineWidth = 4;
+      x.beginPath(); x.moveTo(L - 12, E - 14); x.lineTo(L + 8, E - 6); x.stroke();
+      x.beginPath(); x.moveTo(R + 12, E - 14); x.lineTo(R - 8, E - 6); x.stroke();
+    } else if (face === "surprised") {
+      [L, R].forEach(cx => {
+        x.beginPath(); x.arc(cx, E, 12, 0, 6.283); x.fillStyle = "#fff"; x.fill(); x.stroke();
+        x.beginPath(); x.arc(cx, E, 5, 0, 6.283); x.fillStyle = INK; x.fill();
+      });
+    } else if (face === "innocent") {
+      [L, R].forEach(cx => {
+        x.beginPath(); x.arc(cx, E + 2, 11, 0, 6.283); x.fillStyle = INK; x.fill();
+        x.beginPath(); x.arc(cx + 4, E - 2, 3.4, 0, 6.283); x.fillStyle = "#fff"; x.fill();
+      });
+      x.fillStyle = "rgba(241,109,91,.45)";
+      x.beginPath(); x.ellipse(64, 104, 9, 5, 0, 0, 6.283); x.fill();
+      x.beginPath(); x.ellipse(136, 104, 9, 5, 0, 0, 6.283); x.fill();
+    } else if (face === "sleep") {
+      x.lineWidth = 3.4;
+      [L, R].forEach(cx => { x.beginPath(); x.arc(cx, E - 3, 10, Math.PI * .15, Math.PI * .85); x.stroke(); });
+      x.fillStyle = MUT; x.font = FONT("900", 22); x.textAlign = "left";
+      x.fillText("Z", 142, 42); x.font = FONT("900", 15); x.fillText("z", 158, 26);
+    } else if (face === "deadpan") {
+      x.lineWidth = 3.4;
+      [L, R].forEach(cx => { x.beginPath(); x.moveTo(cx - 11, E - 1); x.lineTo(cx + 11, E - 1); x.stroke(); });
+      [L, R].forEach(cx => { x.beginPath(); x.arc(cx, E + 5, 4, 0, 6.283); x.fillStyle = INK; x.fill(); });
+    } else { // mischief
+      x.beginPath(); x.arc(L, E, 6.5, 0, 6.283); x.fill();
+      x.lineWidth = 3.4; x.beginPath(); x.moveTo(R - 11, E + 1); x.lineTo(R + 11, E - 4); x.stroke();
+      x.lineWidth = 3.6; x.beginPath(); x.moveTo(L - 12, E - 14); x.lineTo(L + 6, E - 16); x.stroke();
+    }
+
+    x.fillStyle = "#F16D5B";
+    x.beginPath(); x.moveTo(94, 104); x.lineTo(106, 104); x.lineTo(100, 111); x.closePath(); x.fill();
+    x.strokeStyle = INK; x.lineWidth = 2.6;
+    if (face === "surprised" || face === "angry") {
+      x.beginPath(); x.arc(100, 118, 6, 0, 6.283); x.stroke();
+    } else if (face === "happy" || face === "innocent" || face === "mischief") {
+      x.beginPath(); x.moveTo(88, 118); x.quadraticCurveTo(94, 124, 100, 118);
+      x.quadraticCurveTo(106, 124, 112, 118); x.stroke();
+    } else {
+      x.beginPath(); x.moveTo(92, 120); x.lineTo(108, 120); x.stroke();
+    }
+    x.strokeStyle = "rgba(34,34,34,.45)"; x.lineWidth = 1.8;
+    [[68, 104, 34, -6], [68, 112, 34, 4], [132, 104, -34, -6], [132, 112, -34, 4]].forEach(([a, b, c, d]) => {
+      x.beginPath(); x.moveTo(a, b); x.lineTo(a + c, b + d); x.stroke();
+    });
+    x.restore();
+  }
+
+  function drawArtBox(x, o) {
+    const bx = 150, by = 122, bs = 300;
+    const bob = o.bob || 0;   // 只在现场预览里动，导出 PNG 永远是正位
+    x.save();
+    x.fillStyle = "#F3EEE5"; x.strokeStyle = INK; x.lineWidth = 3;
+    ML.rr(x, 130, 108, 340, 328, 18); x.fill(); x.stroke();
+    x.strokeStyle = "rgba(34,34,34,.16)"; x.lineWidth = 2;
+    for (let i = 1; i < 5; i++) { x.beginPath(); x.moveTo(130 + i * 68, 108); x.lineTo(130 + i * 68, 436); x.stroke(); }
+    x.strokeStyle = INK; x.lineWidth = 3; ML.rr(x, 130, 108, 340, 328, 18); x.stroke();
+    x.restore();
+
+    const im = o.withImgs !== false ? imgCache[o.expr] : null;
+    if (im && o.withImgs !== false) {
+      const iw = im.width || 300, ih = im.height || 300;
+      const sc = Math.min(bs / iw, bs / ih), w = iw * sc, h = ih * sc;
+      try { x.drawImage(im, bx + (bs - w) / 2, by + (bs - h) / 2 + bob, w, h); return "素材"; }
+      catch (e) { /* 图坏了 / 画布被 taint，交给简笔猫 */ }
+    }
+    drawCatArt(x, bx, by + bob, bs, bs, { expr: o.expr, fur: o.fur || FUR });
+    return "简笔";
+  }
+
+  function drawSpeech(x, cx, y, w, lines, maxLines) {
+    const lh = 30, padY = 12, padX = 14;
+    const bodyH = Math.min(lines.length, maxLines) * lh;
+    const totalH = bodyH + padY * 2;
+    x.save();
+    x.fillStyle = "#fff"; x.strokeStyle = INK; x.lineWidth = 3;
+    ML.rr(x, cx - w / 2, y, w, totalH, 14); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(cx - 12, y + totalH); x.lineTo(cx, y + totalH + 16); x.lineTo(cx + 12, y + totalH);
+    x.closePath(); x.fillStyle = "#fff"; x.fill();
+    x.strokeStyle = INK; x.lineWidth = 3; x.beginPath();
+    x.moveTo(cx - 12, y + totalH); x.lineTo(cx, y + totalH + 16); x.lineTo(cx + 12, y + totalH); x.stroke();
+    x.font = FONT("900", 21); x.textAlign = "left"; x.fillStyle = INK; x.textBaseline = "middle";
+    const show = lines.slice(0, maxLines);
+    show.forEach((ln, i) => x.fillText(ln, cx - w / 2 + padX, y + padY + lh * i + lh / 2));
+    x.textBaseline = "alphabetic";
+    x.restore();
+    return y + totalH + 22;
+  }
+
+  const MOOD_COLOR = { angry: "#F16D5B", happy: "#F5E66B", surprised: "#DCD2F5", innocent: "#BFE4D0", sleep: "#DCD2F5", mischief: "#F5E66B", deadpan: "#E9D8B8" };
+
+  function drawPoster(x, o) {
+    const W = 600, H = 760;
+    const res = o.res, mood = (res && res.ok) ? res.mood : MOOD_DEFAULT;
+    const badgeText = o.badge || (mood.label || "").slice(0, 2);
+    const badgeColor = o.badgeColor || MOOD_COLOR[mood.key] || "#F5E66B";
+
+    x.fillStyle = "#FAF8F3"; x.fillRect(0, 0, W, H);
+    x.fillStyle = "#fff"; ML.rr(x, 20, 20, W - 40, H - 40, 22); x.fill();
+    x.lineWidth = 6; x.strokeStyle = INK; ML.rr(x, 20, 20, W - 40, H - 40, 22); x.stroke();
+
+    x.fillStyle = INK; x.font = FONT("900", 27); x.textAlign = "left"; x.fillText("MOMO 事务所", 46, 76);
+    x.fillStyle = MUT; x.font = FONT("700", 16); x.textAlign = "right";
+    x.fillText(o.isQuiz ? "猫语翻译机 · 猜意" : "猫语翻译机", 554, 74);
+    x.fillStyle = "#F5E66B"; x.fillRect(46, 92, 508, 10);
+    x.strokeStyle = INK; x.lineWidth = 2; x.strokeRect(46, 92, 508, 10);
+
+    const used = drawArtBox(x, o);
+    o.artUsed = used;
+
+    x.save(); x.translate(500, 150); x.rotate(-.12);
+    x.fillStyle = badgeColor; ML.rr(x, -34, -34, 68, 68, 14); x.fill();
+    x.lineWidth = 4; x.strokeStyle = INK; x.stroke();
+    x.fillStyle = badgeColor === "#F16D5B" ? "#fff" : INK;
+    x.font = FONT("900", String(badgeText).length > 1 ? 22 : 34); x.textAlign = "center";
+    x.fillText(badgeText, 0, 8); x.restore();
+
+    x.textAlign = "center"; x.font = FONT("700", 14); x.fillStyle = MUT;
+    x.fillText("喵语「" + (EXP_LABEL[o.expr] || o.expr) + "」 · " + (o.moodLabel || mood.label || ""), 300, 462);
+
+    let cursor = 476;
+    if (o.isQuiz) {
+      x.fillStyle = INK; x.font = FONT("900", 46);
+      x.fillText(String(o.score || 0), 300, cursor + 44);
+      x.font = FONT("700", 15); x.fillStyle = MUT;
+      x.fillText("得分 · 最高连击 ×" + (o.maxCombo || 0) + " · 答对 " + (o.right || 0) + "/" + (o.total || 0), 300, cursor + 70);
+      cursor += 84;
+      x.fillStyle = "#DCD2F5"; ML.rr(x, 70, cursor, 460, 50, 25); x.fill();
+      x.strokeStyle = INK; x.lineWidth = 3; x.stroke();
+      x.fillStyle = INK; x.font = FONT("900", 20); x.textAlign = "center";
+      let ans = o.answer || "读心术需要练习";
+      while (x.measureText(ans).width > 430 && ans.length > 2) ans = ans.slice(0, -2);
+      x.fillText(ans, 300, cursor + 32);
+      x.fillStyle = MUT; x.font = FONT("700", 13);
+      x.fillText("MOMO 真正想说的是 ↑", 300, cursor + 68);
+      cursor += 82;
+      if (res && res.ok) {
+        x.fillStyle = "#fff"; x.strokeStyle = INK; x.lineWidth = 2.5;
+        ML.rr(x, 70, cursor, 460, 34, 17); x.fill(); x.stroke();
+        x.fillStyle = INK; x.font = FONT("700", 14); x.textAlign = "center";
+        x.fillText("原话：" + String(res.text).slice(0, 22), 300, cursor + 22);
+      }
+    } else {
+      const bubbleLines = [];
+      if (res && res.ok) {
+        x.font = FONT("900", 21);
+        bubbleLines.push(...wrap(x, res.bubble, 300).slice(0, 1));
+      } else bubbleLines.push("…");
+      const yy = drawSpeech(x, 300, cursor, 360, bubbleLines, 1);   // 气泡固定 1 行 → 版式高度可预测
+
+      // 声调条（单行，超宽就截，绝不换行挤压下方）
+      x.font = FONT("700", 16); x.textAlign = "center"; x.fillStyle = MUT;
+      let marksLine = res && res.ok ? res.marks.map(mk => mk.syl + mk.arrow).join(" ") : "还没翻";
+      while (x.measureText(marksLine).width > 470 && marksLine.length > 6) marksLine = marksLine.slice(0, -2);
+      const marksY = yy + 4;
+      x.fillText(marksLine, 300, marksY);
+
+      // 人话胶囊（单行）
+      const src = o.source === "input" ? "你说的话" : "喵话题库";
+      const pillY = marksY + 14;
+      x.font = FONT("900", 19);
+      let hText = "「" + (res && res.ok ? res.text : (o.text || "")) + "」";
+      if (x.measureText(hText).width > 420) {
+        let s = String(res && res.ok ? res.text : (o.text || ""));
+        while (s.length > 1 && x.measureText("「" + s + "…」").width > 420) s = s.slice(0, -1);
+        hText = "「" + s + "…」";
+      }
+      x.fillStyle = "#BFE4D0"; ML.rr(x, 70, pillY, 460, 46, 14); x.fill();
+      x.strokeStyle = INK; x.lineWidth = 3; x.stroke();
+      x.fillStyle = INK; x.textAlign = "center"; x.font = FONT("900", 19);
+      x.fillText(hText, 300, pillY + 30);
+
+      // 规则脚注
+      const metaY = pillY + 62;
+      x.font = FONT("700", 13); x.fillStyle = MUT; x.textAlign = "left";
+      x.fillText(src, 72, metaY);
+      x.font = FONT("900", 13); x.fillStyle = INK;
+      const st = res && res.ok ? "音节 " + res.stats.content + " · 分句 " + res.stats.clauses + " · 兜底 " + res.stats.fallback + (res.stats.compressed ? " · 已压缩" : "") : "规则：韵母定音节 / 标点定收尾 / 词长定数量";
+      let stl = st; x.font = FONT("900", 13);
+      while (x.measureText(stl).width > 420 && stl.length > 6) stl = stl.slice(0, -2);
+      x.textAlign = "right"; x.fillText(stl, 528, metaY);
+
+      const notes = res && res.ok ? [
+        "韵母 → 喵/咪/呜/嗷（" + (res.syllables.filter(s => !s.suffix).slice(0, 3).map(s => s.ch + "→" + s.syl).join(" ") || "见规则页") + "）",
+        res.suffix ? res.suffix.note : "",
+        "心情 ← " + res.mood.hit
+      ].filter(Boolean) : [];
+      x.textAlign = "left"; x.font = FONT("700", 12.5); x.fillStyle = MUT;
+      notes.slice(0, 2).forEach((n, i) => {
+        let s = "· " + n;
+        while (x.measureText(s).width > 456 && s.length > 6) s = s.slice(0, -2);
+        x.fillText(s, 72, metaY + 20 + i * 17);
+      });
+    }
+
+    x.textAlign = "center"; x.fillStyle = "#F5E66B";
+    ML.rr(x, 150, 690, 300, 34, 17); x.fill();
+    x.strokeStyle = INK; x.lineWidth = 3; x.stroke();
+    x.fillStyle = INK; x.font = FONT("700", 15);
+    x.fillText(o.badgeText || (o.isQuiz ? "喵星读心报告" : "喵语对照卡"), 300, 713);
+    x.fillStyle = MUT; x.font = FONT("700", 13);
+    x.fillText((o.date || "") + " · 为它做一个小世界", 300, 742);
+    x.fillStyle = MUT; x.font = FONT("700", 12); x.textAlign = "left";
+    x.fillText(used === "素材" ? "形象：站内素材" : "形象：程序化兜底", 46, 742);
+  }
+
+  /* ================= 8. 现场画布（同一张卡，实时预览） ================= */
+  const cv = $("#mtCv"), ctx = cv.getContext("2d"), stage = $("#stage");
+  let cw = 0, chh = 0, dpr = 1, scale = 1, dirty = true, lastAnimTick = -1, bobT = 0;
+
+  function sizeCanvas() {
+    const r = stage.getBoundingClientRect();
+    const w = Math.max(240, Math.round(r.width));
+    const ratio = parseFloat(getComputedStyle(cv).aspectRatio.split("/")[1]) / (parseFloat(getComputedStyle(cv).aspectRatio.split("/")[0]) || 600);
+    const h = Math.round(w * (isFinite(ratio) && ratio > 0 ? ratio : 760 / 600));
+    dpr = clamp(window.devicePixelRatio || 1, 1, 2);
+    if (w === cw && h === chh) return;
+    cw = w; chh = h;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    scale = cv.width / 600;
+    dirty = true;
+  }
+
+  function posterData() {
+    return {
+      res: state.res, expr: curExpr, fur: FUR, withImgs: true,
+      isQuiz: state.mode === "quiz", source: state.resSource,
+      text: state.res ? state.res.text : "", moodLabel: state.res && state.res.ok ? state.res.mood.label : "—",
+      score: qz.score, maxCombo: qz.maxCombo, right: qz.right, total: qz.total,
+      answer: qz.lastAnswer || (state.res && state.res.ok ? state.res.mood.line : ""),
+      badge: state.mode === "quiz" ? ratingFor(qz.right / Math.max(1, qz.answered)) : "",
+      badgeColor: state.mode === "quiz" ? ratingColor(ratingFor(qz.right / Math.max(1, qz.answered))) : "",
+      date: safeDate()
+    };
+  }
+
+  function drawStage(t) {
+    sizeCanvas();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    const d = posterData();
+    d.bob = settings.anim ? Math.sin(t * 2.1) * 4 : 0;   // 呼吸位移：只给现场预览，导出走 bob=0
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    try {
+      drawPoster(ctx, d);
+    } catch (e) {
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, 600, 760);
+      ctx.fillStyle = INK; ctx.font = FONT("900", 28); ctx.textAlign = "center";
+      ctx.fillText("卡面绘制失败：喵", 300, 380);
+    }
+    const tag = $("#stageTag");
+    const want = (d.isQuiz ? "结算 600×760" : "喵语 600×760") + " · " + (d.artUsed || "");
+    if (tag.textContent !== want) tag.textContent = want;
+  }
+
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    const r = stage.getBoundingClientRect();
+    if (Math.round(r.width) !== cw) sizeCanvas();
+    const animOn = settings.anim && !document.hidden;
+    const tick = Math.floor(ts / 90);
+    if (dirty || (animOn && tick !== lastAnimTick)) {
+      lastAnimTick = tick; dirty = false; bobT = ts / 1000; drawStage(bobT);
+    }
+  }
+
+  /* ================= 9. 猜意题库（16 条） ================= */
+  const BANK = [
+    { t: "饭呢？现在就要", m: "饭点过了，我很不客气地在问" },
+    { t: "摸摸我，立刻", m: "现在就要被摸，一秒都不能等" },
+    { t: "那个纸箱是我的", m: "新据点已确认，谁都别想搬走" },
+    { t: "困了，别吵", m: "睡了，天塌下来也别叫我" },
+    { t: "你身上有别的猫的味道", m: "你外面有猫，我闻到了" },
+    { t: "凌晨三点我会唱歌", m: "今晚的演唱会你躲不掉" },
+    { t: "刚才那根黄瓜是什么", m: "那个绿色的东西凭什么活着" },
+    { t: "这里冷，需要一个你", m: "被窝缺一个恒温装置，就你了" },
+    { t: "我饿了但我不说", m: "用沉默表达严重的饭不满" },
+    { t: "开门，我要出去再进来", m: "先出去视察，再回来视察" },
+    { t: "地上的虫子归我了", m: "这个猎物已经写在我名下" },
+    { t: "你踩到我尾巴了", m: "再踩一次试试，代价自负" },
+    { t: "陪我十分钟就好", m: "只要你十分钟，之后是两小时" },
+    { t: "这个碗不是我的碗", m: "碗不对饭更不对，这是事故" },
+    { t: "杯子是我推下去的，我不后悔", m: "实验做完，结论是它会碎" },
+    { t: "猜猜这次又是谁干的", m: "我不承认，但我在等你猜" }
+  ];
+  const ROUND_LEN = 8;
+  const OPT_SLOTS = [1, 3, 5, 7, 9, 11, 2, 4, 6, 8, 10, 12, 3, 5, 7, 9];
+  const OPT_D = [[1, 5, 9], [2, 7, 12], [3, 8, 13], [4, 9, 14], [5, 11, 2], [6, 12, 3], [7, 13, 4],
+    [8, 14, 5], [9, 15, 6], [10, 1, 7], [11, 2, 8], [12, 3, 9], [13, 4, 10], [14, 5, 11], [15, 6, 12], [1, 7, 13]];
+
+  function buildQuestion(bi) {
+    bi = clamp(bi | 0, 0, BANK.length - 1);
+    const item = BANK[bi], res = translate(item.t);
+    const correctIdx = (bi * 3 + 1) % 4;
+    const offs = OPT_D[bi], opts = [];
+    let di = 0;
+    for (let k = 0; k < 4; k++) {
+      if (k === correctIdx) opts.push({ text: item.m, correct: true });
+      else { opts.push({ text: BANK[(bi + offs[di]) % BANK.length].m, correct: false }); di++; }
+    }
+    return { bi, item, res, opts, correctIdx, answered: false, picked: -1 };
+  }
+
+  const state = { mode: "tr", res: null, resSource: "input" };
+  const qz = { order: [], pos: 0, cur: null, done: false, score: 0, combo: 0, maxCombo: 0, right: 0, wrong: 0, answered: 0, total: ROUND_LEN, lastAnswer: "" };
+
+  function newRound(startAt) {
+    const idx = BANK.map((_, i) => i);
+    qz.order = ML.shuffle(idx);
+    qz.pos = 0; qz.done = false; qz.score = 0; qz.combo = 0; qz.maxCombo = 0;
+    qz.right = 0; qz.wrong = 0; qz.answered = 0; qz.lastAnswer = "";
+    qz.total = Math.min(ROUND_LEN, qz.order.length);
+    if (typeof startAt === "number") ask(startAt);
+    else ask(qz.order[0]);
+  }
+  function ask(bi) {
+    const q = buildQuestion(bi);
+    qz.cur = q; qz.done = false;
+    q.total = qz.total;
+    state.res = q.res; state.resSource = "bank";
+    setExpr(moodExprKey(q.res.mood.key));
+    $("#qMeow").textContent = q.res.bubble + (q.res.meow.length > q.res.bubble.length ? " …" : "");
+    $("#qPos").textContent = qz.pos + 1;
+    $("#qTotal").textContent = qz.total;
+    $("#qHint").textContent = "共 " + q.res.stats.content + " 个音节、" + q.res.stats.clauses + " 句；表情：" + (EXP_LABEL[moodExprKey(q.res.mood.key)] || "—");
+    renderChoices();
+    updateHudQz();
+    dirty = true;
+    $("#qNext").disabled = true;
+    $("#qFeed").textContent = "选一个你觉得 MOMO 真正想表达的意思。";
+    $("#qFeed").classList.remove("warn");
+    return q;
+  }
+  function renderChoices() {
+    const q = qz.cur; if (!q) return;
+    $("#qChoices").innerHTML = q.opts.map((o, i) =>
+      `<button class="choice" data-i="${i}"><span class="key">${"ABCD"[i]}</span><span style="min-width:0">${ML_esc(o.text)}</span></button>`).join("");
+    $$("#qChoices .choice").forEach(b => b.onclick = () => answer(+b.dataset.i, true));
+    if (q.answered) paintChoices();
+  }
+  const ML_esc = s => String(s == null ? "" : s).split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;").split(String.fromCharCode(34)).join("&quot;");
+
+  function paintChoices() {
+    const q = qz.cur; if (!q) return;
+    $$("#qChoices .choice").forEach(b => {
+      const i = +b.dataset.i;
+      b.classList.remove("right", "wrongpick", "dim");
+      if (i === q.correctIdx) b.classList.add("right");
+      else if (i === q.picked) b.classList.add("wrongpick");
+      else b.classList.add("dim");
+    });
+  }
+
+  function answer(choice, byUser) {
+    const q = qz.cur;
+    if (!q) return { ok: false, reason: "没有出题" };
+    let idx;
+    if (choice === "right" || choice === true) idx = q.correctIdx;
+    else if (choice === "wrong" || choice === false) idx = (q.correctIdx + 1) % 4;
+    else idx = clamp(choice | 0, 0, 3);
+    if (q.answered) return { ok: false, reason: "本题已答过", idx, correct: q.opts[q.correctIdx].text };
+    const isRight = !!q.opts[idx] && q.opts[idx].correct;
+    q.answered = true; q.picked = idx;
+    qz.answered++;
+    let gain = 0;
+    if (isRight) {
+      gain = 100 + Math.min(qz.combo, 5) * 40;
+      qz.score += gain; qz.right++; qz.combo++;
+      qz.maxCombo = Math.max(qz.maxCombo, qz.combo);
+      sound.good(); if (qz.combo >= 2) sound.combo(qz.combo);
+      $("#qFeed").textContent = "对了 +" + gain + "（连击 ×" + qz.combo + "）。MOMO 被理解了，勉强满意。";
+      $("#qFeed").classList.remove("warn");
+    } else {
+      qz.wrong++; qz.combo = 0; sound.bad();
+      $("#qFeed").textContent = "答错了。正确答案是：" + q.opts[q.correctIdx].text;
+      $("#qFeed").classList.add("warn");
+    }
+    qz.lastAnswer = q.opts[q.correctIdx].text;
+    paintChoices();
+    $("#qNext").disabled = false;
+    if (byUser) try { ML.patchStats({ interactions: 1 }); } catch (e) {}
+    updateHudQz();
+    dirty = true;
+    if (qz.answered >= qz.total) { setTimeout(finishRound, 420); }
+    return { ok: true, idx, correct: isRight, gain, score: qz.score, combo: qz.combo };
+  }
+
+  function nextQuestion() {
+    if (qz.answered >= qz.total) { finishRound(); return false; }
+    qz.pos = Math.min(qz.pos + 1, qz.total - 1);
+    ask(qz.order[qz.pos % qz.order.length]);
+    return true;
+  }
+
+  function ratingFor(acc) { return acc >= 0.9 ? "S" : acc >= 0.7 ? "A" : acc >= 0.5 ? "B" : "C"; }
+  function ratingColor(r) { return r === "S" ? "#F16D5B" : r === "C" ? "#BFE4D0" : "#F5E66B"; }
+  function safeDate() { try { return ML.today(); } catch (e) { return new Date().toISOString().slice(0, 10); } }
+
+  function finishRound() {
+    if (qz.done) return;
+    qz.done = true;
+    const acc = qz.right / Math.max(1, qz.total);
+    const r = ratingFor(acc);
+    let rec = { best: qz.score, isNew: false, plays: 1 }, bestV = qz.score, plays = 0;
+    try { rec = ML.record("meowtalk", qz.score); bestV = rec.best; plays = rec.plays; } catch (e) {}
+    try {
+      const b = ML.best("meowtalk"), p = ML.plays("meowtalk");
+      bestV = Math.max(bestV, typeof b === "number" ? b : 0);
+      plays = typeof p === "number" ? p : plays;
+    } catch (e) {}
+    try { ML.patchStats({ gamesPlayed: 1, points: qz.score, interactions: qz.answered }); } catch (e) {}
+    const title = r === "S" ? "喵星翻译官" : r === "A" ? "半个猫语十级" : r === "B" ? "偶尔对上频道" : "它决定继续忍着";
+    $("#endRating").textContent = r;
+    $("#endRating").style.background = ratingColor(r);
+    $("#endRating").style.color = r === "S" ? "#fff" : "#222";
+    $("#endTitle").textContent = title;
+    $("#endNew").innerHTML = rec.isNew && qz.score > 0 ? '<span class="newrec">新纪录</span>' : "";
+    $("#endDesc").textContent = "答对 " + qz.right + "/" + qz.total + " · 准确率 " + Math.round(acc * 100) + "% · 已玩 " + plays + " 轮";
+    $("#stScore").textContent = qz.score;
+    $("#stAcc").textContent = Math.round(acc * 100) + "%";
+    $("#stCombo").textContent = "×" + qz.maxCombo;
+    $("#stRight").textContent = qz.right;
+    $("#stWrong").textContent = qz.wrong;
+    $("#stBest").textContent = bestV;
+    updateHudQz();
+    const url = exportPNG({ quiz: true, answer: qz.lastAnswer, badge: r });
+    if (url.url) {
+      $("#endImg").src = url.url;
+      $("#endDl").setAttribute("href", url.url);
+      $("#endHint").textContent = url.fallback
+        ? "结算卡用的是程序化简笔猫：本机素材图被浏览器安全策略拦住了（常见于 file:// 打开），文字和分数照常写进图里。"
+        : (location.protocol.startsWith("file:") ? "当前以 file:// 打开，已尽量带上了。" : "600 × 760 · 长按也能保存。");
+    } else {
+      $("#endImg").removeAttribute("src"); $("#endDl").removeAttribute("href");
+      $("#endHint").textContent = "这台浏览器不允许把画布导出成 PNG，结算卡生成失败。分数已经记在本机。";
+    }
+    $("#ovEnd").classList.remove("hide");
+    qz.score >= 700 ? sound.win() : sound.lose();
+    try { ML.floatSticker(stage, r, stage.clientWidth * .5 - 20, stage.clientHeight * .12); } catch (e) {}
+  }
+
+  /* ================= 10. 导出 / 收藏 ================= */
+  function exportPNG(opt) {
+    opt = opt || {};
+    const data = Object.assign(posterData(), opt.isQuiz || opt.quiz ? { isQuiz: true } : { isQuiz: false }, opt);
+    const build = withImgs => {
+      const c = document.createElement("canvas"); c.width = 600; c.height = 760;
+      const x = c.getContext("2d");
+      drawPoster(x, Object.assign({}, data, { withImgs }));
+      return c.toDataURL("image/png");
+    };
+    try { return { url: build(true), fallback: false, w: 600, h: 760 }; }
+    catch (e) {
+      try { return { url: build(false), fallback: true, w: 600, h: 760 }; }
+      catch (e2) { return { url: "", fallback: true, w: 600, h: 760 }; }
+    }
+  }
+  let lastExport = null;
+  function noteMsg(msg, warn) {
+    const el = $("#stageNote");
+    el.textContent = msg; el.classList.toggle("warn", !!warn);
+  }
+  function showExportOv(r) {
+    if (!r.url) {
+      noteMsg("导出失败：这台浏览器把画布锁住了（既带不了素材，也导不出纯自绘）。可以截图，或用本地服务器打开本页。", true);
+      sound.bad(); return null;
+    }
+    $("#ovImg").src = r.url;
+    $("#ovNote").textContent = r.fallback
+      ? "600 × 760 · 用的是程序化简笔猫：本机素材图被浏览器安全策略拦下（常见于 file:// 打开）。"
+      : "600 × 760 · 与站内导出尺寸一致，手机可长按保存。";
+    const name = "momo-meowtalk-" + Date.now() + ".png";
+    $("#ovDl").href = r.url; $("#ovDl").download = name;
+    $("#ovFav").textContent = "存进收藏";
+    lastExport = r;
+    $("#ovExport").classList.remove("hide");
+    return r;
+  }
+  function doExport(showOv) {
+    const r = exportPNG(state.mode === "quiz" ? { isQuiz: true, answer: qz.lastAnswer } : {});
+    if (!r.url) { noteMsg("导出失败：这台浏览器不允许把画布导出成 PNG。", true); sound.bad(); return r; }
+    try { ML.patchStats({ memesMade: 1, interactions: 1 }); } catch (e) {}
+    if (showOv) { showExportOv(r); sound.good(); }
+    else {
+      const a = document.createElement("a");
+      a.href = r.url; a.download = "momo-meowtalk-" + Date.now() + ".png";
+      document.body.appendChild(a); a.click(); a.remove();
+      noteMsg(r.fallback ? "已导出 600×760 PNG（自绘简笔猫兜底，素材被浏览器拦了）。" : "已导出 600×760 PNG。", false);
+      sound.good();
+    }
+    lastExport = r;
+    return r;
+  }
+  function saveToFav() {
+    const r = lastExport && lastExport.url ? lastExport : exportPNG(state.mode === "quiz" ? { isQuiz: true, answer: qz.lastAnswer } : {});
+    if (!r.url) { noteMsg("收藏失败：这台设备的画布导不出 PNG，图都生成不了。", true); sound.bad(); return { ok: false, reason: "no-png" }; }
+    const isQuiz = state.mode === "quiz";
+    const res = state.res;
+    const work = {
+      id: "meowtalk-" + Date.now(), game: "meowtalk", gameName: "猫语翻译机",
+      title: isQuiz ? "喵语猜意 · " + qz.score + " 分" : "喵语 · " + String(res && res.ok ? res.bubble : "喵").slice(0, 14),
+      score: isQuiz ? qz.score : 0,
+      rating: isQuiz ? ratingFor(qz.right / Math.max(1, qz.answered)) : ((res && res.mood && res.mood.label) || "平静路过"),
+      time: safeDate(), png: r.url
+    };
+    let ok = false, count = 0;
+    try { count = ML.addWork(work); ok = ML.works().some(w => w.id === work.id); } catch (e) { ok = false; }
+    if (!ok) {
+      noteMsg("收藏没存下：本机存储（localStorage）写不进去，可能被隐私模式或容量挡了。图可以「导出 PNG」自己保存。", true);
+      sound.bad(); return { ok: false, reason: "storage" };
+    }
+    try { ML.patchStats({ memesMade: 1, interactions: 1 }); } catch (e) {}
+    noteMsg("已存进收藏：" + work.title + "，共 " + count + " 件。去「收藏」页能看到大图。", false);
+    $("#ovFav").textContent = "已存进收藏 · " + count + " 件";
+    sound.win();
+    return { ok: true, id: work.id, count };
+  }
+
+  /* ================= 11. 翻译模式 UI ================= */
+  const PRESETS = ["本喵的饭呢？", "开门，我马上又要进来。", "我饿了但我不说。", "陪我十分钟就好～", "这个纸箱是我的王座。", "刚刚那根黄瓜是什么？"];
+  function buildPresets() {
+    $("#presetRow").innerHTML = PRESETS.map((t, i) =>
+      `<button class="ed-btn" data-i="${i}" title="${ML_esc(t)}">${ML_esc(t.length > 8 ? t.slice(0, 8) + "…" : t)}</button>`).join("");
+    $$("#presetRow .ed-btn").forEach(b => b.onclick = () => {
+      $("#inText").value = PRESETS[+b.dataset.i];
+      runTranslate(); sound.tap();
+    });
+  }
+  function runTranslate(opt) {
+    const silent = !!(opt && opt.silent);
+    updateSoundNote();
+    const res = translate($("#inText").value);
+    state.res = res; state.resSource = "input";
+    if (res.ok) {
+      setExpr(moodExprKey(res.mood.key), { sound: false });
+      $("#moodTag").textContent = res.mood.label;
+      $("#moodTag2").textContent = "心情：" + res.mood.label;
+      $("#moodLine").textContent = res.mood.line;
+      $("#ruleLine").textContent = [
+        res.stats.content + " 字 → " + res.stats.allContent + " 音节" + (res.stats.compressed ? "（超 " + MAX_SYL + " 已压缩）" : ""),
+        "韵母表命中 " + res.stats.known + "/" + res.stats.allContent + (res.stats.fallback ? "，兜底 " + res.stats.fallback + " 字" + (res.unknown && res.unknown.length ? "（" + res.unknown.slice(0, 4).join("") + "）" : "") : ""),
+        res.suffix.note, "分句 " + res.stats.clauses + " 段", "心情 ← " + res.mood.hit
+      ].join(" ｜ ") + (res.reason ? " ｜ " + res.reason : "");
+      $("#meowOut").textContent = res.meow;
+      $("#marksOut").innerHTML = res.marks.map(mk =>
+        `<span>${mk.syl}<i>${mk.arrow}${mk.name}</i></span>`).join("");
+      $("#cSyl").textContent = res.stats.content;
+      $("#cMood").textContent = res.mood.label;
+      $("#cHit").textContent = res.stats.known + "/" + res.stats.allContent;
+      try { ML.patchStats({ interactions: 1 }); } catch (e) {}
+      if (silent) noteMsg("规则可复现：同一句话永远同一串喵。（想听声音就点「叫一声」）", false);
+      else if (!playRes(res)) noteMsg(settings.sound ? "喵叫没响：这台浏览器的 WebAudio 被拦了。文字与图片不受影响。" : "音效开关是关的，打开「设置 → 音效」就能听见。", true);
+      else if (audioBlocked()) noteMsg("浏览器还不让自动播放声音：先随便点一下页面，再点「叫一声」就会响了。", true);
+      else noteMsg("已经叫过了。规则可复现：同一句话永远同一串喵。", false);
+    } else {
+      $("#meowOut").textContent = "…";
+      $("#marksOut").innerHTML = "";
+      $("#ruleLine").textContent = res.reason || "输入为空。";
+      $("#moodTag").textContent = "等你输入";
+      $("#cSyl").textContent = "0"; $("#cMood").textContent = "—"; $("#cHit").textContent = "0/0";
+    }
+    buildRulesTrace();
+    dirty = true;
+    return res;
+  }
+
+  function buildRulesTrace() {
+    const res = state.res && state.res.ok ? state.res : translate($("#inText").value);
+    if (!res || !res.ok) { $("#rulesTrace").innerHTML = "<div>先写一句话，这里会拆给你看。</div>"; return; }
+    const rows = [
+      "<b>输入</b>：" + ML_esc(res.text),
+      "<b>逐字取韵母类 + 声调</b>：" + ML_esc(res.syllables.filter(s => !s.suffix).map(s => s.ch + "→" + s.syl + TONE_ARROW[s.tone]).join(" ") || "（无实义字）"),
+      "<b>分句</b>：" + ML_esc(res.clauses.join(" ｜ ")),
+      "<b>标点收尾</b>：" + ML_esc(res.suffix.note + " → " + res.suffix.syl + (res.suffix.mark || "")),
+      "<b>音节数</b>：" + res.stats.content + " 字 → " + res.stats.allContent + " 音节" + (res.stats.compressed ? "（已压缩到 " + MAX_SYL + "）" : "") + "，兜底 " + res.stats.fallback + " 字",
+      "<b>心情</b>：" + ML_esc(res.mood.hit + " → " + res.mood.label + "（表情：" + (EXP_LABEL[moodExprKey(res.mood.key)] || "—") + "）")
+    ];
+    $("#rulesTrace").innerHTML = rows.map(r => "<div>" + r + "</div>").join("");
+    $("#rulesDemo").textContent = "当前这句的逐步拆解（同一段代码现场算出来的，不是写的说明）：";
+  }
+
+  /* ================= 12. 模式切换 ================= */
+  function setMode(m) {
+    state.mode = m === "quiz" ? "quiz" : "tr";
+    $("#tabTr").classList.toggle("sel", state.mode === "tr");
+    $("#tabQz").classList.toggle("sel", state.mode === "quiz");
+    $("#paneTr").hidden = state.mode !== "tr";
+    $("#paneTrOut").hidden = state.mode !== "tr";
+    $("#paneQz").hidden = state.mode !== "quiz";
+    $("#hudTr").hidden = state.mode !== "tr";
+    $("#hudQz").hidden = state.mode !== "quiz";
+    if (state.mode === "quiz") {
+      if (!qz.cur) newRound();
+      else { state.res = qz.cur.res; state.resSource = "bank"; }
+    } else if (!state.res || state.resSource !== "input") {
+      runTranslate();
+    }
+    dirty = true;
+  }
+
+  function updateHudQz() {
+    $("#cScore").textContent = qz.score;
+    $("#cCombo").textContent = "×" + qz.combo;
+    $("#cPos").textContent = Math.min(qz.answered + 1, qz.total) + "/" + qz.total;
+    let b = 0; try { b = ML.best("meowtalk"); } catch (e) { b = 0; }
+    $("#cBest").textContent = Math.max(b, qz.score) || 0;
+  }
+
+  function say(msg, cls) {
+    $("#banner").innerHTML = '<span class="msg ' + (cls || "") + '">' + ML_esc(msg) + "</span>";
+    clearTimeout(say._t); say._t = setTimeout(() => { $("#banner").innerHTML = ""; }, 2100);
+  }
+
+  /* ================= 13. 事件绑定 ================= */
+  $("#tabTr").onclick = () => { setMode("tr"); sound.tap(); };
+  $("#tabQz").onclick = () => { setMode("quiz"); sound.tap(); };
+  $("#tabRules").onclick = () => { buildRulesTrace(); $("#rulesOv").classList.remove("hide"); sound.tap(); };
+  $("#rulesClose").onclick = () => $("#rulesOv").classList.add("hide");
+  $("#goBtn").onclick = () => { runTranslate(); };
+  $("#clearBtn").onclick = () => { $("#inText").value = ""; runTranslate(); sound.tap(); };
+  $("#voiceBtn").onclick = () => {
+    const res = state.res && state.res.ok ? state.res : runTranslate();
+    if (!res || !res.ok) { noteMsg("先写一句话再让 MOMO 开口。", true); return; }
+    if (!playRes(res)) noteMsg(settings.sound ? "WebAudio 没起来（浏览器拦了），文字与图片不受影响。" : "「设置 → 音效」是关的，开了才会叫。", true);
+    else if (audioBlocked()) noteMsg("浏览器把自动播放拦住了（AudioContext 还没 running）：再点一次「叫一声」通常就响了。", true);
+    else noteMsg("这声是 " + res.marks.map(mk => mk.syl).join("") + " 现场合成的。", false);
+    try { ML.patchStats({ interactions: 1 }); } catch (e) {}
+  };
+  $("#qAgain").onclick = () => { newRound(); sound.tap(); say("新一轮开始，共 " + qz.total + " 题", "yel"); };
+  $("#qNext").onclick = () => { nextQuestion(); sound.tap(); };
+  $("#qCard").onclick = () => { if (qz.answered > 0 && !qz.done) finishRound(); else doExport(true); };
+  $("#expBtn").onclick = () => doExport(true);
+  $("#favBtn").onclick = () => saveToFav();
+  $("#ovDl").onclick = () => { $("#ovExport").classList.add("hide"); };
+  $("#ovClose").onclick = () => $("#ovExport").classList.add("hide");
+  $("#ovFav").onclick = () => saveToFav();
+  $("#endDl").onclick = () => { setTimeout(() => $("#ovEnd").classList.add("hide"), 120); };
+  $("#endFav").onclick = () => { const was = state.mode; state.mode = "quiz"; const r = saveToFav(); state.mode = was; };
+  $("#endRetry").onclick = () => { $("#ovEnd").classList.add("hide"); newRound(); sound.tap(); };
+  $("#endClose").onclick = () => $("#ovEnd").classList.add("hide");
+  $("#resetBtn").onclick = () => {
+    $("#inText").value = PRESETS[0];
+    setMode("tr"); runTranslate();
+    qz.cur = null; newRound(); qz.done = false;
+    $("#ovEnd").classList.add("hide"); $("#ovExport").classList.add("hide");
+    setExpr("deadpan", { sound: true });
+    say("已重置：翻译与本轮分数都回到起点", "yel");
+  };
+  $("#inText").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); runTranslate(); } });
+
+  /* ================= 14. 素材装载 ================= */
+  ML.pet().then(cfg => {
+    petCfg = cfg;
+    if (cfg.furColor) FUR = cfg.furColor;
+    $("#whoName").textContent = (cfg.petName || "MOMO") + " · " + (cfg.petType === "cat" ? "猫" : cfg.petType || "?");
+    EXPRS = exprList();
+    if (!EXPRS.length) EXPRS = Object.keys(EXP_LABEL);   // 配置里没有可用表情键：全走简笔猫
+    EXPRS.forEach(k => {
+      const s = exprSrc(k);
+      if (!s) { imgState[k] = "fail"; return; }
+      imgState[k] = "load";
+      ML.img(s).then(im => { imgCache[k] = im; imgState[k] = "ok"; dirty = true; }).catch(() => { imgState[k] = "fail"; dirty = true; });
+    });
+    buildExprRow();
+    setExpr("deadpan", { sound: false });
+    updateArtNote();
+    if (qz.cur) ask(qz.cur.bi); else newRound();   // 表情池到位后重算当前题
+    if (state.mode === "tr") runTranslate({ silent: true });   // 翻译模式回到输入句；猜意模式别抢舞台
+  }).catch(() => {
+    $("#artNote").textContent = "表情形象：宠物配置没读进来，用简笔猫兜底（翻译与出题照常工作）。";
+    $("#artNote").classList.add("warn");
+    $("#cArt").textContent = "简笔";
+    EXPRS = ["happy", "angry", "surprised", "innocent", "sleep", "deadpan", "mischief"];
+    buildExprRow();
+    runTranslate({ silent: true });
+    if (!qz.cur) newRound();
+  });
+
+  window.addEventListener("resize", () => { sizeCanvas(); dirty = true; });
+  window.addEventListener("orientationchange", () => { sizeCanvas(); dirty = true; });
+  if (window.ResizeObserver) { try { new ResizeObserver(() => { sizeCanvas(); dirty = true; }).observe(stage); } catch (e) {} }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { dirty = true; updateSoundNote(); } });
+
+  /* ================= 15. 启动 ================= */
+  sizeCanvas();
+  $("#inText").value = PRESETS[0];
+  newRound();                          // 题库先备好，切到猜意模式直接能答
+  runTranslate({ silent: true });      // 启动时不发声：没有用户手势时浏览器本来也拦住
+  drawStage(0);
+  requestAnimationFrame(loop);
+
+  /* ================= 16. 调试钩子 ================= */
+  window.__meowtalkDebug = {
+    translate,                                  // 纯函数：任意中文 → { meow, bubble, mood, marks, stats ... }
+    rules: { CLS_SYL, TONE_ARROW, MOOD_RULES, MAX_SYL, MAX_SHOW, PY_SIZE: Object.keys(PY).length },
+    state: () => ({
+      mode: state.mode, expr: curExpr, exprKeys: EXPRS.slice(),
+      artState: state_expr(imgState[curExpr]), res: summarize(state.res),
+      quiz: { pos: qz.pos, answered: qz.answered, total: qz.total, done: qz.done, bi: qz.cur ? qz.cur.bi : -1 },
+      soundOn: !!settings.sound, animOn: !!settings.anim,
+      canvas: { w: cv.width, h: cv.height, cssW: cv.clientWidth, cssH: cv.clientHeight, dpr },
+      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    }),
+    setExpr: (key, opt) => setExpr(key, Object.assign({ count: false }, opt || {})),
+    quiz: {
+      size: () => BANK.length,
+      bank: () => BANK.map((b, i) => ({ i, t: b.t, m: b.m, expr: moodExprKey(translate(b.t).mood.key) })),
+      ask: bi => { const q = ask(clamp(bi | 0, 0, BANK.length - 1)); return debugQ(q); },
+      force: bi => window.__meowtalkDebug.quiz.ask(bi),
+      current: () => debugQ(qz.cur),
+      question: bi => debugQ(buildQuestion(typeof bi === "number" ? bi : (qz.cur ? qz.cur.bi : 0))),
+      order: () => qz.order.slice(),
+      next: nextQuestion,
+      again: () => { newRound(); return debugQ(qz.cur); }
+    },
+    answer: choice => answer(choice, false),
+    finish: () => { finishRound(); return window.__meowtalkDebug.score(); },
+    score: () => ({
+      score: qz.score, combo: qz.combo, maxCombo: qz.maxCombo, right: qz.right, wrong: qz.wrong,
+      answered: qz.answered, total: qz.total, best: safeBest(), plays: safePlays(), done: qz.done
+    }),
+    exportPNG: opt => exportPNG(opt).url,
+    exportDetail: opt => exportPNG(opt),
+    saveToFav,
+    audioPlaying: () => ({ ctx: !!ac, state: ac ? ac.state : "none", soundOn: !!settings.sound }),
+    reset: () => {
+      $("#inText").value = PRESETS[0];
+      qz.cur = null; newRound(); qz.done = false;
+      setMode("tr"); runTranslate(); setExpr("deadpan", { sound: false });
+      return window.__meowtalkDebug.state();
+    }
+  };
+  function state_expr(s) { return s === "ok" ? "asset" : s === "fail" ? "fallback" : "loading"; }
+  function summarize(res) {
+    if (!res) return null;
+    return res.ok ? {
+      ok: true, text: res.text, meow: res.meow, bubble: res.bubble,
+      mood: { key: res.mood.key, label: res.mood.label, hit: res.mood.hit },
+      stats: res.stats, suffix: res.suffix.syl + (res.suffix.mark || "")
+    } : { ok: false, reason: res.reason };
+  }
+  function debugQ(q) {
+    if (!q) return null;
+    return {
+      bi: q.bi, text: q.res.text, meow: q.res.bubble, full: q.res.meow,
+      mood: q.res.mood.label, expr: moodExprKey(q.res.mood.key),
+      options: q.opts.map(o => o.text), correctIdx: q.correctIdx, correct: q.opts[q.correctIdx].text,
+      answered: q.answered, picked: q.picked
+    };
+  }
+  function safeBest() { try { return ML.best("meowtalk"); } catch (e) { return 0; } }
+  function safePlays() { try { return ML.plays("meowtalk"); } catch (e) { return 0; } }
+})();
+</script>
+</body>
+</html>

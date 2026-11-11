@@ -40,6 +40,7 @@
   .item .th{width:58px;height:58px;display:grid;place-items:center;background:#fff;border:var(--bd);border-radius:10px;overflow:hidden}
   .item.none .th{background:repeating-linear-gradient(45deg,#fff 0 6px,#EFE9DD 6px 12px)}
   .item .th svg{width:100%;height:100%}
+  .item .th img{width:100%;height:100%;object-fit:contain;background:#FCEEF2}
   .item .nm{font-size:12px;font-weight:800;line-height:1.25;text-align:center}
   .item .bdg{font-size:9px;font-weight:900;letter-spacing:.1em;border:1px solid var(--ink);border-radius:999px;padding:0 6px;color:var(--mut)}
   .item .bdg.img{background:var(--mint);color:var(--ink)}
@@ -175,12 +176,15 @@
     x.closePath();
   }
 
-  /* ---------------- 换图素材（可选，全部 try/catch） ---------------- */
+  /* ---------------- 换图素材（只有 photo:1 的单品才发请求，不会去碰不存在的路径） ---------------- */
+  const assetSrc = id => ML.asset("assets/dressup/" + id + ".png");
   function loadAsset(id) {
     if (assetTried[id]) return;
+    const it = itemById(id);
+    if (!it || !it.photo) return;
     assetTried[id] = 1;
     try {
-      ML.img(ML.asset("assets/dressup/" + id + ".png")).then(img => {
+      ML.img(assetSrc(id)).then(img => {
         assetImgs[id] = img; markBadges(); render();
       }).catch(() => { assetImgs[id] = null; markBadges(); });
     } catch (e) { assetImgs[id] = null; }
@@ -366,8 +370,14 @@
   }
   function drawItem(x, it, g, withImgs) {
     const im = withImgs ? assetImgs[it.id] : null;
-    if (im) { const a = g.anchor(it.anchor), s = it.imgSize || 150; x.drawImage(im, a.x - s / 2, a.y - s / 2, s, s); return; }
+    if (im) { drawPhoto(x, it, g, im); return; }
     if (it.draw) it.draw(x, g);
+  }
+  /* 真图素材：imgPin 说“照片里哪个点对准锚点”（领口、帽檐），imgSize 可给 [宽, 高] */
+  function drawPhoto(x, it, g, im) {
+    const a = g.anchor(it.anchor), o = it.imgOff || [0, 0], pin = it.imgPin || [.5, .5];
+    const sz = typeof it.imgSize === "function" ? it.imgSize(g) : (it.imgSize || 150), wh = Array.isArray(sz) ? sz : [sz, sz];
+    x.drawImage(im, a.x + o[0] - pin[0] * wh[0], a.y + o[1] - pin[1] * wh[1], wh[0], wh[1]);
   }
   function drawScene(x, opt) {
     opt = opt || {};
@@ -379,9 +389,12 @@
     const eq = layerList();
     eq.filter(it => (it.layer || 20) < 5).forEach(it => drawItem(x, it, g, opt.withImgs !== false));
     drawCat(x, g);
-    eq.filter(it => (it.layer || 20) >= 5 && (it.layer || 20) < 44).forEach(it => drawItem(x, it, g, opt.withImgs !== false));
+    const L = it => it.layer || 20, band = (lo, hi) => eq.filter(it => L(it) >= lo && L(it) < hi);
+    band(5, 30).forEach(it => drawItem(x, it, g, opt.withImgs !== false));
+    drawPaw(x, g, -1); drawPaw(x, g, 1);   // 衣服盖住爪子了，补画在前面
+    band(30, 44).forEach(it => drawItem(x, it, g, opt.withImgs !== false));
     if (opt.withImgs !== false) drawFaceSticker(x, g);   // 表情原图也会让画布“中毒”，退回时不画
-    eq.filter(it => (it.layer || 20) >= 44).forEach(it => drawItem(x, it, g, opt.withImgs !== false));
+    band(44, 999).forEach(it => drawItem(x, it, g, opt.withImgs !== false));
     x.restore();
     return g;
   }
@@ -522,6 +535,24 @@
       }
     },
     {
+      id: "beret", cat: "head", name: "猫耳贝雷帽", anchor: "head", layer: 21, photo: 1,
+      imgSize: g => [g.hrx * 2.59, g.hrx * 2.01], imgPin: [.50, .72], imgOff: [0, -50],
+      svg: SV('<path d="M8 30c0-10 7-16 16-16s16 6 16 16z" fill="#2E3A6B"/><path d="M9 30h30v5H9z" fill="#26315A"/><path d="M15 18 11 8l9 4zM33 18l4-10-9 4" fill="#B98A55"/>'),
+      draw(x, g) {
+        const a = { x: g.hx, y: g.hy - g.hry * 0.45 }, w = g.hrx * 1.02, h = g.hry * 0.62;
+        ink(x, 5);
+        [-1, 1].forEach(s => {
+          x.fillStyle = "#B98A55";
+          poly(x, [[a.x + s * w * 0.50, a.y - h * 0.50], [a.x + s * w * 0.80, a.y - h * 1.80], [a.x + s * w * 0.92, a.y - h * 0.26]]);
+          x.fill(); x.stroke();
+        });
+        x.fillStyle = "#2E3A6B"; x.beginPath(); x.moveTo(a.x - w, a.y);
+        x.quadraticCurveTo(a.x - w * 0.86, a.y - h * 1.52, a.x, a.y - h * 1.46);
+        x.quadraticCurveTo(a.x + w * 0.92, a.y - h * 1.54, a.x + w, a.y); x.closePath(); x.fill(); x.stroke();
+        x.fillStyle = "#26315A"; ell(x, a.x, a.y, w, h * 0.28); x.fill(); x.stroke();
+      }
+    },
+    {
       id: "nightcap", cat: "head", name: "睡帽", anchor: "head-top", layer: 20, imgSize: 190,
       svg: SV('<path d="M10 32c2-14 12-22 26-22l-2 22z" fill="#DCD2F5"/><circle cx="36" cy="10" r="5" fill="#fff"/><path d="M8 32h32"/>'),
       draw(x, g) {
@@ -564,18 +595,51 @@
 
     /* ---- 衣服 ---- */
     {
-      id: "sweater", cat: "cloth", name: "条纹毛衣", anchor: "chest", layer: 10, imgSize: 260,
-      svg: SV('<path d="M12 14l12-6 12 6 6 8-8 4v18H14V26l-8-4z" fill="#DCD2F5"/><path d="M12 30h24M12 38h24" stroke="#fff"/>'),
+      id: "sweater", cat: "cloth", name: "针织毛衣", anchor: "neck", layer: 10, photo: 1,
+      imgSize: g => [g.brx * 3.53, 275], imgPin: [.50, .17],
+      svg: SV('<path d="M12 14l12-6 12 6 6 8-8 4v18H14V26l-8-4z" fill="#F6C9D2"/><path d="M12 30h24M12 38h24" stroke="#fff"/>'),
       draw(x, g) {
         const rx = g.brx * 0.985, ry = g.bry * 0.985, cy = g.by + g.breathe;
         x.save(); ell(x, g.bx, cy, rx, ry); x.clip();
-        x.fillStyle = "#DCD2F5"; x.fillRect(g.bx - rx, cy - ry, rx * 2, ry * 2);
+        x.fillStyle = "#F6C9D2"; x.fillRect(g.bx - rx, cy - ry, rx * 2, ry * 2);
         x.fillStyle = "#FBF7EE";
         for (let i = 0; i < 8; i++) x.fillRect(g.bx - rx, cy - ry + i * (ry * 2 / 8) + 10, rx * 2, ry * 0.12);
-        x.fillStyle = "#F16D5B"; x.fillRect(g.bx - rx, cy + ry * 0.66, rx * 2, ry * 0.16);
+        x.fillStyle = "#F1A9BA"; x.fillRect(g.bx - rx, cy + ry * 0.66, rx * 2, ry * 0.16);
         x.restore();
         ink(x, 5); ell(x, g.bx, cy, rx, ry); x.stroke();
-        x.fillStyle = "#DCD2F5"; ell(x, g.bx, cy - ry * 0.84, g.brx * 0.44, g.bry * 0.15); x.fill(); x.stroke();
+        x.fillStyle = "#F6C9D2"; ell(x, g.bx, cy - ry * 0.84, g.brx * 0.44, g.bry * 0.15); x.fill(); x.stroke();
+      }
+    },
+    {
+      id: "hoodie", cat: "cloth", name: "连帽卫衣", anchor: "neck", layer: 12, photo: 1,
+      imgSize: g => [g.brx * 3.55, 268], imgPin: [.50, .16],
+      svg: SV('<path d="M11 42V23c0-7 6-13 13-13s13 6 13 13v19z" fill="#F7D774"/><path d="M15 23c3-6 15-6 18 0" fill="#FBEBA8"/><path d="M17 31h14v7H17z"/>'),
+      draw(x, g) {
+        const rx = g.brx * 1.02, ry = g.bry * 1.0, cy = g.by + g.breathe;
+        x.save(); ell(x, g.bx, cy, rx, ry); x.clip();
+        x.fillStyle = "#F7D774"; x.fillRect(g.bx - rx, cy - ry, rx * 2, ry * 2);
+        x.fillStyle = "#EFC65A"; x.fillRect(g.bx - rx * 0.46, cy + ry * 0.02, rx * 0.92, ry * 0.42);
+        x.restore();
+        ink(x, 5); ell(x, g.bx, cy, rx, ry); x.stroke();
+        x.fillStyle = "#FBEBA8"; ell(x, g.bx, cy - ry * 0.80, g.brx * 0.50, g.bry * 0.20); x.fill(); x.stroke();
+        ink(x, 4); x.beginPath(); x.moveTo(g.bx - g.brx * 0.16, cy - ry * 0.62); x.lineTo(g.bx - g.brx * 0.16, cy - ry * 0.30);
+        x.moveTo(g.bx + g.brx * 0.16, cy - ry * 0.62); x.lineTo(g.bx + g.brx * 0.16, cy - ry * 0.30); x.stroke();
+      }
+    },
+    {
+      id: "tater", cat: "cloth", name: "薯饼连帽衫", anchor: "neck", layer: 13, photo: 1,
+      imgSize: g => [g.brx * 3.52, 258], imgPin: [.50, .144],
+      svg: SV('<path d="M12 42V24c0-7 5-13 12-13s12 6 12 13v18z" fill="#E8B25C"/><path d="M14 20l20 20M34 20 14 40" stroke="#C6883C"/>'),
+      draw(x, g) {
+        const rx = g.brx * 1.0, ry = g.bry * 0.98, cy = g.by + g.breathe;
+        x.save(); ell(x, g.bx, cy, rx, ry); x.clip();
+        x.fillStyle = "#E8B25C"; x.fillRect(g.bx - rx, cy - ry, rx * 2, ry * 2);
+        x.strokeStyle = "#C6883C"; x.lineWidth = 5;
+        for (let i = -4; i <= 4; i++) { x.beginPath(); x.moveTo(g.bx + i * rx * 0.34 - ry, cy - ry); x.lineTo(g.bx + i * rx * 0.34 + ry, cy + ry); x.stroke(); }
+        for (let i = -4; i <= 4; i++) { x.beginPath(); x.moveTo(g.bx + i * rx * 0.34 + ry, cy - ry); x.lineTo(g.bx + i * rx * 0.34 - ry, cy + ry); x.stroke(); }
+        x.restore();
+        ink(x, 5); ell(x, g.bx, cy, rx, ry); x.stroke();
+        x.fillStyle = "#D89A46"; ell(x, g.bx, cy - ry * 0.78, g.brx * 0.54, g.bry * 0.22); x.fill(); x.stroke();
       }
     },
     {
@@ -614,7 +678,7 @@
 
     /* ---- 颈部 ---- */
     {
-      id: "bowtie", cat: "neck", name: "领结", anchor: "neck", layer: 15, imgSize: 130,
+      id: "bowtie", cat: "neck", name: "缎面领结", anchor: "neck", layer: 15, photo: 1, imgSize: 200, imgPin: [.50, .40],
       svg: SV('<path d="M24 24 8 14v20zM24 24 40 14v20z" fill="#F16D5B"/><circle cx="24" cy="24" r="4" fill="#F5E66B"/>'),
       draw(x, g) {
         const a = g.anchor("neck"), w = g.hrx * 0.34, h = g.hry * 0.2;
@@ -625,7 +689,8 @@
       }
     },
     {
-      id: "scarf", cat: "neck", name: "围巾", anchor: "neck", layer: 15, imgSize: 200,
+      id: "scarf", cat: "neck", name: "格纹围巾", anchor: "neck", layer: 15, photo: 1,
+      imgSize: g => [g.hrx * 3.17, 205], imgPin: [.50, .24],
       svg: SV('<path d="M8 20c10 6 22 6 32 0v8c-10 6-22 6-32 0z" fill="#F5E66B"/><path d="M30 28l6 14h-8l-2-12"/>'),
       draw(x, g) {
         const a = g.anchor("neck"), w = g.hrx * 0.92;
@@ -775,16 +840,18 @@
       list.map(it => {
         const sel = cur === it.id, has = !!assetImgs[it.id];
         return `<button class="item${sel ? " sel" : ""}" data-id="${it.id}">
-          <span class="th">${it.svg || ""}</span><span class="nm">${it.name}</span>
+          <span class="th">${has ? `<img src="${assetSrc(it.id)}" alt="">` : (it.svg || "")}</span><span class="nm">${it.name}</span>
           <span class="bdg${has ? " img" : ""}" data-bdg="${it.id}">${has ? "图片" : "自绘"}</span></button>`;
       }).join("");
     $$("#items .item").forEach(b => b.onclick = () => equip(cat, b.dataset.id));
   }
   function markBadges() {
-    $$("#items .bdg[data-bdg]").forEach(el => {
-      const has = !!assetImgs[el.dataset.bdg];
-      el.textContent = has ? "图片" : "自绘";
-      el.classList.toggle("img", has);
+    $$("#items .item[data-id]").forEach(el => {
+      const id = el.dataset.id, im = assetImgs[id];
+      const bdg = el.querySelector(".bdg");
+      if (bdg) { bdg.textContent = im ? "图片" : "自绘"; bdg.classList.toggle("img", !!im); }
+      const th = el.querySelector(".th");
+      if (th && im && !th.querySelector("img")) th.innerHTML = `<img src="${assetSrc(id)}" alt="">`;
     });
   }
 
