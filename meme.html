@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FBF6EC">
+<title>表情包制造机</title>
+<link rel="stylesheet" href="css/app.css?v=100">
+<script src="js/icons.js?v=100" defer></script>
+<script src="js/core.js?v=100" defer></script>
+<script src="js/cat.js?v=100" defer></script>
+<script src="js/game.js?v=100" defer></script>
+<script src="js/content.js?v=100" defer></script>
+</head>
+<body data-page="home" data-back="index.html" data-back-text="首页" data-tabbar="off">
+<div class="app notab">
+
+  <div class="gstage wide" style="border-radius:16px">
+    <canvas id="cv"></canvas>
+  </div>
+  <p class="gnote" id="tip">点一下画面可以挪贴纸；拖动也行。</p>
+
+  <div class="row2" style="margin-top:10px">
+    <button class="btn gold" id="btnPng">下载 PNG</button>
+    <button class="btn line" id="btnAlbum">存进相册</button>
+  </div>
+
+  <div class="sect"><h2>底图（21 张真原片）</h2><span class="mut small" id="baseN"></span></div>
+  <div class="pgrid" id="bases" style="grid-template-columns:repeat(4,1fr)"></div>
+
+  <div class="sect"><h2>文案</h2></div>
+  <div class="card">
+    <label class="small mut">上一句<input type="text" id="top" maxlength="16" value="我真的会谢"></label>
+    <label class="small mut" style="margin-top:8px;display:block">下一句<input type="text" id="bot" maxlength="16" value=""></label>
+    <div class="pill-row" style="margin-top:10px" id="quick"></div>
+  </div>
+
+  <div class="sect"><h2>贴纸（真道具抠图）</h2></div>
+  <div class="items" id="stickers" style="grid-template-columns:repeat(4,1fr)"></div>
+
+  <div class="sect"><h2>样式</h2></div>
+  <div class="card">
+    <div class="row2">
+      <div><b class="small mut">滤镜</b><div class="row3" id="filters" style="margin-top:6px"></div></div>
+      <div><b class="small mut">字重</b><div class="row3" id="weights" style="margin-top:6px"></div></div>
+    </div>
+    <label class="small mut" style="display:block;margin-top:12px">贴纸大小
+      <input type="range" id="ssize" min="40" max="220" value="110"></label>
+    <label class="small mut" style="display:block;margin-top:8px">贴纸角度
+      <input type="range" id="srot" min="-60" max="60" value="-12"></label>
+    <button class="btn line block" id="btnNoStick" style="margin-top:10px">去掉贴纸</button>
+  </div>
+
+  <div class="sect"><h2>做过的</h2><span class="mut small" id="madeN"></span></div>
+  <div class="grid3" id="made"></div>
+</div>
+
+<script src="js/p/meme.js?v=100" defer></script>
+</body>
+</html>

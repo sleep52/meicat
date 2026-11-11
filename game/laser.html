@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FBF6EC">
+<title>追红点</title>
+<link rel="stylesheet" href="../css/app.css?v=100">
+<script src="../js/icons.js?v=100" defer></script>
+<script src="../js/core.js?v=100" defer></script>
+<script src="../js/cat.js?v=100" defer></script>
+<script src="../js/game.js?v=100" defer></script>
+<script src="../js/games.js?v=100" defer></script>
+<script src="../js/content.js?v=100" defer></script>
+<script src="../js/g/laser.js?v=100" defer></script>
+</head>
+<body data-page="games" data-back="games.html" data-back-text="游戏大厅" data-tabbar="off">
+<div class="app notab">
+  <div class="gtop">
+    <div class="sc"><b id="gScore">0</b><span>分</span></div>
+    <div class="lv" id="gHint">按住红点</div>
+    <div class="tm"><span id="gTimer">60</span> 秒</div>
+  </div>
+  <div class="gstage tall"><canvas id="cv"></canvas><div class="gcover" id="gCover"></div></div>
+  <div class="gctl"><button class="btn gold" id="gBtn">开始</button></div>
+  <p class="gnote">最高 <i id="gBest">0</i> 分 · 手指压住红点满半秒才算追上，追上会加速</p>
+</div>
+</body>
+</html>

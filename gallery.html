@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FBF6EC">
+<title>生活相册</title>
+<link rel="stylesheet" href="css/app.css?v=100">
+<script src="js/icons.js?v=100" defer></script>
+<script src="js/core.js?v=100" defer></script>
+<script src="js/content.js?v=100" defer></script>
+</head>
+<body data-page="album" data-tabbar="on">
+<div class="app">
+  <div class="sect"><h2>生活相册</h2><span class="mut small" id="cnt"></span></div>
+  <p class="mut small" style="margin-top:-4px">
+    21 张是她的真原片，已经带在站点里；你自己拍的可以往下加。
+    没有数据库，所以加进去的照片只存在这台设备的浏览器里（换设备或清缓存会没），
+    这一点在设置页也写着，不假装能同步。
+  </p>
+
+  <div class="row2" style="margin-top:12px">
+    <label class="btn gold" style="cursor:pointer">加一张照片
+      <input type="file" id="file" accept="image/*" hidden></label>
+    <input type="text" id="q" placeholder="搜备注或分类" style="flex:1">
+  </div>
+
+  <div class="ptabs" id="tabs" style="margin-top:12px"></div>
+  <div class="pgrid" id="grid"></div>
+  <p class="gnote hide" id="empty">这一类下没有照片。</p>
+</div>
+
+<script src="js/p/gallery.js?v=100" defer></script>
+</body>
+</html>

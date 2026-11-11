@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FBF6EC">
+<title>我的 · 设置</title>
+<link rel="stylesheet" href="css/app.css?v=100">
+<script src="js/icons.js?v=100" defer></script>
+<script src="js/core.js?v=100" defer></script>
+<script src="js/games.js?v=100" defer></script>
+<script src="js/content.js?v=100" defer></script>
+</head>
+<body data-page="me" data-tabbar="on">
+<div class="app">
+  <div class="sect"><h2>我的</h2></div>
+
+  <div class="card">
+    <div class="row2" id="statCards"></div>
+  </div>
+
+  <div class="sect"><h2>偏好</h2></div>
+  <div class="card" id="prefs">
+    <label class="sw"><span class="tx"><b>音效</b><span>WebAudio 现场合成，不加载任何音频文件</span></span>
+      <input type="checkbox" id="pSound"></label>
+    <label class="sw"><span class="tx"><b>动画</b><span>关掉后猫不再呼吸起伏，页面切换也不滑动</span></span>
+      <input type="checkbox" id="pAnim"></label>
+    <label class="sw"><span class="tx"><b>触感</b><span>支持的设备上摸到猫会震一下</span></span>
+      <input type="checkbox" id="pHaptic"></label>
+    <button class="btn line block" id="trySound" style="margin-top:10px">试听一声喵</button>
+  </div>
+
+  <div class="sect"><h2>成绩</h2><span class="mut small" id="recN"></span></div>
+  <div class="card" id="recs"></div>
+
+  <div class="sect"><h2>数据</h2></div>
+  <div class="card">
+    <p class="small mut">这站是纯静态的 GitHub Pages，没有后端也没有数据库。
+      装扮、成绩、相册备注、做过的表情包全部存在这台设备的浏览器 localStorage 里，
+      换设备或清缓存就会没——所以「导出」是把它们存成一个 JSON 文件，不是同步。</p>
+    <div class="kv"><span class="mut">已用存储</span><b id="usage">—</b></div>
+    <div class="row2" style="margin-top:10px">
+      <button class="btn line" id="exp">导出 JSON</button>
+      <button class="btn coral" id="clr">清空全部数据</button>
+    </div>
+  </div>
+
+  <div class="sect"><h2>素材从哪来</h2></div>
+  <div class="card">
+    <p class="small">猫：一张 <code>assets/rabbitcat.jpg</code> 实拍抠图（<code>assets/pets/realcat/body.webp</code>）。<br>
+      表情/相册：21 张真原片。<br>
+      衣裳：6 张真图产品照（<code>assets/dressup/</code>）。<br>
+      道具：16 张实拍抠图（<code>assets/props/</code>）。<br>
+      封面：用上面这些当场合成的 320×240 真猫图。</p>
+    <p class="small mut">站里不放任何画出来的猫。早前生成的那批 AI 猫图（<code>assets/pets/pet001/</code>、
+      <code>assets/hero/</code>、<code>assets/games/</code> 那一类）没有任何页面引用，属于历史遗留，可以直接删。
+      另外 <code>assets/pets/pet002/</code> 里 angry / happy / innocent 这几个文件名和内容对不上
+      （其实是绿幕猫、海豹猫、大脸猫），所以也不用了。</p>
+    <a class="btn line block" href="https://github.com/sleep52/meicat" target="_blank" rel="noopener">看源码仓库</a>
+  </div>
+
+  <div class="sect"><h2>还缺什么</h2></div>
+  <div class="card" id="todo"></div>
+</div>
+
+<script src="js/p/settings.js?v=100" defer></script>
+</body>
+</html>

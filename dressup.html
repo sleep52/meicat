@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FBF6EC">
+<title>真猫换装室</title>
+<link rel="stylesheet" href="css/app.css?v=100">
+<script src="js/icons.js?v=100" defer></script>
+<script src="js/core.js?v=100" defer></script>
+<script src="js/cat.js?v=100" defer></script>
+<script src="js/wardrobe.js?v=100" defer></script>
+<script src="js/game.js?v=100" defer></script>
+</head>
+<body data-page="home" data-back="index.html" data-back-text="首页" data-tabbar="off">
+<div class="app notab">
+
+  <div class="gstage tall">
+    <canvas id="cv"></canvas>
+    <div class="gcover" id="load"><h3>正在读真猫和 6 件真图衣裳…</h3></div>
+  </div>
+
+  <div class="row2" style="grid-template-columns:1fr 1fr 1fr;margin-top:12px">
+    <button class="btn line" id="btnRand">随机一套</button>
+    <button class="btn line" id="btnClear">全部脱下</button>
+    <button class="btn gold" id="btnSave">存进收藏</button>
+  </div>
+  <button class="btn coral block" id="btnPng" style="margin-top:10px">导出成品图 PNG</button>
+
+  <div class="sect"><h2>挑一件</h2><span class="mut small" id="nowTxt">现在：素着</span></div>
+  <div class="slots" id="slots"></div>
+  <div class="items" id="items"></div>
+
+  <div class="card" style="margin-top:16px">
+    <b>说明</b>
+    <p class="small mut" style="margin-top:6px">
+      6 件衣裳都是真图（<code>assets/dressup/</code> 下的宠物服产品图），不是画的。同类只能穿一件，再点一次就是脱下，
+      搭配存在浏览器 localStorage 里，换到别的页面（我家猫、首页）也是同一套。
+      <b>背包这个位置现在是空的</b>：没有背包的真图，做上去就得放假图，所以这一格明确标成待补，不放按钮骗人。
+      另外衣服看起来比猫窄一圈，是因为正脸坐姿能露出的胸口只有 178 像素高，而服装原图接近正方形——
+      这是素材和姿势的冲突，不是缩放能调好的。
+    </p>
+  </div>
+
+  <div class="sect"><h2>我的搭配</h2><span class="mut small" id="savedN"></span></div>
+  <div class="grid3" id="saved"></div>
+</div>
+
+<script src="js/p/dressup.js?v=100" defer></script>
+</body>
+</html>

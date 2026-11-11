@@ -2,309 +2,68 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#ffe4e9">
-<title>眉姐姐的专属小窝</title>
-<link rel="stylesheet" href="css/pet.css">
-<style>
-  body { background: linear-gradient(180deg, #ffe2ea 0%, #ffeef2 45%, #fff4f6 100%); }
-  .page-frame {
-    background: linear-gradient(180deg, #fff3f6 0%, #fff8fb 100%);
-    border-radius: 24px; margin: 8px; padding: 0 0 18px;
-    box-shadow: 0 6px 24px #e8899a22; position: relative; overflow: hidden;
-  }
-  .home-topbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px 4px; }
-  .home-icon-btn {
-    width: 42px; height: 42px; background: var(--white); border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; box-shadow: 0 2px 8px #e8899a20;
-  }
-  .home-badge {
-    background: linear-gradient(90deg, #ffd9a0, #ffc06a);
-    color: #7a4a1c; font-size: 12px; font-weight: 800;
-    padding: 6px 12px; border-radius: 14px; box-shadow: 0 2px 6px #00000010;
-  }
-  .home-flower { width: 34px; }
-
-  /* HERO */
-  .home-hero { text-align: center; padding: 6px 16px 8px; position: relative; }
-  .home-cat-wrap { position: relative; display: inline-block; margin: 6px auto 4px; }
-  .home-cat-frame {
-    width: 200px; height: 200px; border-radius: 28px; overflow: hidden;
-    border: 6px solid var(--white); box-shadow: 0 8px 26px #e8899a30;
-    position: relative; background: #fff;
-  }
-  .home-cat-frame img { width: 100%; height: 100%; object-fit: cover; }
-  .home-cat-crown {
-    position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
-    background: linear-gradient(90deg,#ffd45e,#ffb43e); color: #fff;
-    font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 12px;
-    box-shadow: 0 3px 10px #ffb43e55; white-space: nowrap; z-index: 3;
-  }
-  .home-name {
-    font-size: 32px; font-weight: 900; color: #ff6f91; margin-top: 12px;
-    letter-spacing: 2px; text-shadow: 2px 2px 0 #fff, -1px -1px 0 #ffd0dd, 1px -1px 0 #ffd0dd;
-  }
-  .home-sub { font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 2px; }
-  .home-tags { display: flex; gap: 8px; justify-content: center; margin: 10px 0 4px; flex-wrap: wrap; }
-  .home-tag {
-    background: var(--white); border: 1.5px solid var(--pink-border);
-    color: var(--pink-dark); font-size: 12px; font-weight: 700;
-    padding: 4px 10px; border-radius: 12px; box-shadow: 0 2px 6px #e8899a12;
-  }
-  .home-speech {
-    position: absolute; right: -8px; top: 0;
-    background: var(--white); padding: 10px 12px; border-radius: 16px;
-    font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1.6;
-    box-shadow: 0 3px 12px #00000012; max-width: 116px; z-index: 4;
-  }
-  .home-speech::after {
-    content: ""; position: absolute; left: -8px; top: 18px;
-    border: 8px solid transparent; border-right-color: var(--white);
-  }
-  .deco { position: absolute; pointer-events: none; opacity: 0.55; }
-
-  /* INTIMACY */
-  .intimacy {
-    margin: 12px 16px; background: var(--white); border-radius: 18px;
-    padding: 12px 14px; box-shadow: 0 3px 12px #e8899a14; border: 1.5px solid var(--pink-border);
-  }
-  .intimacy-head { display: flex; justify-content: space-between; align-items: center; }
-  .intimacy-label { font-size: 13px; font-weight: 800; color: var(--ink); }
-  .intimacy-label b { color: #ff6f91; font-size: 15px; }
-  .intimacy-heart { font-size: 16px; animation: beat 1.2s ease-in-out infinite; }
-  @keyframes beat { 0%,100%{transform:scale(1);} 50%{transform:scale(1.18);} }
-  .intimacy-bar { height: 12px; background: #ffe3ea; border-radius: 8px; margin: 8px 0 6px; overflow: hidden; }
-  .intimacy-fill {
-    height: 100%; width: 68%; border-radius: 8px;
-    background: linear-gradient(90deg, #ff9fb3, #ff6f91);
-    box-shadow: 0 0 8px #ff6f9155; transition: width 1s ease;
-  }
-  .intimacy-tip { font-size: 11px; color: var(--muted); }
-
-  /* SECTION */
-  .sec-title { font-size: 15px; font-weight: 900; color: var(--ink); margin: 14px 16px 8px; display: flex; align-items: center; gap: 6px; }
-  .sec-title .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff6f91; }
-  .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 16px; }
-  .game-btn {
-    border-radius: 20px; padding: 14px 10px 12px; text-align: center;
-    box-shadow: 0 3px 10px #e8899a12; border: 2.5px solid; position: relative;
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    transition: transform 0.12s;
-  }
-  .game-btn:active { transform: scale(0.95); }
-  .game-btn .cat {
-    width: 52px; height: 52px; border-radius: 50%; object-fit: cover;
-    border: 2.5px solid #fff; box-shadow: 0 2px 6px #00000012;
-  }
-  .game-btn .icon { font-size: 20px; line-height: 1; }
-  .game-btn .label { font-size: 15px; font-weight: 800; color: var(--ink); }
-  .game-btn .sub { font-size: 10px; color: var(--muted); font-weight: 600; }
-  .game-btn:nth-child(1) { background: #fff8e7; border-color: #ffe4a0; }
-  .game-btn:nth-child(2) { background: #e8f4f8; border-color: #a8d8ea; }
-  .game-btn:nth-child(3) { background: #f3e8f5; border-color: #d4a5d8; }
-  .game-btn:nth-child(4) { background: #fff0f3; border-color: #ffb6c1; }
-
-  /* ACHIEVEMENTS STRIP */
-  .ach-strip {
-    margin: 14px 16px 0; background: var(--white); border-radius: 18px;
-    padding: 12px 14px; box-shadow: 0 3px 12px #e8899a14; border: 1.5px solid var(--pink-border);
-    display: flex; align-items: center; gap: 12px;
-  }
-  .ach-badge { font-size: 30px; filter: drop-shadow(0 2px 4px #00000018); }
-  .ach-info { flex: 1; }
-  .ach-info .t { font-size: 14px; font-weight: 800; color: var(--ink); }
-  .ach-info .d { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .ach-go {
-    background: linear-gradient(90deg,#ffb6c1,#ff9fb3); color: #fff;
-    font-size: 12px; font-weight: 800; padding: 8px 12px; border-radius: 14px;
-  }
-
-  /* SHARE CTA */
-  .home-cta {
-    background: linear-gradient(90deg, #ff9fb3, #ff7f9e);
-    color: var(--white); padding: 14px 20px; border-radius: 24px;
-    font-size: 14px; font-weight: 800; text-align: center;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    box-shadow: 0 4px 14px #e8899a30; margin: 16px 16px 0; position: relative;
-  }
-  .home-cta:active { transform: scale(0.98); }
-
-  /* SHARE MODAL */
-  .modal-mask {
-    position: fixed; inset: 0; background: #00000066; display: none;
-    align-items: center; justify-content: center; z-index: 50; padding: 24px;
-  }
-  .modal-mask.show { display: flex; }
-  .card-share {
-    background: linear-gradient(180deg,#fff3f6,#fff8fb);
-    border-radius: 24px; padding: 18px; width: 100%; max-width: 320px;
-    box-shadow: 0 10px 40px #00000040; text-align: center; position: relative;
-    border: 2px solid #fff;
-  }
-  .card-share .cs-photo { width: 120px; height: 120px; border-radius: 24px; object-fit: cover; border: 4px solid #fff; box-shadow: 0 6px 18px #e8899a30; margin: 0 auto; }
-  .card-share .cs-crown { display: inline-block; background: linear-gradient(90deg,#ffd45e,#ffb43e); color:#fff; font-size:11px; font-weight:800; padding:3px 10px; border-radius:10px; margin-top:8px; }
-  .card-share .cs-name { font-size: 24px; font-weight: 900; color:#ff6f91; margin-top:6px; letter-spacing:1px; }
-  .card-share .cs-sub { font-size: 12px; color: var(--muted); margin: 2px 0 10px; }
-  .card-share .cs-tags { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:12px; }
-  .card-share .cs-tag { background:#fff; border:1.5px solid var(--pink-border); color:var(--pink-dark); font-size:11px; font-weight:700; padding:3px 9px; border-radius:10px; }
-  .card-share .cs-qr {
-    width: 96px; height: 96px; margin: 4px auto 10px; border-radius: 14px;
-    background:
-      linear-gradient(45deg,#ffd6e0 25%,transparent 25%) -10px 0/20px 20px,
-      linear-gradient(-45deg,#ffd6e0 25%,transparent 25%) -10px 0/20px 20px,
-      linear-gradient(45deg,transparent 75%,#ffd6e0 75%) -10px 0/20px 20px,
-      linear-gradient(-45deg,transparent 75%,#ffd6e0 75%) -10px 0/20px 20px,
-      #fff;
-    border: 2px solid #fff; box-shadow: 0 3px 10px #e8899a20;
-    display:flex; align-items:center; justify-content:center; font-size:30px;
-  }
-  .card-share .cs-actions { display:flex; gap:10px; }
-  .cs-btn { flex:1; padding: 11px 0; border-radius: 16px; font-size: 13px; font-weight: 800; }
-  .cs-btn.primary { background: linear-gradient(90deg,#ff9fb3,#ff7f9e); color:#fff; }
-  .cs-btn.ghost { background:#fff; color:var(--pink-dark); border:1.5px solid var(--pink-border); }
-  .cs-close { position:absolute; top:10px; right:12px; font-size:20px; color:#bbb; }
-
-  .home-cat-frame { cursor: pointer; transition: transform 0.1s; }
-  .home-cat-frame.wiggle { animation: heroWiggle 0.6s ease; }
-  @keyframes heroWiggle {
-    0%,100%{transform:rotate(0);} 20%{transform:rotate(-7deg) scale(1.04);}
-    50%{transform:rotate(7deg) scale(1.04);} 80%{transform:rotate(-4deg);}
-  }
-  .game-btn-wide {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    margin: 12px 16px 0; background: #fff8e7; border: 2.5px solid #ffe4a0;
-    border-radius: 20px; padding: 14px; font-size: 15px; font-weight: 800; color: var(--ink);
-    box-shadow: 0 3px 10px #e8899a12; transition: transform 0.12s;
-  }
-  .game-btn-wide:active { transform: scale(0.97); }
-  .game-btn-wide .icon { font-size: 22px; }
-</style>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FBF6EC">
+<title>我家猫 · 角色</title>
+<link rel="stylesheet" href="css/app.css?v=100">
+<script src="js/icons.js?v=100" defer></script>
+<script src="js/core.js?v=100" defer></script>
+<script src="js/cat.js?v=100" defer></script>
+<script src="js/wardrobe.js?v=100" defer></script>
+<script src="js/game.js?v=100" defer></script>
+<script src="js/content.js?v=100" defer></script>
 </head>
-<body>
-<div class="page-frame">
-  <div class="home-topbar">
-    <div class="home-icon-btn">🏠</div>
-    <div class="home-badge">✨ 专属宠物 · 定制版</div>
-    <img class="home-flower" src="assets/pet-flower-deco_1794193833335_ca791ebb.png" alt="">
+<body data-page="home" data-back="index.html" data-back-text="首页" data-tabbar="off">
+<div class="app notab">
+
+  <div class="gstage tall" style="aspect-ratio:5/6">
+    <canvas id="cv"></canvas>
+    <div class="gcover hide" id="load"></div>
   </div>
 
-  <div class="home-hero">
-    <img class="deco" src="assets/pet-paw-deco_1794193917877_4a1496ce.png" style="width:30px;top:0;left:6px;">
-    <img class="deco" src="assets/pet-star-deco_1794193906929_f5d7b26a.png" style="width:24px;top:50px;left:14px;">
-    <img class="deco" src="assets/pet-heart-deco_1794193821067_ac04d555.png" style="width:22px;bottom:50px;left:8px;">
-    <img class="deco" src="assets/pet-paw-deco_1794193917877_4a1496ce.png" style="width:26px;bottom:54px;right:8px;">
+  <div class="row2" style="margin-top:12px">
+    <div class="card center"><b class="mut small">亲密</b><div style="font-size:22px;font-weight:900" id="loveN">0</div>
+      <div class="bar" style="height:6px;border-radius:99px;background:var(--paper2);overflow:hidden;margin-top:6px">
+        <i id="loveBar" style="display:block;height:100%;background:var(--gold);width:0"></i></div></div>
+    <div class="card center"><b class="mut small">当前表情</b><div style="font-size:18px;font-weight:900" id="nowFace">端坐</div>
+      <div class="mut small" id="nowNote">原片 assets/sit.jpg</div></div>
+  </div>
 
-    <div class="home-cat-wrap">
-      <div class="home-cat-crown">👑 网红小猫</div>
-      <div class="home-cat-frame" id="heroCat">
-        <img src="assets/meijiejie.jpg" alt="眉姐姐">
-      </div>
-      <div class="home-speech">嗨～我是眉姐姐<br>今天也要一起开心哦♥</div>
+  <div class="sect"><h2>她的表情（都是真照片）</h2></div>
+  <p class="mut small" style="margin-top:-4px">点一张，猫会用身体动作回应。这六张是原片，不是画的表情。</p>
+  <div class="grid3" id="faces"></div>
+
+  <div class="sect"><h2>档案</h2></div>
+  <div class="card" id="facts"></div>
+
+  <div class="sect"><h2>身上穿的</h2><a href="dressup.html">去换装 ›</a></div>
+  <div class="card" id="wearNow"></div>
+
+  <div class="sect"><h2>摸她</h2></div>
+  <div class="card">
+    <div class="row3">
+      <button class="btn line small" data-z="head">摸头</button>
+      <button class="btn line small" data-z="body">拍背</button>
+      <button class="btn line small" data-z="paw">握手</button>
+      <button class="btn line small" data-z="tail">碰尾巴</button>
+      <button class="btn line small" data-z="call">叫她</button>
+      <button class="btn line small" data-z="treat">给零食</button>
     </div>
-
-    <h1 class="home-name">眉姐姐</h1>
-    <div class="home-sub">一只爱睡懒觉的治愈系喵星人</div>
-    <div class="home-tags">
-      <span class="home-tag">🐱 英短</span>
-      <span class="home-tag">🎂 3 岁</span>
-      <span class="home-tag">⚖ 4.2kg</span>
-    </div>
+    <p class="mut small" style="margin-top:10px" id="react">直接点画布上的猫也行，头、背、爪子、尾巴根的反应不一样。</p>
   </div>
 
-  <div class="intimacy">
-    <div class="intimacy-head">
-      <span class="intimacy-label">和眉姐姐的亲密度 <b>68%</b></span>
-      <span class="intimacy-heart">💗</span>
-    </div>
-    <div class="intimacy-bar"><div class="intimacy-fill"></div></div>
-    <div class="intimacy-tip">多陪她玩小游戏，亲密度会一路上涨哦～</div>
-  </div>
-
-  <div class="sec-title"><span class="dot"></span>陪眉姐姐玩</div>
-  <div class="game-grid">
-    <a class="game-btn" href="pet-pet.html">
-      <img class="cat" src="assets/meijiejie.jpg" alt="">
-      <span class="icon">🐾</span>
-      <span class="label">互动屋</span>
-      <span class="sub">撸猫 + 逗猫棒</span>
-    </a>
-    <a class="game-btn" href="pet-feed.html">
-      <img class="cat" src="assets/meijiejie.jpg" alt="">
-      <span class="icon">🍗</span>
-      <span class="label">节奏投喂</span>
-      <span class="sub">跟节拍喂食</span>
-    </a>
-    <a class="game-btn" href="pet-fish.html">
-      <img class="cat" src="assets/meijiejie.jpg" alt="">
-      <span class="icon">🎣</span>
-      <span class="label">接鱼挑战</span>
-      <span class="sub">帮她接小鱼</span>
-    </a>
-    <a class="game-btn" href="pet-quiz.html">
-      <img class="cat" src="assets/meijiejie.jpg" alt="">
-      <span class="icon">⭐</span>
-      <span class="label">性格测试</span>
-      <span class="sub">测测她是哪种喵</span>
-    </a>
-  </div>
-
-  <div class="home-cta" id="shareBtn">
-    <span>💌</span><span>把眉姐姐分享给朋友</span>
+  <div class="card" style="margin-top:16px;background:var(--paper2)">
+    <b>这一版的角色是怎么做的</b>
+    <p class="small" style="margin-top:6px">
+      只有 <code>assets/pets/realcat/body.webp</code> 一张实拍抠图，所以能做得真的动作是：呼吸起伏、落地挤压、
+      整体倾斜、跳动位移、影子随高度变化——这些都是对同一张照片做形变，不是假动效。
+      <b>眨眼、张嘴、摇尾这三样需要额外的实拍分件</b>（闭眼一张、张嘴一张、尾巴一张），
+      现在素材里没有，所以这三个功能没做，界面上也没有放对应的假按钮。
+      补素材的提示词写在 README 的「待补素材」一节。
+    </p>
   </div>
 </div>
 
-<!-- 分享名片弹窗 -->
-<div class="modal-mask" id="shareModal">
-  <div class="card-share">
-    <span class="cs-close" id="csClose">✕</span>
-    <img class="cs-photo" src="assets/meijiejie.jpg" alt="眉姐姐">
-    <div class="cs-crown">👑 我的专属宠物</div>
-    <div class="cs-name">眉姐姐</div>
-    <div class="cs-sub">治愈系网红小猫 · 英短 · 3 岁</div>
-    <div class="cs-tags">
-      <span class="cs-tag">🐾 互动屋</span>
-      <span class="cs-tag">🍗 节奏投喂</span>
-      <span class="cs-tag">🎣 接鱼挑战</span>
-    </div>
-    <div class="cs-qr">🐱</div>
-    <div class="cs-actions">
-      <button class="cs-btn ghost" id="csCopy">复制链接</button>
-      <button class="cs-btn primary" id="csShare">分享给好友</button>
-    </div>
-  </div>
-</div>
-
-<script src="js/pet-cut.js"></script>
-<script>
-(() => {
-  const modal = document.getElementById("shareModal");
-  document.getElementById("shareBtn").addEventListener("click", () => modal.classList.add("show"));
-  document.getElementById("csClose").addEventListener("click", () => modal.classList.remove("show"));
-  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("show"); });
-
-  document.getElementById("csCopy").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(location.href); alert("链接已复制，快发给朋友吧～"); }
-    catch { alert("复制失败，请手动分享链接"); }
-  });
-  document.getElementById("csShare").addEventListener("click", async () => {
-    const data = { title: "眉姐姐的专属小窝", text: "来看看我的专属宠物眉姐姐～", url: location.href };
-    try { if (navigator.share) await navigator.share(data); else alert("当前环境不支持系统分享，已为你复制链接"); }
-    catch { /* 用户取消 */ }
-  });
-})();
-</script>
-<script src="js/sfx.js"></script>
-<script>
-(() => {
-  const hero = document.getElementById("heroCat");
-  if (hero) {
-    hero.addEventListener("click", () => {
-      SFX.resume(); SFX.meow();
-      hero.classList.remove("wiggle"); void hero.offsetWidth; hero.classList.add("wiggle");
-    });
-  }
-})();
-</script>
+<script src="js/p/pet.js?v=100" defer></script>
 </body>
 </html>
