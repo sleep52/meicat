@@ -45,7 +45,7 @@ python -m http.server 8011
 ## 部署到 GitHub Pages
 
 站点根目录就是仓库根目录：Settings → Pages → `Deploy from a branch` / `main` / `root`，不需要 Actions。
-资源路径全部是相对路径，仓库里也没有 `#`、空格或非 ASCII 文件名，所以不需要 `.nojekyll`。
+仓库里带着 `.nojekyll`，Pages 会原样提供 jpg/webp 素材；资源路径全部是相对路径，也没有 `#`、空格或非 ASCII 文件名。
 推送后 CDN 生效一般要等 30～60 秒。
 
 ## 目录结构
